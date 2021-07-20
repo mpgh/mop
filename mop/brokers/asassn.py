@@ -4,7 +4,6 @@ from astropy.time import Time, TimezoneInfo
 import astropy.units as u
 from bs4 import BeautifulSoup
 import datetime
-from html.parser import HTMLParser
 import lxml.html as lh
 import os
 import pandas as pd
@@ -175,24 +174,50 @@ class ASASSNBroker():
             i = 1
             while(running == True):
                 functional_link = os.path.join(link+"?page=" + str(i))
+                table = []
                 try:
-                    xhtml = self.url_get_contents(functional_link).decode('utf-8')
-                    p = HTMLParser()
-                    p.feed(xhtml)
-                    dataframe = pd.DataFrame(p.tables)
-                    matrix = dataframe.to_numpy()
-                    length = len(matrix[0])
-                    j = 1
-                    while(j < length):
-                        hjd.append(matrix[0][j][0])
-                        ut_date.append(matrix[0][j][1])
-                        camera.append(matrix[0][j][2])
-                        myfilter.append(matrix[0][j][3])
-                        mag.append(matrix[0][j][4])
-                        mag_error.append(matrix[0][j][5])
-                        flux.append(matrix[0][j][6])
-                        flux_error.append(matrix[0][j][7])
-                        j = j + 1
+
+                    page = requests.get(functional_link)
+                    doc = lh.fromstring(page.content)
+                    tr_elements = doc.xpath('//tr')
+                    h = 0
+                    for t in tr_elements[0]:
+                        h += 1
+                        content = t.text_content()
+                        table.append((content, []))
+                    for k in range(1, len(tr_elements)):
+                        row = tr_elements[k]
+                        '''
+                        If row is not of size 8, the data is not from the right table
+                        '''
+                        if len(row) != 8:
+                            break
+                        h = 0
+                        for t in row.iterchildren():
+                            data = t.text_content()
+                            if h>0:
+                                try:
+                                    data = int(data)
+                                except:
+                                    pass
+                            table[h][1].append(data)
+                            h += 1
+                        for element in table[0][1]:
+                            hjd.append(element)
+                        for element in table[1][1]:
+                            ut_date.append(element)
+                        for element in table[2][1]:
+                            camera.append(element)
+                        for element in table[3][1]:
+                            myfilter.append(element)
+                        for element in table[4][1]:
+                            mag.append(element)
+                        for element in table[5][1]:
+                            mag_error.append(element)
+                        for element in table[6][1]:
+                            flux.append(element)
+                        for element in table[7][1]:
+                            flux_error.append(element)
 
                 except HTTPError:
                     running == False
