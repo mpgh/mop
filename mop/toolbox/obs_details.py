@@ -16,7 +16,7 @@ def timeobj(date):
     return obs_night
 
 
-def calculate_visibility(ra, dec, obs_night, observatory, max_airmass=2.0):
+def calculate_visibility(ra, dec, start, end, observatory, max_airmass=2.0):
     """
     Visibility calculator for a single target.  Constraints include airmass, altitude,
     and AtNight, among others.
@@ -30,8 +30,8 @@ def calculate_visibility(ra, dec, obs_night, observatory, max_airmass=2.0):
         else:
             pass
 
-        obs_begin = obs_loc.twilight_evening_astronomical(obs_night, which='nearest')
-        obs_end = obs_loc.twilight_morning_astronomical(obs_night, which='next')
+        obs_begin = obs_loc.twilight_evening_astronomical(start, which='nearest')
+        obs_end = obs_loc.twilight_morning_astronomical(end, which='next')
         observing_range = [obs_begin, obs_end]
         constraints = [AirmassConstraint(max_airmass), AltitudeConstraint(20*u.deg, 85*u.deg),
                        AtNightConstraint.twilight_astronomical()]
@@ -43,7 +43,7 @@ def calculate_visibility(ra, dec, obs_night, observatory, max_airmass=2.0):
     except ValueError:
         print('Your dates were not inputted correctly.')
 
-def all_night_moon_sep(ra, dec, obs_night, observatory, sample_size=25):
+def all_night_moon_sep(ra, dec, start, end, observatory, sample_size=25):
     """
     Determines the min and max separations of the target object and the moon over a full
     observing night at the desired observatory. If it registers <15 degree separation at
@@ -60,22 +60,23 @@ def all_night_moon_sep(ra, dec, obs_night, observatory, sample_size=25):
         else:
             pass
 
-        obs_begin = obs_loc.twilight_evening_astronomical(obs_night, which='nearest')
-        obs_end = obs_loc.twilight_morning_astronomical(obs_night, which='next')
-        midnight = obs_loc.midnight(obs_night, which='nearest')
-        lower_lim = (obs_begin - midnight).to(u.h)
-        upper_lim = (obs_end - midnight).to(u.h)
+        obs_begin = obs_loc.twilight_evening_astronomical(start, which='nearest')
+        obs_end = obs_loc.twilight_morning_astronomical(end, which='next')
+        midnight_b = obs_loc.midnight(start, which='nearest')
+        midnight_e = obs_loc.midnight(end, which='nearest')
+        lower_lim = (obs_begin - midnight_b).to(u.h)
+        upper_lim = (obs_end - midnight_e).to(u.h)
 
         delta_midnight = np.linspace(lower_lim.value, upper_lim.value, sample_size)*u.hour
-        frame_observing_night = AltAz(obstime=midnight+delta_midnight, location=obs_loc.location)
+        frame_observing_night = AltAz(obstime=midnight_b+delta_midnight, location=obs_loc.location)
         targetaltaz_obsnight = coords.transform_to(frame_observing_night)
         moonaltaz_obsnight = get_moon(
-            time=midnight+delta_midnight,
+            time=midnight_b+delta_midnight,
             location=obs_loc.location).transform_to(frame_observing_night)
 
-        moon_frac = moon_illum(time=midnight+delta_midnight) * 100
+        moon_frac = moon_illum(time=midnight_b+delta_midnight) * 100
         avg_moonill = np.mean(moon_frac)
-        mphase = moon_phase_angle(time=midnight+delta_midnight).to(u.deg)
+        mphase = moon_phase_angle(time=midnight_b+delta_midnight).to(u.deg)
         avg_mphase = np.mean(mphase)
         # does not go to negatives: simply moves between 0 and 180 degrees, 0 being full moon and 180 being new moon
 
