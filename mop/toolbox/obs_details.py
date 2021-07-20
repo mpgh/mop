@@ -19,7 +19,7 @@ def timeobj(date):
 def calculate_visibility(ra, dec, obs_night, observatory, max_airmass=2.0):
     """
     Visibility calculator for a single target.  Constraints include airmass, altitude,
-    AtNight, and moon separation, among others.
+    and AtNight, among others.
     """
     try:
         coords = SkyCoord(ra*u.deg, dec*u.deg, frame='icrs')
@@ -37,9 +37,9 @@ def calculate_visibility(ra, dec, obs_night, observatory, max_airmass=2.0):
                        AtNightConstraint.twilight_astronomical()]
         ever_observable = is_observable(constraints, obs_loc, coords, time_range=observing_range)
         if ever_observable:
-            pass
+            return True
         else:
-            raise Exception('This object is not observable by MuSCAT on this date.')
+            return False
     except ValueError:
         print('Your dates were not inputted correctly.')
 
@@ -54,6 +54,7 @@ def all_night_moon_sep(ra, dec, obs_night, observatory, sample_size=25):
         coords = SkyCoord(ra*u.deg, dec*u.deg, frame='icrs')
 
         obs_loc = choose_loc(observatory)
+        # I can either leave this in here, or I can require the input to be choose_loc('Whatever')
         if obs_loc is None:
             raise Exception('Please input a valid LCO observatory in string format.')
         else:
@@ -82,14 +83,16 @@ def all_night_moon_sep(ra, dec, obs_night, observatory, sample_size=25):
         sep_array_deg = [x.degree for x in sep_array]
         avg_sep = np.mean(sep_array_deg)
 
-        if max(sep_array_deg) < 15:
-            raise Exception('Object is too close to the moon on this date.')
-        if min(sep_array_deg) >= 15:
-            print('Average moon separation is {0:.1f} degrees'.format(avg_sep))
-            print('{0:.1f} percent of the moon is illuminated'.format(avg_moonill))
-            print('The average moon phase angle is {0:.1f}'.format(avg_mphase))
-        else:
-            warnings.warn('Warning: Object is very close to the moon on this date.')
-            print('Average separation is {0:.1f} degrees'.format(avg_sep))
+        return sep_array_deg, avg_sep, avg_moonill, avg_mphase
+
+        #if max(sep_array_deg) < 15:
+            #raise Exception('Object is too close to the moon on this date.')
+        #elif min(sep_array_deg) >= 15:
+            #print('Average moon separation is {0:.1f} degrees'.format(avg_sep))
+            #print('{0:.1f} percent of the moon is illuminated'.format(avg_moonill))
+            #print('The average moon phase angle is {0:.1f}'.format(avg_mphase))
+        #else:
+            #warnings.warn('Warning: Object is very close to the moon on this date.')
+            #print('Average separation is {0:.1f} degrees'.format(avg_sep))
     except (ValueError, AttributeError):
         print('Your dates were not inputted correctly.')
