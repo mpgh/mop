@@ -94,7 +94,10 @@ class ASASSNBroker():
         list_of_targets = []
         listofevents = events
         for event in listofevents[0:]:
-            target_name = event[0]
+            if("---" in event[0]):
+                target_name = 'ASASSN_MOP_' + event[2] + '_' + event[3]
+            else:
+                target_name = event[0]
             sexagesimal_string = event[2] + " " + event[3]
             cible = SkyCoord(sexagesimal_string, frame=ICRS, unit=(u.hourangle, u.deg))
             try:
@@ -231,6 +234,7 @@ class ASASSNBroker():
             target = targets[index]
             try:
                 rd = ReducedDatum.objects.get(value=data)
+                rd.save()
             except:
                 rd, created = ReducedDatum.objects.get_or_create(
                     timestamp=jd.to_datetime(timezone=TimezoneInfo()),
@@ -238,7 +242,6 @@ class ASASSNBroker():
                     source_name='ASAS-SN',
                     data_type='photometry',
                     target=target)
-            if created:
                 rd.save()
             rd_list.append(rd)
             k = k + 1
