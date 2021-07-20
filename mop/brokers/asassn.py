@@ -185,8 +185,8 @@ class ASASSNBroker():
                         h += 1
                         content = t.text_content()
                         table.append((content, []))
-                    for k in range(1, len(tr_elements)):
-                        row = tr_elements[k]
+                    for m in range(1, len(tr_elements)):
+                        row = tr_elements[m]
                         '''
                         If row is not of size 8, the data is not from the right table
                         '''
@@ -219,7 +219,7 @@ class ASASSNBroker():
                         for element in table[7][1]:
                             flux_error.append(element)
 
-                except HTTPError:
+                except IndexError:
                     running == False
                     break
                 i = i + 1
