@@ -1,3 +1,5 @@
+astroplan==0.8
+astropy==4.2.1
 tomtoolkit==2.4.0
 #tom_publications==0.1.0
 #tom-antares>=0.1.0
@@ -10,3 +12,4 @@ django-storages==1.11.1
 boto3==1.16.61
 lxml==4.6.3
 pandas
+numpy
