@@ -226,23 +226,27 @@ class ASASSNBroker():
                     running == False
                     break
                 i = i + 1
-            data = {'magnitude': mag, 'myfilter': myfilter,
-                    'error': mag_error}
-            jd = Time(datetime.datetime.now()).jd
-            jd = Time(jd, format='jd', scale='utc')
-            index = indices_with_photometry_data[k]
-            target = targets[index]
-            try:
-                rd = ReducedDatum.objects.get(value=data)
-                rd.save()
-            except:
-                rd, created = ReducedDatum.objects.get_or_create(
-                    timestamp=jd.to_datetime(timezone=TimezoneInfo()),
-                    value=data,
-                    source_name='ASAS-SN',
-                    data_type='photometry',
-                    target=target)
-                rd.save()
-            rd_list.append(rd)
+            n = 0
+            while(n < len(hjd)):
+                data = {'magnitude': mag[n], 'filter': myfilter[n],
+                    'error': mag_error[n]}
+                time_to_float = float(hjd[n])
+                jd = Time(time_to_float, format='jd').jd
+                jd = Time(jd, format='jd', scale='utc')
+                index = indices_with_photometry_data[k]
+                target = targets[index]
+                try:
+                    rd = ReducedDatum.objects.get(value=data)
+                    rd.save()
+                except:
+                    rd, created = ReducedDatum.objects.get_or_create(
+                        timestamp = jd.to_datetime(timezone=TimezoneInfo()),
+                        value=data,
+                        source_name='ASAS-SN',
+                        data_type='photometry',
+                        target=target)
+                    rd.save()
+                rd_list.append(rd)
+                n = n + 1
             k = k + 1
         return rd_list
