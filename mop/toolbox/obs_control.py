@@ -350,6 +350,7 @@ def build_and_submit_phot(target, obs_type):
                                       observation_id=observation_id
                                       )
 
+
 def build_and_submit_muscat(target, obs_type):
 
        #Defaults

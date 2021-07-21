@@ -25,6 +25,9 @@ constraints = [AirmassConstraint(2.0), AltitudeConstraint(20*u.deg, 85*u.deg),
                AtNightConstraint.twilight_astronomical()]
 ever_observable = is_observable(constraints, OGG, v_coords, time_range=v_observing_range)
 
+v_fail_start = Time("2019-12-24 10:00:00", scale='utc')
+v_fail_end = Time("2019-12-25 10:00:00", scale='utc')
+
 
 class TestVisibilityCalc(TestCase):
 
@@ -47,16 +50,14 @@ class TestVisibilityCalc(TestCase):
 
     def test_raise_exceptions(self):
         with self.subTest('Test that an invalid object returns an exception.'):
-            with patch('toolbox.obs_details.calculate_visibility') as mock_calculate_visibility:
-                mock_calculate_visibility.side_effect = Exception()
-                with self.assertRaisesRegex(Exception, 'This object is not observable by MuSCAT on this date.'):
-                    calculate_visibility(37.954, 89.264, Time("2019-12-25 00:00:00", scale='utc'), 'OGG')
+            vis = calculate_visibility(37.954, 89.264, v_fail_start, v_fail_end, 'OGG')
+            self.assertFalse(vis)
 
         with self.subTest('Test that an exception is raised if the location is incorrect.'):
             with patch('toolbox.obs_details.calculate_visibility') as mock_calculate_visibility:
                 mock_calculate_visibility.side_effect = Exception()
                 with self.assertRaisesRegex(Exception, 'Please input a valid LCO observatory in string format.'):
-                    calculate_visibility(37.954, 89.264, Time("2019-12-25 00:00:00", scale='utc'), OGG)
+                    calculate_visibility(37.954, 89.264, v_fail_start, v_fail_end, OGG)
 
 
 m_test_target = ['M31', 10.6847083*u.deg, 41.2687500*u.deg]
@@ -81,6 +82,9 @@ avg_mphase = np.mean(mphase)
 sep_array = [y.separation(x) for x, y in zip(targetaltaz_obsnight, moonaltaz_obsnight)]
 sep_array_deg = [x.degree for x in sep_array]
 avg_sep = np.mean(sep_array_deg)
+
+m_fail_start = Time("2021-05-03 10:00:00", scale='utc')
+m_fail_end = Time("2021-05-04 10:00:00", scale='utc')
 
 
 class MoonSepCalc(TestCase):
@@ -116,10 +120,10 @@ class MoonSepCalc(TestCase):
             with patch('toolbox.obs_details.all_night_moon_sep') as mock_all_night_moon_sep:
                 mock_all_night_moon_sep.side_effect = Exception()
                 with self.assertRaisesRegex(Exception, 'Object is too close to the moon on this date.'):
-                    all_night_moon_sep(323.2651667, -19.8063111, Time("2021-05-04 00:00:00", scale='utc'), 'OGG')
+                    all_night_moon_sep(323.2651667, -19.8063111, m_fail_start, m_fail_end, 'OGG')
 
         with self.subTest('Test that an exception is raised if the location is incorrect.'):
             with patch('toolbox.obs_details.all_night_moon_sep') as mock_all_night_moon_sep:
                 mock_all_night_moon_sep.side_effect = Exception()
                 with self.assertRaisesRegex(Exception, 'Please input a valid LCO observatory in string format.'):
-                    all_night_moon_sep(323.2651667, -19.8063111, Time("2021-05-04 00:00:00", scale='utc'), OGG)
+                    all_night_moon_sep(323.2651667, -19.8063111, m_fail_start, m_fail_end, OGG)
