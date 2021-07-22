@@ -55,7 +55,7 @@ class ASASSNBroker():
                 data = t.text_content()
                 if i > 0:
                     try:
-                        data = int(data)
+                        data = float(data)
                     except:
                         pass
                 table_list[i][1].append(data)
@@ -214,9 +214,9 @@ class ASASSNBroker():
                         for element in table[3][1]:
                             myfilter.append(element)
                         for element in table[4][1]:
-                            mag.append(element)
+                            mag.append(float(element))
                         for element in table[5][1]:
-                            mag_error.append(element)
+                            mag_error.append(float(element))
                         for element in table[6][1]:
                             flux.append(element)
                         for element in table[7][1]:
@@ -236,17 +236,22 @@ class ASASSNBroker():
                 index = indices_with_photometry_data[k]
                 target = targets[index]
                 try:
-                    rd = ReducedDatum.objects.get(value=data)
-                    rd.save()
-                except:
-                    rd, created = ReducedDatum.objects.get_or_create(
-                        timestamp = jd.to_datetime(timezone=TimezoneInfo()),
-                        value=data,
-                        source_name='ASAS-SN',
-                        data_type='photometry',
-                        target=target)
-                    rd.save()
+                    times = [Time(i.timestamp).jd for i in ReducedDatum.objects.filter(target=target) if i.data_type == 'photometry']
+                except: 
+                    times = []
+                if  (jd.value not in times):  
+                                rd, _ = ReducedDatum.objects.get_or_create(
+                                        timestamp=jd.to_datetime(timezone=TimezoneInfo()),
+                                        value=data,
+                                        source_name='ASAS-SN',
+                                        source_location='ASAS-SN',
+                                        data_type='photometry',
+                                        target=target)
+                                rd.save()
+                else:
+                    pass
+                
                 rd_list.append(rd)
-                n = n + 1
-            k = k + 1
+                n = n + 1  # repeats for all of the data points on the link for a specific target
+            k = k + 1  # repeats for all targets 
         return rd_list
