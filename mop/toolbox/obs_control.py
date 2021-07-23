@@ -227,10 +227,36 @@ def build_and_submit_phot(target, obs_type):
 
        telescope_class = TAP.TAP_telescope_class(mag_now)
 
+
        if telescope_class == '2m':
 
-          instrument_type = '2M0-SCICAM-SPECTRAL'
+          instrument_type = '2M0-SCICAM-MUSCAT'
           exposure_time_ip /= 2 # area ratio (kind of...)
+          visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OSS', max_airmass=max_airmass)
+          moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OSS', sample_size=75) #Check these
+
+          if visible_at_muscat:
+              pass
+          else:
+              raise Exception('This object is not observable by MuSCAT on this date.')
+
+          if min(moon_sep_at_muscat[0]) >= 15:
+              build_and_submit_muscat(target, obs_type)
+              #print('Average moon separation is {0:.1f} degrees'.format(moon_sep_at_muscat[1]))
+              #print('{0:.1f} percent of the moon is illuminated'.format(moon_sep_at_muscat[2]))
+              #print('The average moon phase angle is {0:.1f}'.format(moon_sep_at_muscat[3]))
+          elif max(moon_sep_at_muscat[0]) < 15:
+              raise Exception('Object is too close to the moon on this date.')
+          else:
+              build_and_submit_muscat(target, obs_type)
+              warnings.warn('Warning: Object is very close to the moon on this date.')
+              print('Average separation is {0:.1f} degrees'.format(moon_sep_at_muscat[1]))
+
+          need_to_submit = check_pending_observations(obs_name,'PENDING')
+
+          if need_to_submit is False:
+              return
+
 
        if telescope_class == '0.4m':
           #currently disabled this since we do not have 0.4m time
@@ -370,22 +396,12 @@ def build_and_submit_muscat(target, obs_type):
           obs_duration = 3 #days
           cadence = 1 #delta_hours/points
 
-          start = datetime.datetime.utcnow().isoformat()
-          end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration)).isoformat()
-          vis = calculate_visibility(target.ra, target.dec, start, end, 'OSS', max_airmass=max_airmass)
-          m_sep = all_night_moon_sep(target.ra, target.dec, start, end, 'OSS', sample_size=75) #Check these
-
 
        else:
 
           ipp = 0.95
           obs_name = target.name+'_'+'REG_phot'
           obs_duration = 7 #days
-
-          start = datetime.datetime.utcnow().isoformat()
-          end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration)).isoformat()
-          vis = calculate_visibility(target.ra, target.dec, start, end, 'OSS', max_airmass=max_airmass)
-          m_sep = all_night_moon_sep(target.ra, target.dec, start, end, 'OSS', sample_size=175) #Check these
 
           cadence = 20/target.extra_fields['tE']  #points/days
 
@@ -400,25 +416,6 @@ def build_and_submit_muscat(target, obs_type):
           cadence = 24/cadence #delta_hours/points
 
        jitter = cadence
-
-
-       if vis:
-           pass
-       else:
-           raise Exception('This object is not observable by MuSCAT on this date.')
-
-       if min(m_sep[0]) >= 15:
-           print('Average moon separation is {0:.1f} degrees'.format(m_sep[1]))
-           print('{0:.1f} percent of the moon is illuminated'.format(m_sep[2]))
-           print('The average moon phase angle is {0:.1f}'.format(m_sep[3]))
-       elif max(m_sep[0]) < 15:
-           raise Exception('Object is too close to the moon on this date.')
-       else:
-           warnings.warn('Warning: Object is very close to the moon on this date.')
-           print('Average separation is {0:.1f} degrees'.format(m_sep[1]))
-       # Only issue I'm seeing here is that including both night and day might mess
-       # with the average moon separation, illumination, and phase. Should I try and
-       # apply an AtNight constraint?
 
 
        need_to_submit = check_pending_observations(obs_name,'PENDING')
@@ -480,80 +477,6 @@ def build_and_submit_muscat(target, obs_type):
        request_obs =  lco.LCOMuscatImagingObservationForm(obs_dic)
        request_obs.is_valid()
        the_obs = request_obs.observation_payload()
-
-       telescope = lco.LCOFacility()
-       observation_ids = telescope.submit_observation(the_obs)
-
-       for observation_id in observation_ids:
-
-           record = ObservationRecord.objects.create(
-                                      target=target,
-                                      facility='LCO',
-                                      parameters=request_obs.serialize_parameters(),
-                                      observation_id=observation_id
-                                      )
-#####################################################################################
-# I don't think this section is necessary for MuSCAT, but do I need to use the
-# event_in_the_Bulge function?
-
-       # gp,ip
-
-       delta_time = cadence/2
-
-       start = (datetime.datetime.utcnow()+datetime.timedelta(hours=delta_time)).isoformat()
-       end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration)+datetime.timedelta(hours=delta_time)+datetime.timedelta(hours= 4*(exposure_time_gp+300)/3600.)).isoformat()
-
-
-       obs_dic = {}
-       obs_dic['name'] = obs_name
-       obs_dic['target_id'] = target.id
-       obs_dic['start'] = start
-       obs_dic['end'] = end
-       obs_dic['observation_mode'] = observation_mode
-
-       obs_dic['ipp_value'] = ipp
-       obs_dic['exposure_count'] = 1
-       obs_dic['exposure_time_i'] = exposure_time_i
-       obs_dic['period'] = cadence + exposure_time_gp/3600.*2 # Hack
-       obs_dic['jitter'] = jitter + exposure_time_gp/3600.*2  #Hack
-       obs_dic['max_airmass'] = max_airmass
-       obs_dic['proposal'] = proposal
-       obs_dic['filter'] = "ip"
-       obs_dic['instrument_type'] = instrument_type
-       obs_dic['facility'] = facility
-       obs_dic['observation_type'] = observing_type
-
-       request_obs =  lco.LCOBaseObservationForm(obs_dic)
-       request_obs.is_valid()
-       the_obs = request_obs.observation_payload()
-
-       list_of_filters = ["ip","gp"]
-
-       #if in the Bulge, switch gp to rp
-
-       event_in_the_Bulge = TAP.event_in_the_Bulge(target.ra, target.dec)
-
-       if (event_in_the_Bulge):
-
-            list_of_filters[-1] = "rp"
-            exposure_time_gp =  exposure_time_gp/2 #Factor 3/2 returns same SNR for ~(g-i) = 0.4
-
-
-       #Hacking the LCO TOM form to add several filters
-       instument_config =   the_obs['requests'][0]['configurations'][0]['instrument_configs'][0]
-       exposure_times = [exposure_time_ip,exposure_time_gp]
-
-       for ind_req,req in enumerate(the_obs['requests']):
-           for ind_fil,fil in enumerate(list_of_filters):
-
-               if ind_fil>0:
-                   new_instrument_config =  copy.deepcopy(instument_config)
-                   new_instrument_config['optical_elements']['filter'] = fil
-                   new_instrument_config['exposure_time'] = exposure_time_gp
-
-                   the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'].append(new_instrument_config)
-               else:
-                   the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'][0]['exposure_time'] = exposure_time_ip
 
        telescope = lco.LCOFacility()
        observation_ids = telescope.submit_observation(the_obs)
