@@ -84,11 +84,6 @@ def all_night_moon_sep(ra, dec, start, end, observatory, sample_size=25):
         sep_array_deg = [x.degree for x in sep_array]
         avg_sep = np.mean(sep_array_deg)
 
-        if max(sep_array_deg) < 15:
-            raise Exception('Object is too close to the moon on this date.')
-        else:
-            pass
-
         return sep_array_deg, avg_sep, avg_moonill, avg_mphase
 
     except (ValueError, AttributeError):

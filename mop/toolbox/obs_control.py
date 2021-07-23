@@ -2,7 +2,7 @@ from tom_observations.facility import GenericObservationFacility, GenericObserva
 from tom_observations.facilities import lco
 from tom_observations.cadence import CadenceForm
 from tom_observations.models import ObservationRecord
-from toolbox.obs_details import all_night_moon_sep, calculate_visibility
+from mop.toolbox.obs_details import all_night_moon_sep, calculate_visibility
 
 from mop.toolbox import TAP
 import datetime
@@ -230,33 +230,14 @@ def build_and_submit_phot(target, obs_type):
 
        if telescope_class == '2m':
 
-          instrument_type = '2M0-SCICAM-MUSCAT'
-          exposure_time_ip /= 2 # area ratio (kind of...)
           visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OSS', max_airmass=max_airmass)
-          moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OSS', sample_size=75) #Check these
+          moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OSS', sample_size=75)
 
-          if visible_at_muscat:
-              pass
-          else:
-              raise Exception('This object is not observable by MuSCAT on this date.')
-
-          if min(moon_sep_at_muscat[0]) >= 15:
+          if visible_at_muscat and min(moon_sep_at_muscat[0]) >= 15:
               build_and_submit_muscat(target, obs_type)
-              #print('Average moon separation is {0:.1f} degrees'.format(moon_sep_at_muscat[1]))
-              #print('{0:.1f} percent of the moon is illuminated'.format(moon_sep_at_muscat[2]))
-              #print('The average moon phase angle is {0:.1f}'.format(moon_sep_at_muscat[3]))
-          elif max(moon_sep_at_muscat[0]) < 15:
-              raise Exception('Object is too close to the moon on this date.')
           else:
-              build_and_submit_muscat(target, obs_type)
-              warnings.warn('Warning: Object is very close to the moon on this date.')
-              print('Average separation is {0:.1f} degrees'.format(moon_sep_at_muscat[1]))
-
-          need_to_submit = check_pending_observations(obs_name,'PENDING')
-
-          if need_to_submit is False:
-              return
-
+              instrument_type = '2M0-SCICAM-SPECTRAL'
+              exposure_time_ip /= 2 # area ratio (kind of...)
 
        if telescope_class == '0.4m':
           #currently disabled this since we do not have 0.4m time
@@ -450,7 +431,7 @@ def build_and_submit_muscat(target, obs_type):
 
        obs_dic['ipp_value'] = ipp
        obs_dic['exposure_count'] = 1
-       obs_dic['repeat_duration'​] = 14400 # 4 hours. Not sure how to make sure this happens each night
+       # obs_dic['repeat_duration'​] = 14400 # 4 hours. Not sure how to make sure this happens each night
        obs_dic['exposure_mode'] = 'ASYNCHRONOUS'
        obs_dic['exposure_time_g'] = 30.0 # exposure_time_g
        obs_dic['exposure_time_r'] = 15.0 # exposure_time_r
