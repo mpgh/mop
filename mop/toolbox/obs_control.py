@@ -433,11 +433,11 @@ def build_and_submit_muscat(target, obs_type):
        obs_dic['exposure_count'] = 1
        # obs_dic['repeat_duration'​] = 14400 # 4 hours. Not sure how to make sure this happens each night
        obs_dic['exposure_mode'] = 'ASYNCHRONOUS'
-       obs_dic['exposure_time_g'] = 30.0 # exposure_time_g
-       obs_dic['exposure_time_r'] = 15.0 # exposure_time_r
-       obs_dic['exposure_time_i'] = 10.0 # exposure_time_i
-       obs_dic['exposure_time_z'] = 10.0 # exposure_time_z
-       obs_dic['exposure_time'] = 30.0 # exposure_time
+       obs_dic['exposure_time_g'] = exposure_time_g
+       obs_dic['exposure_time_r'] = exposure_time_r
+       obs_dic['exposure_time_i'] = exposure_time_i
+       obs_dic['exposure_time_z'] = exposure_time_z
+       obs_dic['exposure_time'] = exposure_time
        obs_dic['mode'] = 'MUSCAT_FAST'
        obs_dic['guiding_config'] = 'ON'
        obs_dic['diffuser_g_position'] = diffuser_g_position
