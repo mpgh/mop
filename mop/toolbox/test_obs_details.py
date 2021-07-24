@@ -10,8 +10,8 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from toolbox.obs_details import all_night_moon_sep, calculate_visibility
-from toolbox.LCO_obs_locs import choose_loc
+from mop.toolbox.obs_details import all_night_moon_sep, calculate_visibility
+from mop.toolbox.LCO_obs_locs import choose_loc
 
 
 OGG = choose_loc('OGG')
@@ -54,7 +54,7 @@ class TestVisibilityCalc(TestCase):
             self.assertFalse(vis)
 
         with self.subTest('Test that an exception is raised if the location is incorrect.'):
-            with patch('toolbox.obs_details.calculate_visibility') as mock_calculate_visibility:
+            with patch('mop.toolbox.obs_details.calculate_visibility') as mock_calculate_visibility:
                 mock_calculate_visibility.side_effect = Exception()
                 with self.assertRaisesRegex(Exception, 'Please input a valid LCO observatory in string format.'):
                     calculate_visibility(37.954, 89.264, v_fail_start, v_fail_end, OGG)
@@ -116,14 +116,8 @@ class MoonSepCalc(TestCase):
             self.assertEqual(f_avg_mphase, 97.2)
 
     def test_raise_exceptions(self):
-        with self.subTest('Test that an object too close to the moon returns an exception.'):
-            with patch('toolbox.obs_details.all_night_moon_sep') as mock_all_night_moon_sep:
-                mock_all_night_moon_sep.side_effect = Exception()
-                with self.assertRaisesRegex(Exception, 'Object is too close to the moon on this date.'):
-                    all_night_moon_sep(323.2651667, -19.8063111, m_fail_start, m_fail_end, 'OGG')
-
         with self.subTest('Test that an exception is raised if the location is incorrect.'):
-            with patch('toolbox.obs_details.all_night_moon_sep') as mock_all_night_moon_sep:
+            with patch('mop.toolbox.obs_details.all_night_moon_sep') as mock_all_night_moon_sep:
                 mock_all_night_moon_sep.side_effect = Exception()
                 with self.assertRaisesRegex(Exception, 'Please input a valid LCO observatory in string format.'):
                     all_night_moon_sep(323.2651667, -19.8063111, m_fail_start, m_fail_end, OGG)

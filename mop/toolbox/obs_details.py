@@ -7,7 +7,7 @@ from astropy.time import Time
 import astropy.units as u
 import numpy as np
 
-from toolbox.LCO_obs_locs import choose_loc
+from mop.toolbox.LCO_obs_locs import choose_loc
 
 
 def timeobj(date):
