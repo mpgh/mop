@@ -216,8 +216,7 @@ def build_and_submit_phot(target, obs_type):
 
        #Probably gonna need a MUSCAT exception
 
-       start = datetime.datetime.utcnow().isoformat()
-       end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration)).isoformat()
+       
 
        mag_now = TAP.TAP_mag_now(target)
        mag_exposure = mag_now
@@ -230,6 +229,9 @@ def build_and_submit_phot(target, obs_type):
 
        if telescope_class == '2m':
 
+          start = datetime.datetime.utcnow()
+          end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration))
+    
           visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OGG', max_airmass=max_airmass)
           moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OGG', sample_size=75)
 
@@ -252,7 +254,8 @@ def build_and_submit_phot(target, obs_type):
        # ip alone
        obs_dic = {}
 
-
+       start = datetime.datetime.utcnow().isoformat()
+       end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration)).isoformat()
        obs_dic['name'] = obs_name
        obs_dic['target_id'] = target.id
        obs_dic['start'] = start
