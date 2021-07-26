@@ -424,8 +424,11 @@ def build_and_submit_muscat(target, obs_type):
        diffuser_i_position = 'OUT'
        diffuser_z_position = 'OUT'
 
-
+       start = datetime.datetime.utcnow().isoformat()
+       end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration)).isoformat()
+       
        obs_dic = {} # ASYNCHRONOUS MODE
+       
        obs_dic['name'] = obs_name
        obs_dic['target_id'] = target.id
        obs_dic['start'] = start
