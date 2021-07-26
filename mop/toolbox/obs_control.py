@@ -230,8 +230,8 @@ def build_and_submit_phot(target, obs_type):
 
        if telescope_class == '2m':
 
-          visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OSS', max_airmass=max_airmass)
-          moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OSS', sample_size=75)
+          visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OGG', max_airmass=max_airmass)
+          moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OGG', sample_size=75)
 
           if visible_at_muscat and min(moon_sep_at_muscat[0]) >= 15:
               build_and_submit_muscat(target, obs_type)
