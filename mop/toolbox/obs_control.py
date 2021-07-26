@@ -3,7 +3,7 @@ from tom_observations.facilities import lco
 from tom_observations.cadence import CadenceForm
 from tom_observations.models import ObservationRecord
 from mop.toolbox.obs_details import all_night_moon_sep, calculate_visibility
-
+from astropy.time import Time
 from mop.toolbox import TAP
 import datetime
 from django.conf import settings
@@ -229,8 +229,8 @@ def build_and_submit_phot(target, obs_type):
 
        if telescope_class == '2m':
 
-          start = datetime.datetime.utcnow()
-          end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration))
+          start = Time(datetime.datetime.utcnow())
+          end  = Time(datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration))
     
           visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OGG', max_airmass=max_airmass)
           moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OGG', sample_size=75)
