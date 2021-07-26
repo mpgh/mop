@@ -366,7 +366,7 @@ def build_and_submit_muscat(target, obs_type):
        #Defaults
        observing_type  = 'IMAGING'
        instrument_type = '2M0-SCICAM-MUSCAT'
-       type = 'REPEAT_EXPOSE'
+       expose_type = 'REPEAT_EXPOSE'
        proposal =  os.getenv('LCO_PROPOSAL_ID')
        facility = 'LCO'
        observation_mode = 'NORMAL'
@@ -437,19 +437,31 @@ def build_and_submit_muscat(target, obs_type):
 
        obs_dic['ipp_value'] = ipp
        obs_dic['exposure_count'] = 1
-       # obs_dic['repeat_duration'​] = 14400 # 4 hours. Not sure how to make sure this happens each night
-       obs_dic['exposure_mode'] = 'ASYNCHRONOUS'
-       obs_dic['exposure_time_g'] = exposure_time_g
-       obs_dic['exposure_time_r'] = exposure_time_r
-       obs_dic['exposure_time_i'] = exposure_time_i
-       obs_dic['exposure_time_z'] = exposure_time_z
-       obs_dic['exposure_time'] = exposure_time
-       obs_dic['mode'] = 'MUSCAT_FAST'
+       obs_dic['repeat_duration'​] = exposure_time_g*2 # 4 hours. Not sure how to make sure this happens each night
+
+
+       obs_dic['instrument_configs'][0]['exposure_time'] = exposure_time_g
+       obs_dic['instrument_configs'][0]['optical_elements']['diffuser_g_position'] = diffuser_g_position
+       obs_dic['instrument_configs'][0]['optical_elements']['diffuser_r_position'] = diffuser_r_position
+       obs_dic['instrument_configs'][0]['optical_elements']['diffuser_i_position'] = diffuser_i_position
+       obs_dic['instrument_configs'][0]['optical_elements']['diffuser_z_position'] = diffuser_z_position
+      
+      
+       obs_dic['instrument_configs'][1]['mode'] = 'MUSCAT_FAST'
+       obs_dic['instrument_configs'][1]['exposure_count'] = 1
+       obs_dic['instrument_configs'][1]['rorator_mode'] = ""
+       obs_dic['instrument_configs'][1]['extra_params']['bin_x'] = 1
+       obs_dic['instrument_configs'][1]['extra_params']['bin_y'] = 1       
+       obs_dic['instrument_configs'][1]['extra_params']['defocus'] = 0.0
+       obs_dic['instrument_configs'][1]['extra_params']['exposure_mode'] = 'ASYNCHRONOUS'             
+       obs_dic['instrument_configs'][1]['extra_params']['exposure_time_g'] = exposure_time_g            
+       obs_dic['instrument_configs'][1]['extra_params']['exposure_time_r'] = exposure_time_r           
+       obs_dic['instrument_configs'][1]['extra_params']['exposure_time_i'] = exposure_time_i            
+       obs_dic['instrument_configs'][1]['extra_params']['exposure_time_z'] = exposure_time_z                   
+    
+
        obs_dic['guiding_config'] = 'ON'
-       obs_dic['diffuser_g_position'] = diffuser_g_position
-       obs_dic['diffuser_r_position'] = diffuser_r_position
-       obs_dic['diffuser_i_position'] = diffuser_i_position
-       obs_dic['diffuser_z_position'] = diffuser_z_position
+      
 
        obs_dic['period'] = cadence
        obs_dic['jitter'] = jitter
@@ -458,7 +470,7 @@ def build_and_submit_muscat(target, obs_type):
        obs_dic['proposal'] = proposal
        obs_dic['instrument_type'] = instrument_type
        obs_dic['facility'] = facility
-       obs_dic['type'] = type
+       obs_dic['type'] = expose_type
 
 
        request_obs =  lco.LCOMuscatImagingObservationForm(obs_dic)
