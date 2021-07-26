@@ -248,10 +248,11 @@ class ASASSNBroker():
                                         data_type='photometry',
                                         target=target)
                                 rd.save()
+                                rd_list.append(rd)
                 else:
                     pass
                 
-                rd_list.append(rd)
+
                 n = n + 1  # repeats for all of the data points on the link for a specific target
             k = k + 1  # repeats for all targets 
         return rd_list
