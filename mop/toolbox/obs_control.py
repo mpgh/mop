@@ -437,7 +437,7 @@ def build_and_submit_muscat(target, obs_type):
 
        obs_dic['ipp_value'] = ipp
        obs_dic['exposure_count'] = 1
-       obs_dic['repeat_duration'​] = exposure_time_g*2 # 4 hours. Not sure how to make sure this happens each night
+       obs_dic['repeat_duration'] = exposure_time_g*2 
 
 
        obs_dic['instrument_configs'][0]['exposure_time'] = exposure_time_g
