@@ -446,7 +446,7 @@ def build_and_submit_muscat(target, obs_type):
        obs_dic ['diffuser_i_position'] = diffuser_i_position
        obs_dic ['diffuser_z_position'] = diffuser_z_position                    
       
-       obs_dic['guiding'] = 'ON'
+       obs_dic['guider_mode'] = 'MUSCAT_G'
        obs_dic['exposure_mode'] = 'ASYNCHRONOUS' 
        
        obs_dic['period'] = cadence
