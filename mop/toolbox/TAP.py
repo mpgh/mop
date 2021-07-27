@@ -194,7 +194,7 @@ def TAP_telescope_class(sdss_i_mag):
    telescope_class = '2m'
 
    #change telescope class limit to 18.5 to save 2 m time
-   if sdss_i_mag<18.5:
+   if sdss_i_mag<18.0:
       
       telescope_class = '1m'
 
