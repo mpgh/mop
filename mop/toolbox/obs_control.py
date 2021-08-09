@@ -236,8 +236,12 @@ def build_and_submit_phot(target, obs_type):
           moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OGG', sample_size=75)
 
           if visible_at_muscat and min(moon_sep_at_muscat[0]) >= 15:
+              
               build_and_submit_muscat(target, obs_type)
+              return
+          
           else:
+          
               instrument_type = '2M0-SCICAM-SPECTRAL'
               exposure_time_ip /= 2 # area ratio (kind of...)
 
