@@ -207,6 +207,9 @@ def build_and_submit_phot(target, obs_type):
 
           cadence = 24/cadence #delta_hours/points
 
+        ### Fixing the time consumption
+        cadence =* 2/3
+
        jitter = cadence
        need_to_submit = check_pending_observations(obs_name,'PENDING')
 
@@ -214,7 +217,7 @@ def build_and_submit_phot(target, obs_type):
 
           return
 
-       #Probably gonna need a MUSCAT exception
+
 
        
 
