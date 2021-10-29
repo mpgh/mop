@@ -67,9 +67,20 @@ def calculate_exptime_omega_sdss_i(magin):
         mag = magin
     lrms = 0.14075464 * mag * mag - 4.00137342 * mag + 24.17513298
     snr = 1.0 / np.exp(lrms)
-    # target 4% -> snr 25
+    
 
-    return float(np.max((5,np.min((np.round((25. / snr)**2 * 300., 1),300))))) #no need to more 5 min exposure time, since we have different apertures, but more than 5 s at least
+    # target 4% -> snr 25
+    exptime = np.round((25. / snr)**2 * 300.,1)
+    
+    #Scaling for bright events
+    if magin<14.7:
+    
+        exptime *= 10**((magin-mag)/2.5)
+    
+    #no need to more 5 min exposure time, since we have different apertures, but more than 5 s at least
+    
+    exptime = float(np.max((5,np.min((exptime,300)))))  
+    return  exptime
 
 
 
