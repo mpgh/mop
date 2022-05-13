@@ -209,7 +209,8 @@ def build_and_submit_phot(target, obs_type):
 
           ### Fixing the time consumption
           cadence *= 2/3
-          
+          ipp *= 2/3
+
        jitter = cadence
        need_to_submit = check_pending_observations(obs_name,'PENDING')
 
@@ -219,7 +220,7 @@ def build_and_submit_phot(target, obs_type):
 
 
 
-       
+
 
        mag_now = TAP.TAP_mag_now(target)
        mag_exposure = mag_now
@@ -234,17 +235,17 @@ def build_and_submit_phot(target, obs_type):
 
           start = Time(datetime.datetime.utcnow())
           end  = Time(datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration))
-    
+
           visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OGG', max_airmass=max_airmass)
           moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OGG', sample_size=75)
 
           if visible_at_muscat and min(moon_sep_at_muscat[0]) >= 15:
-              
+
               build_and_submit_muscat(target, obs_type)
               return
-          
+
           else:
-          
+
               instrument_type = '2M0-SCICAM-SPECTRAL'
               exposure_time_ip /= 2 # area ratio (kind of...)
 
@@ -432,9 +433,9 @@ def build_and_submit_muscat(target, obs_type):
 
        start = datetime.datetime.utcnow().isoformat()
        end  = (datetime.datetime.utcnow()+datetime.timedelta(days=obs_duration)).isoformat()
-       
+
        obs_dic = {} # ASYNCHRONOUS MODE
-       
+
        obs_dic['name'] = obs_name
        obs_dic['target_id'] = target.id
        obs_dic['start'] = start
@@ -443,19 +444,19 @@ def build_and_submit_muscat(target, obs_type):
 
        obs_dic['ipp_value'] = ipp
        obs_dic['exposure_count'] = 1
-       obs_dic['exposure_time_g'] = exposure_time_g  
-       obs_dic['exposure_time_r'] = exposure_time_r  
-       obs_dic['exposure_time_i'] = exposure_time_i  
-       obs_dic['exposure_time_z'] = exposure_time_z            
-       
+       obs_dic['exposure_time_g'] = exposure_time_g
+       obs_dic['exposure_time_r'] = exposure_time_r
+       obs_dic['exposure_time_i'] = exposure_time_i
+       obs_dic['exposure_time_z'] = exposure_time_z
+
        obs_dic ['diffuser_g_position'] = diffuser_g_position
        obs_dic ['diffuser_r_position'] = diffuser_r_position
        obs_dic ['diffuser_i_position'] = diffuser_i_position
-       obs_dic ['diffuser_z_position'] = diffuser_z_position                    
-      
+       obs_dic ['diffuser_z_position'] = diffuser_z_position
+
        obs_dic['guider_mode'] = 'ON'
-       obs_dic['exposure_mode'] = 'ASYNCHRONOUS' 
-       
+       obs_dic['exposure_mode'] = 'ASYNCHRONOUS'
+
        obs_dic['period'] = cadence
        obs_dic['jitter'] = jitter
        obs_dic['max_airmass'] = max_airmass

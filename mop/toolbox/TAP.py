@@ -32,7 +32,7 @@ def TAP_observing_mode(priority,priority_error,mag_now,mag_baseline):
 
 ### Fixing the time consumption
 
-   if (priority>10) & (priority/priority_error>2) & (mag_baseline-mag_now>1) & (mag_now<19): #mag cut for high blended events
+   if (priority>10) & (priority/priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
 
 
        return 'Priority'
@@ -49,9 +49,9 @@ def calculate_exptime_floyds(magin):
     exposure_time = 3600 #s
 
     if magin<11:
-       exposure_time = 1800 #s 
+       exposure_time = 1800 #s
 
-    return exposure_time 
+    return exposure_time
 
 
 def calculate_exptime_omega_sdss_i(magin):
@@ -68,19 +68,19 @@ def calculate_exptime_omega_sdss_i(magin):
         mag = magin
     lrms = 0.14075464 * mag * mag - 4.00137342 * mag + 24.17513298
     snr = 1.0 / np.exp(lrms)
-    
+
 
     # target 4% -> snr 25
     exptime = np.round((25. / snr)**2 * 300.,1)
-    
+
     #Scaling for bright events
     if magin<14.7:
-    
+
         exptime *= 10**((magin-mag)/2.5)
-    
+
     #no need to more 5 min exposure time, since we have different apertures, but more than 5 s at least
-    
-    exptime = float(np.max((5,np.min((exptime,300)))))  
+
+    exptime = float(np.max((5,np.min((exptime,300)))))
     return  exptime
 
 
@@ -92,13 +92,13 @@ def event_in_the_Bulge(ra,dec):
     if (ra>Bulge_limits[0][0]) & (ra<Bulge_limits[0][1]) & (dec>Bulge_limits[1][0]) & (dec<Bulge_limits[1][1]):
         in_the_Bulge = True
     else:
-        
+
         in_the_Bulge = False
 
     return in_the_Bulge
 
 def psi_derivatives_squared(t,te,u0,t0):
-    """if you prefer to have the derivatives for a simple 
+    """if you prefer to have the derivatives for a simple
        error propagation without correlation
     """
     x0 = u0**2
@@ -126,7 +126,7 @@ def psi_derivatives_squared(t,te,u0,t0):
     c1 = 16.0*(x11*(-x14 - x15) - x13*(-2*u0 - x12*(x14 + x15)))**2
     c2 = 16.0*(x11*(-x18 - x19) - x13*(-x12*(x18 + x19) - x16))**2
     #i.e. for te, u0, to
-    return [c0, c1, c2 ] 
+    return [c0, c1, c2 ]
 
 def TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance):
     """
@@ -141,17 +141,17 @@ def TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance):
     """
 
     usqr = u0_pspl**2 + ((time_now - t0_pspl) / tE_pspl)**2
-    
+
     dpsipdu = -8*(usqr+2)/(usqr*(usqr+4)**1.5)
     dpsipdu += 4*(usqr**0.5*(usqr+4)**0.5+usqr+2)/(usqr+2+(usqr+4)**0.5)**2*1/(usqr+4)**0.5
-   
-  
-  
-     
+
+
+
+
     dUdto = -(time_now - t0_pspl) / (tE_pspl ** 2 *usqr**0.5)
     dUduo = u0_pspl/ usqr**0.5
     dUdtE = -(time_now - t0_pspl) ** 2 / (tE_pspl ** 3 * usqr**0.5)
-    
+
     Jacob = np.zeros(len(covariance))
     Jacob[0] = dpsipdu*dUdto
     Jacob[1] = dpsipdu*dUduo
@@ -159,7 +159,7 @@ def TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance):
 
 
     error_psip = np.dot(Jacob.T,np.dot(covariance,Jacob))**0.5
- 
+
     return error_psip #/ (calculate_exptime_omega_sdss_i(mag) + 60.)
 
 def TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl):
@@ -178,7 +178,7 @@ def TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl):
     if pspl_deno < 1e-10:
         pspl_deno = 10000.
     psip = 4.0 / (pspl_deno) - 2.0 / (usqr + 2.0 + pspl_deno)
- 
+
     return psip
 
 
@@ -191,13 +191,13 @@ def TAP_regular_mode(in_the_Bulge,survey_cadence,sdssi_baseline,tE_fit):
 
     #Inside the Bulge?
     if not in_the_Bulge:
-        return cadence 
-    
+        return cadence
+
     if survey_cadence<1:
-          
+
        if sdssi_baseline<16.5:
-       
-          return cadence 
+
+          return cadence
 
     return None
 
@@ -205,7 +205,7 @@ def TAP_regular_mode(in_the_Bulge,survey_cadence,sdssi_baseline,tE_fit):
 def TAP_priority_mode():
 
     cadence = 24 #pts/day
-    duration = 3 
+    duration = 3
     return duration,cadence
 
 
@@ -216,11 +216,11 @@ def TAP_telescope_class(sdss_i_mag):
 
    #change telescope class limit to 18.5 to save 2 m time
    if sdss_i_mag<18.0:
-      
+
       telescope_class = '1m'
 
    if sdss_i_mag<14:
-      
+
       telescope_class = '0.4m'
 
 
@@ -229,18 +229,18 @@ def TAP_telescope_class(sdss_i_mag):
 #def TAP_mag_now(target):
 
 #   fs = 10**((ZP-target.extra_fields['Source_magnitude'])/2.5)
-#   
+#
 #   try:
 #       fb = 10**((ZP-target.extra_fields['Blend_magnitude'])/2.5)
 
 #   except:
-#      fs = 10**((ZP-target.extra_fields['Baseline_magnitude'])/2.5) 
-#      fb = 0 
+#      fs = 10**((ZP-target.extra_fields['Baseline_magnitude'])/2.5)
+#      fb = 0
 #   fit_parameters = [target.extra_fields['t0'],target.extra_fields['u0'],target.extra_fields['tE'],
 #                     target.extra_fields['piEN'],target.extra_fields['piEE'],
 #                     fs,
 #                     fb]
-# 
+#
 #   current_event = event.Event()
 #   current_event.name = 'MOP_to_fit'
 
@@ -259,10 +259,10 @@ def TAP_telescope_class(sdss_i_mag):
 #   Model_parallax.define_model_parameters()
 #   pyLIMA_parameters = Model_parallax.compute_pyLIMA_parameters(fit_parameters)
 #   ml_model, f_source, f_blending = Model_parallax.compute_the_microlensing_model(telescope, pyLIMA_parameters)
-#   
+#
 #   mag_now = ZP-2.5*np.log10(ml_model)
 #   return mag_now
-   
+
 def TAP_mag_now(target):
 
    lightcurve = ReducedDatum.objects.filter(target=target,data_type='lc_model')
