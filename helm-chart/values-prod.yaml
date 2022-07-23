@@ -91,15 +91,15 @@ fitneedevents:
       cpu: 3500m
       memory: 4096Mi
 # CronJob: Run TAP
-#runtap:
-#  enabled: true
-#  resources:
-#    requests:
-#      cpu: 10m
-#      memory: 256Mi
-#    limits:
-#      cpu: 1000m
-#      memory: 1024Mi
+runtap:
+  enabled: false
+  resources:
+    requests:
+      cpu: 10m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
 
 # CronJob: Harvest IPAC ZTF
 harvestztfipac:
