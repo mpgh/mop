@@ -99,7 +99,7 @@ harvestztfipac:
     limits:
       cpu: 1000m
       memory: 1024Mi
-      
+
 # CronJob: Harvest ZTF DR3
 harvestztfdr3:
   enabled: true
@@ -109,7 +109,7 @@ harvestztfdr3:
       memory: 256Mi
     limits:
       cpu: 1000m
-      memory: 1024Mi      
+      memory: 1024Mi
 # CronJob: Harvest GAIA
 harvestgaia:
   enabled: true
@@ -120,7 +120,7 @@ harvestgaia:
     limits:
       cpu: 1000m
       memory: 1024Mi
-      
+
 # CronJob: Harvest MOA
 harvestmoa:
   enabled: true
@@ -142,7 +142,7 @@ harvestasassn:
     limits:
       cpu: 1000m
       memory: 1024Mi
-      
+
 # CronJob: Add Galactic Coordinates
 addgalacticcoordinates:
   enabled: true
@@ -153,7 +153,7 @@ addgalacticcoordinates:
     limits:
       cpu: 1000m
       memory: 1024Mi
-      
+
 # CronJob: Open targets to OMEGA users
 opentargetstoomegausers:
   enabled: true
@@ -163,8 +163,8 @@ opentargetstoomegausers:
       memory: 256Mi
     limits:
       cpu: 1000m
-      memory: 1024Mi      
- 
+      memory: 1024Mi
+
  # CronJob: Update observation status
 #updatestatus:
   #enabled: true
