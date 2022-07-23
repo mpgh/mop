@@ -31,8 +31,8 @@ fitneedevents:
 
 # CronJob: Run TAP
 runtap:
-  enabled: true
-  schedule: "0 */4 * * *"
+  enabled: false
+  schedule: "0 */4 * 8 *"
   resources: {}
 
 # CronJob: Update observation status
