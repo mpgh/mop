@@ -30,10 +30,10 @@ fitneedevents:
   resources: {}
 
 # CronJob: Run TAP
-runtap:
-  enabled: true
-  schedule: "0 */4 * * *"
-  resources: {}
+#runtap:
+#  enabled: true
+#  schedule: "0 */4 * * *"
+#  resources: {}
 
 # CronJob: Update observation status
 # runtap:
@@ -46,25 +46,25 @@ harvestztfipac:
   enabled: true
   schedule: "0 8 * * *"
   resources: {}
-  
+
 # CronJob: Harvest ZTF DR3
 harvestztfdr3:
   enabled: true
   schedule: "0 12 * * *"
-  resources: {}  
+  resources: {}
 
 # CronJob: Harvest GAIA
 harvestgaia:
   enabled: true
   schedule: "0 12 * * *"
   resources: {}
-  
+
 # CronJob: Harvest MOA
 harvestmoa:
   enabled: true
   schedule: "0 12 * * *"
   resources: {}
-  
+
 # CronJob: Harvest ASAS-SN
 harvestasassn:
   enabled: true
@@ -76,7 +76,7 @@ addgalacticcoordinates:
   enabled: true
   schedule: "0 */12 * * *"
   resources: {}
-  
+
 # CronJob: Open targets to OMEGA users
 opentargetstoomegausers:
   enabled: true
