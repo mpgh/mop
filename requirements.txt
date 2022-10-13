@@ -10,6 +10,6 @@ whitenoise==5.0.1
 pyLIMA>=0.8
 django-storages==1.11.1
 boto3==1.16.61
-lxml==4.6.5
+lxml==4.9.1
 pandas
 #numpy
