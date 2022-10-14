@@ -168,7 +168,7 @@ opentargetstoomegausers:
       memory: 1024Mi
 
 
-# CronJob: Add Galactic Coordinates
+# CronJob: Add Gaia Classifier
 gaiaclassifier:
   enabled: true
   resources:
