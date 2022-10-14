@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 from tom_dataproducts.models import ReducedDatum
-from tom_targets.models import Target
+from tom_targets.models import Target, TargetExtra
 from astropy.time import Time
 from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
@@ -20,9 +20,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         # Retrieve a list of Gaia Targets that are flagged as Alive:
-        targets = Target.objects.filter(name__includes='Gaia',
+        targets = Target.objects.filter(name__contains='Gaia',
                                         targetextra__in=TargetExtra.objects.filter(key='Alive', value=True))
 
+        #print('Found '+str(len(targets))+' Gaia targets')
 
         # Evaluate each selected Target:
         for event in targets:
@@ -32,29 +33,33 @@ class Command(BaseCommand):
             # parameters in the EXTRA_PARAMs for each Target.  Targets with no
             # fit parameters are ignored until they are model fitted.
             # Fitted targets will have their class set to microlensing by default
-            if 'Blend_magnitude' in target.extra_fields.keys() \
-                and 'u0' in target.extra_fields.keys() \
-                and 't0' in target.extra_fields.keys() \
-                and 'tE' in target.extra_fields.keys():
+            if event.extra_fields['u0'] != 0.0 \
+                and event.extra_fields['t0'] != 0.0 \
+                and event.extra_fields['tE'] != 0.0 \
+                and 'Microlensing' in event.extra_fields['Classification']:
 
                 # Retrieve the Gaia photometry for this Target:
-                photometry = retrieve_target_photometry(target)
+                photometry = retrieve_target_photometry(event)
 
                 # Test for an invalid blend magnitude:
                 valid_blend_mag = True
-                if target.extra_fields['Blend_magnitude'] == None:
+                if event.extra_fields['Blend_magnitude'] == None \
+                    or event.extra_fields['Blend_magnitude'] == 0.0:
                     valid_blend_mag = False
 
                 # Test for a suspiciously large u0:
                 valid_u0 = True
-                if abs(target.extra_fields['u0']) > 0.5:
+                if abs(event.extra_fields['u0']) > 0.5:
                     valid_u0 = False
 
                 # Test for low-amplitude change in photometry:
-                peak_mag = photometry[:,1].min()
-                delta_mag = target.extra_fields['Baseline_magnitude'] - peak_mag
-                valid_dmag = True
-                if delta_mag < 0.5:
+                if len(photometry) > 0:
+                    peak_mag = photometry[:,1].min()
+                    delta_mag = event.extra_fields['Baseline_magnitude'] - peak_mag
+                    valid_dmag = True
+                    if delta_mag < 0.5:
+                        valid_dmag = False
+                else:
                     valid_dmag = False
 
                 # If a target fails all three criteria, set its classification
@@ -62,7 +67,11 @@ class Command(BaseCommand):
                 # observations for any object with 'microlensing' in the
                 # classification
                 if not valid_blend_mag and not valid_u0 and not valid_dmag:
-                    target.save(extras={'Classification': 'Unclassified variable'})
+                    event.save(extras={'Classification': 'Unclassified variable'})
+                    #print(event.name+': Reclassified')
+                #else:
+                    #print(event.name+': Classification unchanged - ' \
+                    #    + event.extra_fields['Classification'])
 
 def retrieve_target_photometry(target):
     """Function to retrieve all available photometry for a target, combining
@@ -75,11 +84,13 @@ def retrieve_target_photometry(target):
     for data in datasets:
         if data.data_type == 'photometry':
            try:
-                phot.append([data.value['magnitude'],data.value['error'],data.value['filter']])
+                phot.append([float(data.value['magnitude']),
+                             float(data.value['error'])])
 
            except:
                 # Weights == 1
-                phot.append([data.value['magnitude'],1,data.value['filter']])
+                phot.append([float(data.value['magnitude']),
+                             1])
 
 
     photometry = np.c_[time,phot]
