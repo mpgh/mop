@@ -5,7 +5,7 @@ from tom_targets.models import Target, TargetExtra
 from astropy.time import Time
 from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
-
+from mop.toolbox import logs
 
 import json
 import numpy as np
@@ -19,11 +19,15 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
+        # Start logging process:
+        log = logs.start_log()
+        log.info('Gaia classifier started run')
+
         # Retrieve a list of Gaia Targets that are flagged as Alive:
         targets = Target.objects.filter(name__contains='Gaia',
                                         targetextra__in=TargetExtra.objects.filter(key='Alive', value=True))
 
-        #print('Found '+str(len(targets))+' Gaia targets')
+        log.info('Found '+str(len(targets))+' alive Gaia targets')
 
         # Evaluate each selected Target:
         for event in targets:
@@ -68,10 +72,11 @@ class Command(BaseCommand):
                 # classification
                 if not valid_blend_mag and not valid_u0 and not valid_dmag:
                     event.save(extras={'Classification': 'Unclassified variable'})
-                    #print(event.name+': Reclassified')
+                    log.info(event.name+': Reset as unclassified variable')
                 #else:
                     #print(event.name+': Classification unchanged - ' \
                     #    + event.extra_fields['Classification'])
+        logs.stop_log(log)
 
 def retrieve_target_photometry(target):
     """Function to retrieve all available photometry for a target, combining
