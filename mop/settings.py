@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'tom_observations',
     'tom_dataproducts',
     'mop',
+    'django_plotly_dash.apps.DjangoPlotlyDashConfig',
+    'mop.apps.TargetsTableConfig',
 ]
 
 SITE_ID = 1
