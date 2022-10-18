@@ -41,22 +41,22 @@ class MOPGaia(gaia.GaiaBroker):
         response = requests.get(lc_url)
         response.raise_for_status()
         html_data = response.text.split('\n')
-        
+
         try:
             times = [Time(i.timestamp).jd for i in ReducedDatum.objects.filter(target=target) if i.data_type == 'photometry']
-        except: 
+        except:
             times = []
-        
+
         for entry in html_data[2:]:
             phot_data = entry.split(',')
 
             if len(phot_data) == 3:
-            
+
                 jd = Time(float(phot_data[1]), format='jd', scale='utc')
                 jd.to_datetime(timezone=TimezoneInfo())
 
                 if ('untrusted' not in phot_data[2]) and ('null' not in phot_data[2]) and (jd.value not in times):
-                    
+
                     value = {
                     'magnitude': float(phot_data[2]),
                     'filter': 'G'
@@ -69,38 +69,40 @@ class MOPGaia(gaia.GaiaBroker):
                             source_location=alert_url,
                             data_type='photometry',
                             target=target)
-                    
+
                     rd.save()
 
         return
 
-    
+
 
 class Command(BaseCommand):
 
     help = 'Downloads Gaia data for all events marked as microlensing candidate'
     def add_arguments(self, parser):
         pass
-       
+
     def handle(self, *args, **options):
-        
+
         Gaia = MOPGaia()
-        
+
         list_of_alerts = Gaia.fetch_alerts({'target_name':None,'cone':None})
-        
+
         for alert in list_of_alerts:
-          
-             if 'microlensing' in alert['comment']:    
- 
-                   #Create or load
 
-                   clean_alert = Gaia.to_generic_alert(alert)
-                   try: 
-                       target, created = Target.objects.get_or_create(name=clean_alert.name,ra=clean_alert.ra,dec=clean_alert.dec,type='SIDEREAL',epoch=2000)
-                   #seems to bug with the ra,dec if exists
-                   except:
-                          target, created = Target.objects.get_or_create(name=clean_alert.name) 
-                 
-                   Gaia.process_reduced_data(target)
-                   gaia_mop.update_gaia_errors(target)
+            # As of Oct 2022, Gaia alerts will no longer be providing the
+            # microlensing class as a comment in the alert.  We therefore
+            # switched to downloading all Gaia alerts
+            # if 'microlensing' in alert['comment']:
 
+            #Create or load
+
+            clean_alert = Gaia.to_generic_alert(alert)
+            try:
+               target, created = Target.objects.get_or_create(name=clean_alert.name,ra=clean_alert.ra,dec=clean_alert.dec,type='SIDEREAL',epoch=2000)
+            #seems to bug with the ra,dec if exists
+            except:
+                  target, created = Target.objects.get_or_create(name=clean_alert.name)
+
+            Gaia.process_reduced_data(target)
+            gaia_mop.update_gaia_errors(target)
