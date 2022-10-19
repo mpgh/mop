@@ -293,7 +293,7 @@ TOM_ALERT_CLASSES = [
     'tom_alerts.brokers.scout.ScoutBroker',
     'tom_alerts.brokers.tns.TNSBroker',
     'tom_alerts.brokers.gaia.GaiaBroker',
-    
+
 ]
 #'tom_antares.antares.AntaresBroker',
 #BROKER_CREDENTIALS = {}
@@ -327,7 +327,7 @@ EXTRA_FIELDS = [{'name':'Alive','type':'boolean', 'default':True},
                 {'name':'TAP_priority','type':'number','default':''},
                 {'name':'Spectras','type':'number','default':0},
                 {'name':'Last_fit','type':'number','default':2446756.50000}]
-       
+
 
 TARGET_PERMISSIONS_ONLY=True
 

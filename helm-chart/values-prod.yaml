@@ -166,3 +166,15 @@ opentargetstoomegausers:
     limits:
       cpu: 1000m
       memory: 1024Mi
+
+
+# CronJob: Add Gaia Classifier
+gaiaclassifier:
+  enabled: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
