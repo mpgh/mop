@@ -158,6 +158,7 @@ def fit_PSPL_parallax(ra,dec,photometry, emag_limit = None, cores = None):
        piEN_fit =  current_event.fits[-1].fit_results[3]
        piEE_fit =  current_event.fits[-1].fit_results[4]
        chi2_fit = current_event.fits[-1].fit_results[-1]
+       red_chi2 = chi2_fit / (float(7 - 1)*float(len(lightcurve)-1))
 
        mag_source_fit = flux_to_mag( current_event.fits[-1].fit_results[5])
        mag_blend_fit = flux_to_mag( current_event.fits[-1].fit_results[5]*current_event.fits[-1].fit_results[6])
@@ -181,9 +182,9 @@ def fit_PSPL_parallax(ra,dec,photometry, emag_limit = None, cores = None):
        try:
             to_return = [np.around(t0_fit,3),np.around(u0_fit,5),np.around(tE_fit,3),np.around(piEN_fit,5),np.around(piEE_fit,5),
                np.around(mag_source_fit,3),np.around(mag_blend_fit,3),np.around(mag_baseline_fit,3),
-               current_event.fits[-1].fit_covariance,model_telescope,np.around(chi2_fit,3)]
+               current_event.fits[-1].fit_covariance,model_telescope,np.around(chi2_fit,3),red_chi2]
        except:
             to_return = [np.around(t0_fit,3),np.around(u0_fit,5),np.around(tE_fit,3),np.around(piEN_fit,5),np.around(piEE_fit,5),
                np.around(mag_source_fit,3),mag_blend_fit,np.around(mag_baseline_fit,3),
-               current_event.fits[-1].fit_covariance,model_telescope,np.around(chi2_fit,3)]
+               current_event.fits[-1].fit_covariance,model_telescope,np.around(chi2_fit,3),red_chi2]
        return to_return

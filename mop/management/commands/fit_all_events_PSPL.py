@@ -94,7 +94,7 @@ class Command(BaseCommand):
 
                        photometry = np.c_[time,phot]
 
-                       t0_fit,u0_fit,tE_fit,piEN_fit,piEE_fit,mag_source_fit,mag_blend_fit,mag_baseline_fit,cov,model,chi2_fit = fittools.fit_PSPL_parallax(target.ra, target.dec, photometry, cores = options['cores'])
+                       t0_fit,u0_fit,tE_fit,piEN_fit,piEE_fit,mag_source_fit,mag_blend_fit,mag_baseline_fit,cov,model,chi2_fit,red_chi2 = fittools.fit_PSPL_parallax(target.ra, target.dec, photometry, cores = options['cores'])
 
                        #Add photometry model
 
@@ -152,6 +152,7 @@ class Command(BaseCommand):
                          'Baseline_magnitude':mag_baseline_fit,
                          'Fit_covariance':json.dumps(cov.tolist()),
                          'chi2':chi2_fit,
+                         'red_chi2': red_chi2,
                          'Last_Fit':last_fit}
                        target.save(extras = extras)
 
