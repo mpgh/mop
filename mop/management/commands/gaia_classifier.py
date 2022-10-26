@@ -79,6 +79,9 @@ class Command(BaseCommand):
                 if not valid_blend_mag and not valid_u0 and not valid_dmag:
                     event.save(extras={'Classification': 'Unclassified variable'})
                     log.info(event.name+': Reset as unclassified variable')
+                if not valid_chisq:
+                    event.save(extras={'Classification': 'Unclassified poor fit'})
+                    log.info(event.name+': Reset as unclassified poor fit')
                 #else:
                     #print(event.name+': Classification unchanged - ' \
                     #    + event.extra_fields['Classification'])
