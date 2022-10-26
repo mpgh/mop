@@ -67,10 +67,11 @@ class Command(BaseCommand):
                     valid_dmag = False
 
                 # Test for suspicious reduced chi squared value
-                valid_chisq = True
-                if event.extra_fields['red_chi2'] > 50.0 \
-                    or event.extra_fields['red_chi2'] < 0.0:
-                    valid_chisq = False
+                if 'red_chi2' in event.extra_fields.keys():
+                    valid_chisq = True
+                    if event.extra_fields['red_chi2'] > 50.0 \
+                        or event.extra_fields['red_chi2'] < 0.0:
+                        valid_chisq = False
 
                 # If a target fails all three criteria, set its classification
                 # to 'Unclassified variable'.  Note that TAP will consider scheduling
@@ -79,9 +80,10 @@ class Command(BaseCommand):
                 if not valid_blend_mag and not valid_u0 and not valid_dmag:
                     event.save(extras={'Classification': 'Unclassified variable'})
                     log.info(event.name+': Reset as unclassified variable')
-                if not valid_chisq:
-                    event.save(extras={'Classification': 'Unclassified poor fit'})
-                    log.info(event.name+': Reset as unclassified poor fit')
+                if 'red_chi2' in event.extra_fields.keys():
+                    if not valid_chisq:
+                        event.save(extras={'Classification': 'Unclassified poor fit'})
+                        log.info(event.name+': Reset as unclassified poor fit')
                 #else:
                     #print(event.name+': Classification unchanged - ' \
                     #    + event.extra_fields['Classification'])
