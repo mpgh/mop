@@ -24,9 +24,9 @@ class Command(BaseCommand):
 
        # Start logging process:
        log = logs.start_log()
-       log.info('Fitting needed event: '+target.name)
 
        target, created = Target.objects.get_or_create(name= options['target_name'])
+       log.info('Fitting event: '+target.name)
        try:
 
            if 'Gaia' in target.name:
@@ -112,7 +112,7 @@ class Command(BaseCommand):
                          'Last_Fit':last_fit}
 
            target.save(extras = extras)
-           
+
            log.info('Fitted parameters for '+target.name+': '+repr(extras))
            logs.stop_log(log)
        except:
