@@ -8,7 +8,7 @@ from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
 from django.db.models import Q
 import numpy as np
-
+from mop.toolbox import logs
 import traceback
 import datetime
 import random
@@ -19,6 +19,10 @@ import os
 
 def run_fit(target, cores):
     print(f'Working on {target.name}')
+
+    # Start logging process:
+    log = logs.start_log()
+    log.info('Fitting needed event: '+target.name)
 
     try:
        if 'Gaia' in target.name:
@@ -111,10 +115,17 @@ def run_fit(target, cores):
                          'Fit_covariance':json.dumps(cov.tolist()),
                          'chi2':chi2_fit,
                          'Last_Fit':last_fit}
+           log.info('Fitted parameters for '+target.name+': '+repr(extras))
+           
            target.save(extras = extras)
+
+       logs.stop_log(log)
+
     except:
         print(f'Job failed: {target.name}')
+        logs.warning(f'Job failed: {target.name}')
         traceback.print_exc()
+        logs.stop_log(log)
         return None
 
 class Command(BaseCommand):

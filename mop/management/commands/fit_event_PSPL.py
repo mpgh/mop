@@ -4,7 +4,7 @@ from tom_targets.models import Target
 from astropy.time import Time
 from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
-
+from mop.toolbox import logs
 
 import json
 import numpy as np
@@ -21,6 +21,10 @@ class Command(BaseCommand):
 
 
     def handle(self, *args, **options):
+
+       # Start logging process:
+       log = logs.start_log()
+       log.info('Fitting needed event: '+target.name)
 
        target, created = Target.objects.get_or_create(name= options['target_name'])
        try:
@@ -106,6 +110,11 @@ class Command(BaseCommand):
                          'Fit_covariance':json.dumps(cov.tolist()),
                          'chi2':chi2_fit,
                          'Last_Fit':last_fit}
+
            target.save(extras = extras)
+           
+           log.info('Fitted parameters for '+target.name+': '+repr(extras))
+           logs.stop_log(log)
        except:
-           pass
+           log.warning('Fitting event '+target.name+' hit an exception')
+           logs.stop_log(log)

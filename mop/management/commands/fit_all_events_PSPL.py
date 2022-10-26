@@ -4,7 +4,7 @@ from tom_targets.models import Target,TargetExtra
 from astropy.time import Time
 from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
-
+from mop.toolbox import logs
 import numpy as np
 import datetime
 import random
@@ -25,6 +25,10 @@ class Command(BaseCommand):
 
 
     def handle(self, *args, **options):
+
+       # Start logging process:
+       log = logs.start_log()
+       log.info('Fitting all events in mode '+all_events)
 
        all_events = options['events_to_fit']
 
@@ -49,11 +53,13 @@ class Command(BaseCommand):
        list_of_targets = list(list_of_targets)
        random.shuffle(list_of_targets)
 
+       log.info('Found '+str(len(list_of_targets))+' targets to fit')
 
        for target in list_of_targets:
            # if the previous job has not been started by another worker yet, claim it
 
                print('Working on'+target.name)
+               log.info('Fitting data for '+target.name)
                try:
                    if 'Gaia' in target.name:
 
@@ -67,6 +73,7 @@ class Command(BaseCommand):
 
                        extras = {'Alive':alive}
                        target.save(extras = extras)
+                       log.info(target.name+' not classified as microlensing')
 
                    else:
 
@@ -148,5 +155,7 @@ class Command(BaseCommand):
                          'Last_Fit':last_fit}
                        target.save(extras = extras)
 
+                       log.info('Fitted parameters for '+target.name+': '+repr(extras))
                except:
-                   pass
+                   log.warning('Fitting event '+target.name+' hit an exception')
+       logs.stop_log(log)
