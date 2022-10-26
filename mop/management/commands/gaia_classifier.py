@@ -69,7 +69,7 @@ class Command(BaseCommand):
                 # Test for suspicious reduced chi squared value
                 valid_chisq = True
                 if event.extra_fields['red_chi2'] > 50.0 \
-                    of event.extra_fields['red_chi2'] < 0.0:
+                    or event.extra_fields['red_chi2'] < 0.0:
                     valid_chisq = False
 
                 # If a target fails all three criteria, set its classification
