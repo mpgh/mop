@@ -8,7 +8,7 @@ from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
 from django.db.models import Q
 import numpy as np
-
+from mop.toolbox import logs
 import traceback
 import datetime
 import random
@@ -19,6 +19,10 @@ import os
 
 def run_fit(target, cores):
     print(f'Working on {target.name}')
+
+    # Start logging process:
+    log = logs.start_log()
+    log.info('Fitting needed event: '+target.name)
 
     try:
        if 'Gaia' in target.name:
@@ -52,7 +56,7 @@ def run_fit(target, cores):
 
            photometry = np.c_[time,phot]
 
-           t0_fit,u0_fit,tE_fit,piEN_fit,piEE_fit,mag_source_fit,mag_blend_fit,mag_baseline_fit,cov,model = fittools.fit_PSPL_parallax(target.ra, target.dec, photometry, cores = cores)
+           t0_fit,u0_fit,tE_fit,piEN_fit,piEE_fit,mag_source_fit,mag_blend_fit,mag_baseline_fit,cov,model,chi2_fit,red_chi2 = fittools.fit_PSPL_parallax(target.ra, target.dec, photometry, cores = cores)
 
            # Add photometry model
 
@@ -109,11 +113,20 @@ def run_fit(target, cores):
                          'Blend_magnitude':mag_blend_fit,
                          'Baseline_magnitude':mag_baseline_fit,
                          'Fit_covariance':json.dumps(cov.tolist()),
+                         'chi2':chi2_fit,
+                         'red_chi2': red_chi2,
                          'Last_Fit':last_fit}
+           log.info('Fitted parameters for '+target.name+': '+repr(extras))
+
            target.save(extras = extras)
+
+       logs.stop_log(log)
+
     except:
         print(f'Job failed: {target.name}')
+        logs.warning(f'Job failed: {target.name}')
         traceback.print_exc()
+        logs.stop_log(log)
         return None
 
 class Command(BaseCommand):
@@ -174,20 +187,20 @@ class Command(BaseCommand):
                 element = queryset.first()
 
                 need_to_fit = True
-                                
+
                 try:
                     last_fit = element.extra_fields['Last_fit']
                     datasets = ReducedDatum.objects.filter(target=element)
                     time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
                     last_observation = max(time)
                     existing_model = ReducedDatum.objects.filter(source_name='MOP',data_type='lc_model',source_location=element.name)
-                                                         
+
                     if (last_observation<last_fit) & (existing_model.count() != 0) :
                         need_to_fit = False
                 except:
-                
-                    pass    
-              
+
+                    pass
+
                 # Element was found. Claim the element for this worker (mark the fit as in
                 # the "RUNNING" state) by setting the Last_fit timestamp. This method has
                 # the beneficial side effect such that if a fit crashes, it won't be re-run
@@ -206,10 +219,10 @@ class Command(BaseCommand):
 
             # Now we know for sure we have an element to process, and we haven't locked
             # a row (object) in the database. We're free to process this for up to four hours.
-            
+
             # Check if the fit is really needed, i.e. is there new data since the last fit?
-            
-            
+
+
             if need_to_fit:
                 result = run_fit(element, cores=options['cores'])
 

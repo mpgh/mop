@@ -326,7 +326,9 @@ EXTRA_FIELDS = [{'name':'Alive','type':'boolean', 'default':True},
                 {'name':'Fit_covariance','type':'string','default':''},
                 {'name':'TAP_priority','type':'number','default':''},
                 {'name':'Spectras','type':'number','default':0},
-                {'name':'Last_fit','type':'number','default':2446756.50000}]
+                {'name':'Last_fit','type':'number','default':2446756.50000},
+                {'name':'chi2','type':'number','default':99999.9999},
+                {'name':'red_chi2','type':'number','default':99999.9999}]
 
 
 TARGET_PERMISSIONS_ONLY=True
