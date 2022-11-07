@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
        # Start logging process:
        log = logs.start_log()
-       log.info('Fitting all events in mode '+all_events)
+       log.info('Fitting all events')
 
        all_events = options['events_to_fit']
 
