@@ -17,6 +17,8 @@ class Command(BaseCommand):
 
     help = 'Identify microlensing events from Gaia alerts'
 
+    classifier = 1
+
     def handle(self, *args, **options):
 
         # Start logging process:
@@ -29,64 +31,69 @@ class Command(BaseCommand):
 
         log.info('Found '+str(len(targets))+' alive Gaia targets')
 
-        # Evaluate each selected Target:
-        for event in targets:
+        if classifier == 1:
+            # Evaluate each selected Target:
+            for event in targets:
 
-            # The expectation is that the lightcurve data for them will have a model
-            # fit by a separate process, which will have stored the resulting model
-            # parameters in the EXTRA_PARAMs for each Target.  Targets with no
-            # fit parameters are ignored until they are model fitted.
-            # Fitted targets will have their class set to microlensing by default
-            if event.extra_fields['u0'] != 0.0 \
-                and event.extra_fields['t0'] != 0.0 \
-                and event.extra_fields['tE'] != 0.0 \
-                and 'Microlensing' in event.extra_fields['Classification']:
+                # The expectation is that the lightcurve data for them will have a model
+                # fit by a separate process, which will have stored the resulting model
+                # parameters in the EXTRA_PARAMs for each Target.  Targets with no
+                # fit parameters are ignored until they are model fitted.
+                # Fitted targets will have their class set to microlensing by default
+                if event.extra_fields['u0'] != 0.0 \
+                    and event.extra_fields['t0'] != 0.0 \
+                    and event.extra_fields['tE'] != 0.0 \
+                    and 'Microlensing' in event.extra_fields['Classification']:
 
-                # Retrieve the Gaia photometry for this Target:
-                photometry = retrieve_target_photometry(event)
+                    # Retrieve the Gaia photometry for this Target:
+                    photometry = retrieve_target_photometry(event)
 
-                # Test for an invalid blend magnitude:
-                valid_blend_mag = True
-                if event.extra_fields['Blend_magnitude'] == None \
-                    or event.extra_fields['Blend_magnitude'] == 0.0:
-                    valid_blend_mag = False
+                    # Test for an invalid blend magnitude:
+                    valid_blend_mag = True
+                    if event.extra_fields['Blend_magnitude'] == None \
+                        or event.extra_fields['Blend_magnitude'] == 0.0:
+                        valid_blend_mag = False
 
-                # Test for a suspiciously large u0:
-                valid_u0 = True
-                if abs(event.extra_fields['u0']) > 0.5:
-                    valid_u0 = False
+                    # Test for a suspiciously large u0:
+                    valid_u0 = True
+                    if abs(event.extra_fields['u0']) > 0.5:
+                        valid_u0 = False
 
-                # Test for low-amplitude change in photometry:
-                if len(photometry) > 0:
-                    peak_mag = photometry[:,1].min()
-                    delta_mag = event.extra_fields['Baseline_magnitude'] - peak_mag
-                    valid_dmag = True
-                    if delta_mag < 0.5:
+                    # Test for low-amplitude change in photometry:
+                    if len(photometry) > 0:
+                        peak_mag = photometry[:,1].min()
+                        delta_mag = event.extra_fields['Baseline_magnitude'] - peak_mag
+                        valid_dmag = True
+                        if delta_mag < 0.5:
+                            valid_dmag = False
+                    else:
                         valid_dmag = False
-                else:
-                    valid_dmag = False
 
-                # Test for suspicious reduced chi squared value
-                if 'red_chi2' in event.extra_fields.keys():
-                    valid_chisq = True
-                    if event.extra_fields['red_chi2'] > 50.0 \
-                        or event.extra_fields['red_chi2'] < 0.0:
-                        valid_chisq = False
+                    # Test for suspicious reduced chi squared value
+                    if 'red_chi2' in event.extra_fields.keys():
+                        valid_chisq = True
+                        if event.extra_fields['red_chi2'] > 50.0 \
+                            or event.extra_fields['red_chi2'] < 0.0:
+                            valid_chisq = False
 
-                # If a target fails all three criteria, set its classification
-                # to 'Unclassified variable'.  Note that TAP will consider scheduling
-                # observations for any object with 'microlensing' in the
-                # classification
-                if not valid_blend_mag and not valid_u0 and not valid_dmag:
-                    event.save(extras={'Classification': 'Unclassified variable'})
-                    log.info(event.name+': Reset as unclassified variable')
-                if 'red_chi2' in event.extra_fields.keys():
-                    if not valid_chisq:
-                        event.save(extras={'Classification': 'Unclassified poor fit'})
-                        log.info(event.name+': Reset as unclassified poor fit')
-                #else:
-                    #print(event.name+': Classification unchanged - ' \
-                    #    + event.extra_fields['Classification'])
+                    # If a target fails all three criteria, set its classification
+                    # to 'Unclassified variable'.  Note that TAP will consider scheduling
+                    # observations for any object with 'microlensing' in the
+                    # classification
+                    if not valid_blend_mag or not valid_u0 or not valid_dmag:
+                        event.save(extras={'Classification': 'Unclassified variable'})
+                        log.info(event.name+': Reset as unclassified variable')
+                    if 'red_chi2' in event.extra_fields.keys():
+                        if not valid_chisq:
+                            event.save(extras={'Classification': 'Unclassified poor fit'})
+                            log.info(event.name+': Reset as unclassified poor fit')
+
+
+        elif classifier == 2:
+            for event in targets:
+                event.save(extras={'Classification': 'Unclassified Gaia target'})
+                log.info(event.name+': Reset as unclassified Gaia target')
+
         logs.stop_log(log)
 
 def retrieve_target_photometry(target):
