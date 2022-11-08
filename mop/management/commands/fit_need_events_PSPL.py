@@ -124,7 +124,7 @@ def run_fit(target, cores):
 
     except:
         print(f'Job failed: {target.name}')
-        logs.warning(f'Job failed: {target.name}')
+        logs.info(f'ERROR: Job failed: {target.name}')
         traceback.print_exc()
         logs.stop_log(log)
         return None
