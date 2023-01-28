@@ -36,7 +36,7 @@ applyDatabaseMigrations: true
 # PostgreSQL server configuration is overridden in
 # eks-production1/prod/mop-values.yaml
 postgresql:
-  hostname: "postgres1-cluster.cluster-cple9sjsskrf.us-west-2.rds.amazonaws.com"
+  hostname: "prod-postgres1-cluster-writer-pgbouncer.prod-db-proxy.svc.cluster.local"
   postgresqlDatabase: "mop"
   postgresqlUsername: "mop"
   postgresqlPassword: "overridden"
