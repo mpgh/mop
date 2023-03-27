@@ -103,7 +103,7 @@ runtap:
 
 # CronJob: Harvest IPAC ZTF
 harvestztfipac:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m
