@@ -13,6 +13,7 @@ import os
 import numpy as np
 from astropy.time import Time, TimezoneInfo
 import datetime
+from mop.toolbox import logs
 
 BROKER_URL = 'https://www.massey.ac.nz/~iabond/moa/'
 photometry = "https://www.massey.ac.nz/~iabond/moa/alert2019/fetchtxt.php?path=moa/ephot/"
@@ -40,8 +41,10 @@ class MOABroker(GenericBroker):
         parser.add_argument('years', help='years you want to harvest, spearted by ,')
 
     def fetch_alerts(self, moa_files_directories, years = []):
-        
-       
+
+        # Start logging process:
+        log = logs.start_log()
+        log.info('Started ingester for MOA alerts for year(s) '+repr(years))
 
         #ingest the TOM db
         list_of_targets = []
@@ -49,10 +52,12 @@ class MOABroker(GenericBroker):
         time_now = Time(datetime.datetime.now()).jd
         for year in years:
             url_file_path = os.path.join(BROKER_URL+'alert'+str(year)+'/index.dat' )
+            log.info('MOA ingester: querying url: '+url_file_path)
+            
             events = urllib.request.urlopen(url_file_path).readlines()
 
             for event in events[0:]:
-                   
+
                    event = event.decode("utf-8").split(' ')
                    name = 'MOA-'+event[0]
                    #Create or load
@@ -64,19 +69,20 @@ class MOABroker(GenericBroker):
                    if created:
 
                        target.save()
-                   
+
                    list_of_targets.append(target)
 
+        logs.stop_log(log)
 
         return list_of_targets
 
 
     def find_and_ingest_photometry(self, targets):
 
-        
+
         time_now = Time(datetime.datetime.now()).jd
         for target in targets:
-            
+
             datasets = ReducedDatum.objects.filter(target=target)
             existing_time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
 
@@ -92,23 +98,23 @@ class MOABroker(GenericBroker):
             emags = []
 
             for line in lines:
- 
+
                 line = line.decode("utf-8").split("  ")
                 try:
-                    
+
                     phot = [i for i in line if i!='']
                     tot_flux = float(self.event_dictionnary[target.name][2])+float(phot[1])
-                    
+
                     time = float(phot[0])
                     mag = float(self.event_dictionnary[target.name][1])-2.5*np.log10(tot_flux)
                     emag = float(phot[2])/tot_flux*2.5/np.log(10)
-                    if (np.isfinite(mag)) & (emag>0) & (emag<1.0) & (time>time_now-2*365.25) & (time not in existing_time): #Harvest the last 2 years 
+                    if (np.isfinite(mag)) & (emag>0) & (emag<1.0) & (time>time_now-2*365.25) & (time not in existing_time): #Harvest the last 2 years
                         jd.append(time)
                         mags.append(mag)
                         emags.append(emag)
-                    
+
                 except:
-                    pass    
+                    pass
 
 
             photometry = np.c_[jd,mags,emags]
@@ -128,7 +134,7 @@ class MOABroker(GenericBroker):
                     source_location=target.name,
                     data_type='photometry',
                     target=target)
-               
+
                     if created:
 
                         rd.save()
@@ -143,4 +149,3 @@ class MOABroker(GenericBroker):
             print(target.name,'Ingest done!')
     def to_generic_alert(self, alert):
         pass
-  
