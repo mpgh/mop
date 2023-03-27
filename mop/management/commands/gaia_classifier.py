@@ -17,9 +17,8 @@ class Command(BaseCommand):
 
     help = 'Identify microlensing events from Gaia alerts'
 
-    classifier = 1
-
     def handle(self, *args, **options):
+        classifier = 1
 
         # Start logging process:
         log = logs.start_log()
