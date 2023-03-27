@@ -43,7 +43,7 @@ runtap:
 
 # CronJob: Harvest ZTF IPAC
 harvestztfipac:
-  enabled: true
+  enabled: false
   schedule: "0 8 * * *"
   resources: {}
 
