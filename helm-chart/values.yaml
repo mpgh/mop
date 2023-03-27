@@ -65,6 +65,12 @@ harvestmoa:
   schedule: "0 12 * * *"
   resources: {}
 
+# CronJob: Harvest OGLE
+harvestogle:
+  enabled: true
+  schedule: "0 12 * * *"
+  resources: {}
+
 # CronJob: Harvest ASAS-SN
 harvestasassn:
   enabled: true

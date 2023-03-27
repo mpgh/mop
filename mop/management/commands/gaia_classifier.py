@@ -22,7 +22,7 @@ class Command(BaseCommand):
 
         # Start logging process:
         log = logs.start_log()
-        log.info('Gaia classifier started run')
+        log.info('Gaia classifier started run - version check')
 
         # Retrieve a list of Gaia Targets that are flagged as Alive:
         targets = Target.objects.filter(name__contains='Gaia',

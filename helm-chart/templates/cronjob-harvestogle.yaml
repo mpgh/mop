@@ -1,0 +1,69 @@
+{{- if .Values.harvestogle.enabled -}}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ include "mop.fullname" . }}-harvestogle
+  labels:
+{{ include "mop.labels" . | indent 4 }}
+    app.kubernetes.io/component: "harvestogle"
+spec:
+  concurrencyPolicy: "Forbid"
+  failedJobsHistoryLimit: {{ default 1 .Values.harvestogle.failedJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ default 3 .Values.harvestogle.successfulJobsHistoryLimit }}
+  startingDeadlineSeconds: 120
+  schedule: "{{ .Values.harvestogle.schedule }}"
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "mop.labels" . | nindent 8 }}
+        app.kubernetes.io/component: "harvestogle"
+    spec:
+      activeDeadlineSeconds: 7200
+      template:
+        metadata:
+          labels:
+            {{- include "mop.labels" . | nindent 12 }}
+            app.kubernetes.io/component: "harvestogle"
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: {{ .Chart.Name }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - python
+                - manage.py
+                - harvest_ogle
+                - '2023'
+              env:
+                {{- include "mop.backendEnv" . | nindent 16 }}
+              resources:
+                {{- toYaml .Values.harvestogle.resources | nindent 16 }}
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+                  readOnly: false
+
+          volumes:
+            - name: tmp
+              emptyDir:
+                medium: Memory
+                sizeLimit: 16Mi
+
+
+            {{- with .Values.nodeSelector }}
+              nodeSelector:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.affinity }}
+              affinity:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.tolerations }}
+              tolerations:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}
+
+{{- end }}
