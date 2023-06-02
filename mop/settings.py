@@ -15,13 +15,8 @@ import os
 import ast
 import tempfile
 
-
-
-
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
@@ -51,6 +46,7 @@ INSTALLED_APPS = [
     'django_comments',
     'bootstrap4',
     'crispy_forms',
+    'crispy_bootstrap4',
     'django_filters',
     'django_gravatar',
     'rest_framework',
@@ -288,7 +284,6 @@ TOM_FACILITY_CLASSES = [
 ]
 
 TOM_ALERT_CLASSES = [
-    'tom_alerts.brokers.mars.MARSBroker',
     'tom_alerts.brokers.lasair.LasairBroker',
     'tom_alerts.brokers.scout.ScoutBroker',
     'tom_alerts.brokers.tns.TNSBroker',
