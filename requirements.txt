@@ -13,3 +13,5 @@ boto3==1.16.61
 lxml==4.9.1
 pandas
 #numpy
+# TODO: remove this once dev postgres has been migrated to >= v11 & tomtoolkit is upgraded
+Django==3.2.18
