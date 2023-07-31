@@ -21,11 +21,11 @@ class Command(BaseCommand):
         ### Create or load TAP list
         try:
 
-            tap_list = TargetList.objects.filter(name='TAP')[0]
+            tap_list = TargetList.objects.filter(name='OMEGAII')[0]
 
         except:
 
-            tap_list = TargetList(name='TAP')
+            tap_list = TargetList(name='OMEGAII')
             tap_list.save()
 
         if options['target_name'] == 'all':

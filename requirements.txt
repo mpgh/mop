@@ -1,8 +1,4 @@
-#astroplan==0.8
-#astropy==4.2.1
-tomtoolkit==2.7.1
-#tom_publications==0.1.0
-#tom-antares>=0.1.0
+tomtoolkit==2.14.4
 psycopg2===2.8.4
 gunicorn[gevent]==20.0.4
 factory_boy==2.12.0
@@ -12,6 +8,3 @@ django-storages==1.11.1
 boto3==1.16.61
 lxml==4.9.1
 pandas
-#numpy
-# TODO: remove this once dev postgres has been migrated to >= v11 & tomtoolkit is upgraded
-Django==3.2.18
