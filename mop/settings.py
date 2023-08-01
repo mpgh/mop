@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'tom_common',
     'django_comments',
     'bootstrap4',
+    'crispy_bootstrap4',
     'crispy_forms',
     'django_filters',
     'django_gravatar',
