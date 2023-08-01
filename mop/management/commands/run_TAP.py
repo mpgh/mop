@@ -36,6 +36,8 @@ class Command(BaseCommand):
 
             target, created = Target.objects.get_or_create(name= options['target_name'])
             list_of_events_alive = [target]
+        
+        KMTNet_fields = TAP.load_KMTNet_fields("../../toolbox/kmtnet_zona.csv")
 
         for event in list_of_events_alive[:]:
 
@@ -88,8 +90,9 @@ class Command(BaseCommand):
                         ### Regular obs
 
                         event_in_the_Bulge = TAP.event_in_the_Bulge(event.ra, event.dec)
+                        event_not_in_OMEGA_II = TAP.event_not_in_OMEGA_II(event.ra, event.dec, KMTNet_fields)
 
-                        if (event_in_the_Bulge):# & (event.extra_fields['Baseline_magnitude']>17):
+                        if (event_in_the_Bulge or event_not_in_OMEGA_II):# & (event.extra_fields['Baseline_magnitude']>17):
 
                                extras = {'Observing_mode':'No'}
                                event.save(extras = extras)
