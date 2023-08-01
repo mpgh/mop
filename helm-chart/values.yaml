@@ -182,6 +182,9 @@ applyDatabaseMigrations: true
 useDockerizedDatabase: true
 
 postgresql:
+  auth:
+    postgresPassword: "changeme"
+
   # see templates/_helpers.tpl for hostname generation
   hostname: ""
   postgresqlDatabase: "postgres"

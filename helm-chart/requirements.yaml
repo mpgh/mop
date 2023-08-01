@@ -1,5 +1,5 @@
 dependencies:
 - name: postgresql
-  version: 8.6.4
-  repository: https://charts.helm.sh/stable
+  version: 12.8.0
+  repository: oci://registry-1.docker.io/bitnamicharts
   condition: useDockerizedDatabase
