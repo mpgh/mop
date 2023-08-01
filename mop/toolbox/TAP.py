@@ -12,6 +12,9 @@ from pyLIMA import event
 from pyLIMA import telescopes
 from pyLIMA import microlmodels
 
+import pandas as pd
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 
 
 ZP = 27.4 #pyLIMA convention
@@ -273,3 +276,30 @@ def TAP_mag_now(target):
    mag_now =  lightcurve[0].value['lc_model_magnitude'][closest_mag]
 
    return mag_now
+   
+def load_KMTNet_fields(path):
+    fields = pd.read_csv(path, header=0)
+    return fields
+    
+def event_not_in_OMEGA_II(ra, dec, KMTNet_fields):
+
+    """
+    This function checks if the event is within the KMTNet fields.
+    If it is, the event has to be rejected and not followed by OMEGA-II.
+
+    :param ra: Right Ascention of the event.
+    :param dec: Declination of the event.
+    :param KMTNet_fields: A pandas dataframe that contains a series of
+                          points describing roughly
+    :return: Boolean value if the event is not ok for OMEGA II.
+    """
+
+    exclusion_zone = Polygon(zip(KMTNet_fields["ra"], KMTNet_fields["dec"]))
+
+    not_in_OMEGA_II = False
+
+    point = Point(ra, dec)
+    if (exclusion_zone.contains(point)):
+        not_in_OMEGA_II = True
+
+    return not_in_OMEGA_II
