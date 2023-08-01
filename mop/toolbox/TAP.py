@@ -277,6 +277,10 @@ def TAP_mag_now(target):
    return mag_now
    
 def load_KMTNet_fields():
+    """
+    Returns a numpy array with the vertices
+    describing the KMTNet zone polygon.
+    """
     fields = np.array([[264.00, -37.40],
                         [270.50, -37.40],
                         [270.50, -33.75],
@@ -309,7 +313,7 @@ def event_not_in_OMEGA_II(ra, dec, KMTNet_fields):
 
     :param ra: Right Ascention of the event.
     :param dec: Declination of the event.
-    :param KMTNet_fields: A pandas dataframe that contains a series of
+    :param KMTNet_fields: A numpy array that contains a series of
                           points describing roughly
     :return: Boolean value if the event is not ok for OMEGA II.
     """
