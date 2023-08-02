@@ -7,3 +7,6 @@ env/
 .idea
 *~
 helm-chart/charts/*.tgz
+
+# Django files
+local_setting.py
