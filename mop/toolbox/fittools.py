@@ -88,10 +88,9 @@ def fit_PSPL_omega2(ra, dec, photometry, emag_limit=None):
         mag_source_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
         mag_baseline_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
     else:
-        pspl = PSPL_model.PSPLmodel(current_event, parallax=['None', 0.],
-                                    blend_flux_parameter='noblend')
+        pspl = PSPL_model.PSPLmodel(current_event, parallax=['None', 0.])
         pspl.define_model_parameters()
-        fit_tap = TRF_fit.TRFfit(pspl, loss_function='soft_l1')
+        fit_tap = TRF_fit.TRFfit(pspl)
         fit_tap.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
         fit_tap.fit_parameters["tE"][1] = [1., 3000.]
         fit_tap.fit_parameters["u0"][1] = [0., 2.0]
