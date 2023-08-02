@@ -99,7 +99,7 @@ def fit_PSPL_omega2(ra, dec, photometry, emag_limit=None):
         mag_source_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
         mag_baseline_fit = flux_to_mag(fit_tap.fit_results["best_model"][3] + fit_tap.fit_results["best_model"][4])
 
-    epsilon_numerical_noise = 1e-6
+    epsilon_numerical_noise = 1e-4
     if np.abs(fit_tap.fit_parameters["u0"][1][0] - fit_tap.fit_results['best_model'][1]) < epsilon_numerical_noise or\
             np.abs(fit_tap.fit_parameters["u0"][1][1] - fit_tap.fit_results['best_model'][1]) < epsilon_numerical_noise or\
             np.abs(fit_tap.fit_parameters["tE"][1][0] - fit_tap.fit_results['best_model'][2]) < epsilon_numerical_noise or\
