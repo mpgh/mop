@@ -315,6 +315,7 @@ TOM_ALERT_CLASSES = [
 # ]
 EXTRA_FIELDS = [{'name':'Alive','type':'boolean', 'default':True},
                 {'name':'Classification','type':'string','default':'Microlensing PSPL'},
+                {'name':'Category','type':'string','default':'Microlensing stellar/planet'},
                 {'name':'Observing_mode','type':'string','default':'No'},
                 {'name':'t0','type':'number','default':0},
                 {'name':'u0','type':'number','default':0},

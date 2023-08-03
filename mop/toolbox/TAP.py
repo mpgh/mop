@@ -214,19 +214,21 @@ def TAP_priority_mode():
 
 def TAP_telescope_class(sdss_i_mag):
 
-   telescope_class = '2m'
+    telescope_class = '2m'
 
-   #change telescope class limit to 18.5 to save 2 m time
-   if sdss_i_mag<18.0:
+    #change telescope class limit to 18.5 to save 2 m time
+    if sdss_i_mag<18.0:
 
-      telescope_class = '1m'
+        telescope_class = '1m'
 
-   if sdss_i_mag<14:
+    # RAS: Switched off for 2023+ KP since no time allocated
+    # on 0.4m network
+    use_04_network = False
+    if use_04_network:
+        if sdss_i_mag<14:
+            telescope_class = '0.4m'
 
-      telescope_class = '0.4m'
-
-
-   return telescope_class
+    return telescope_class
 
 #def TAP_mag_now(target):
 
@@ -311,7 +313,7 @@ def event_not_in_OMEGA_II(ra, dec, KMTNet_fields):
     This function checks if the event is within the KMTNet fields.
     If it is, the event has to be rejected and not followed by OMEGA-II.
 
-    :param ra: Right Ascention of the event.
+    :param ra: Right Ascension of the event.
     :param dec: Declination of the event.
     :param KMTNet_fields: A numpy array that contains a series of
                           points describing roughly
@@ -327,3 +329,21 @@ def event_not_in_OMEGA_II(ra, dec, KMTNet_fields):
         not_in_OMEGA_II = True
 
     return not_in_OMEGA_II
+
+def categorize_event_timescale(target, threshold=75.0):
+    """
+    This function is designed to classify an event based on the best
+    currently available estimate of its Einstein crossing time.
+
+    Events with a tE >= threshold [days] are considered to be
+    long-timescale events and black hole candidates.
+    """
+
+    category = 'Microlensing stellar/planet'
+
+    if target.extra_fields['tE'] >= threshold:
+        category = 'Microlensing Long-tE'
+        extras = {'Category': 'Microlensing Long-tE'}
+        target.save(extras=extras)
+
+    return category

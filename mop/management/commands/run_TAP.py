@@ -89,39 +89,52 @@ class Command(BaseCommand):
 
                         ### Regular obs
 
+                        # Exclude events that are within the High Cadence Zone
                         # event_in_the_Bulge = TAP.event_in_the_Bulge(event.ra, event.dec)
                         event_not_in_OMEGA_II = TAP.event_not_in_OMEGA_II(event.ra, event.dec, KMTNet_fields)
 
+                        # If the event is in the HCZ, set the MOP flag to not observe it
                         if (event_not_in_OMEGA_II):# (event_in_the_Bulge or)  & (event.extra_fields['Baseline_magnitude']>17):
 
                                extras = {'Observing_mode':'No'}
                                event.save(extras = extras)
 
+                        # If the event is flagged as not alive, then it is over, and should also not be observed
+                        elif not event.extra_fields['Alive']:
+                            extras = {'Observing_mode': 'No'}
+                            event.save(extras=extras)
 
+                        # For Alive events outside the HCZ, the strategy depends on whether it is classified as a
+                        # stellar/planetary event, or a long-timescale black hole candidate
                         else:
 
-                           if event.extra_fields['Alive'] == True:
+                            category = TAP.categorize_event_timescale(event)
+
+                            if 'stellar/planet' in category:
                                extras = {'Observing_mode':'Regular'}
                                event.save(extras = extras)
                                obs_control.build_and_submit_regular_phot(event)
-                           else:
-                               extras = {'Observing_mode':'No'}
-                               event.save(extras = extras)
+                            elif 'Long-tE in category':
+                                extras = {'Observing_mode':'Regular'}
+                                event.save(extras = extras)
+                               obs_control.build_and_submit_regular_phot(event)
 
                         # Priority mode
+                        # Switched off since this will be handled manually for now
+                        use_priority_obs = False
+                        if use_priority_obs:
+                            mag_now = TAP.TAP_mag_now(event)
+                            mag_baseline = event.extra_fields['Baseline_magnitude']
+                            new_observing_mode = TAP.TAP_observing_mode(planet_priority,planet_priority_error,mag_now,mag_baseline)
 
-                        mag_now = TAP.TAP_mag_now(event)
-                        mag_baseline = event.extra_fields['Baseline_magnitude']
-                        new_observing_mode = TAP.TAP_observing_mode(planet_priority,planet_priority_error,mag_now,mag_baseline)
-
-                        if new_observing_mode:
-                           tap_list.targets.add(event)
+                            if new_observing_mode:
+                               tap_list.targets.add(event)
 
 
-                           extras = {'Observing_mode':new_observing_mode}
-                           event.save(extras = extras)
-                           print(planet_priority,planet_priority_error)
-                           obs_control.build_and_submit_priority_phot(event)
+                               extras = {'Observing_mode':new_observing_mode}
+                               event.save(extras = extras)
+                               print(planet_priority,planet_priority_error)
+                               obs_control.build_and_submit_priority_phot(event)
 
                         ### Spectroscopy
                         if (event.extra_fields['Spectras']<1) & (event.extra_fields['Observing_mode'] != 'No'):
