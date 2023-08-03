@@ -91,7 +91,7 @@ opentargetstoomegausers:
 
 # CronJob: Gaia_classifier
 gaiaclassifier:
-  enabled: true
+  enabled: false
   schedule: "*/15 * * * *"
   resources: {}
 
