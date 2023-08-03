@@ -38,10 +38,6 @@
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}</dd>
   {% endif%}
-  {% if key == 'Event_category' %}
-    <dt class="col-sm-6">{{ key }}</dt>
-    <dd class="col-sm-6">{{ value }}</dd>
-  {% endif%}
   {% if key == 'Observing_mode' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}</dd>
@@ -68,14 +64,6 @@
 <dd class="col-sm-6">{{ target.extra_fields.piEN }}</dd>
 <dt class="col-sm-6">{{ 'piEE' }}</dt>
 <dd class="col-sm-6">{{ target.extra_fields.piEE }}</dd>
-<dt class="col-sm-6">{{ 'rho' }}</dt>
-<dd class="col-sm-6">{{ target.extra_fields.alpha }}</dd>
-<dt class="col-sm-6">{{ 's' }}</dt>
-<dd class="col-sm-6">{{ target.extra_fields.s }}</dd>
-<dt class="col-sm-6">{{ 'q' }}</dt>
-<dd class="col-sm-6">{{ target.extra_fields.q }}</dd>
-<dt class="col-sm-6">{{ 'alpha' }}</dt>
-<dd class="col-sm-6">{{ target.extra_fields.alpha }}</dd>
 <dt class="col-sm-6">{{ 'Source_magnitude' }}</dt>
 <dd class="col-sm-6">{{ target.extra_fields.Source_magnitude }}</dd>
 <dt class="col-sm-6">{{ 'Blend_magnitude' }}</dt>
@@ -86,14 +74,6 @@
 <dd class="col-sm-6">{{ target.extra_fields.chi2 }}</dd>
 <dt class="col-sm-6">{{ 'red_chi2' }}</dt>
 <dd class="col-sm-6">{{ target.extra_fields.red_chi2 }}</dd>
-<dt class="col-sm-6">{{ 'KS_test' }}</dt>
-<dd class="col-sm-6">{{ target.extra_fields.KS_test }}</dd>
-<dt class="col-sm-6">{{ 'SW_test' }}</dt>
-<dd class="col-sm-6">{{ target.extra_fields.SW_test }}</dd>
-<dt class="col-sm-6">{{ 'Latest_data_HJD' }}</dt>
-<dd class="col-sm-6">{{ target.extra_fields.Latest_data_HJD }}</dd>
-<dt class="col-sm-6">{{ 'Latest_data_UTC' }}</dt>
-<dd class="col-sm-6">{{ target.extra_fields.Latest_data_UTC }}</dd>
 
 </dl>
 <h4>Tags</h4>
