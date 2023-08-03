@@ -1,8 +1,8 @@
 // Kubernetes Automated Deployment Pipeline
 
 def config = [
-  devDeploymentTimeout: "300s",
-  prodDeploymentTimeout: "300s",
+  devDeploymentTimeout: "600s",
+  prodDeploymentTimeout: "600s",
 ]
 
 helmPipeline(config)

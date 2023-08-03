@@ -329,7 +329,12 @@ EXTRA_FIELDS = [{'name':'Alive','type':'boolean', 'default':True},
                 {'name':'Spectras','type':'number','default':0},
                 {'name':'Last_fit','type':'number','default':2446756.50000},
                 {'name':'chi2','type':'number','default':99999.9999},
-                {'name':'red_chi2','type':'number','default':99999.9999}]
+                {'name':'red_chi2','type':'number','default':99999.9999},
+                {'name':'KS_test','type':'number','default':0},
+                {'name':'SW_test','type':'number','default':0},
+                {'name':'AD_test','type':'number','default':0},
+                {'name':'Latest_data_HJD','type':'number','default':0},
+                {'name':'Latest_data_UTC','type':'datetime','default':''}]
 
 
 TARGET_PERMISSIONS_ONLY=True
