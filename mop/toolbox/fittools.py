@@ -1,8 +1,11 @@
 import numpy as np
 from pyLIMA import event
 from pyLIMA import telescopes
+from pyLIMA import toolbox
 from pyLIMA.fits import TRF_fit
 from pyLIMA.models import PSPL_model
+from pyLIMA.outputs import pyLIMA_plots
+from astropy import units as unit
 
 
 def chi2(params, fit):
@@ -18,7 +21,23 @@ def flux_to_mag(flux):
     return magnitude
 
 
-def fit_PSPL_omega2(ra, dec, photometry, emag_limit=None):
+def fit_pspl_omega2(ra, dec, photometry, emag_limit=None):
+    """
+    Fit photometry using pyLIMAv1.9 with a static PSPL TRF fit
+    checking if blend is constrained, if so using a soft_l1 loss function
+    if not refit unblended model and report parameter
+
+    Parameters
+    ----------
+    ra : float, Right Ascension in degrees
+    dec : float, Declination in degrees
+    photometry : array containing all telescope passband light curves
+    emag_limit : array, limit on the error
+
+    Returns
+    -------
+    to_return : list of arrays containing fit parameters, model_telescope and cost function
+    """
     # Default filter sequence for establishing survey dataset
     filters_order = ['I', 'ip', 'i_ZTF', 'r_ZTF', 'R', 'g_ZTF', 'gp', 'G']
 
@@ -98,8 +117,8 @@ def fit_PSPL_omega2(ra, dec, photometry, emag_limit=None):
         mag_blend_fit = flux_to_mag(fit_tap.fit_results["best_model"][4])
         mag_source_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
         mag_baseline_fit = flux_to_mag(fit_tap.fit_results["best_model"][3] + fit_tap.fit_results["best_model"][4])
-
-    epsilon_numerical_noise = 1e-4
+    # the numerical noise threshold implicitly modified the permitted minimum u0 to its value
+    epsilon_numerical_noise = 1e-5
     if np.abs(fit_tap.fit_parameters["u0"][1][0] - fit_tap.fit_results['best_model'][1]) < epsilon_numerical_noise or\
             np.abs(fit_tap.fit_parameters["u0"][1][1] - fit_tap.fit_results['best_model'][1]) < epsilon_numerical_noise or\
             np.abs(fit_tap.fit_parameters["tE"][1][0] - fit_tap.fit_results['best_model'][2]) < epsilon_numerical_noise or\
@@ -116,10 +135,14 @@ def fit_PSPL_omega2(ra, dec, photometry, emag_limit=None):
     piEN_fit = 0.0
     piEE_fit = 0.0
     red_chi2 = chi2_fit / float(len(lightcurve) - 5)
-    # model_telescope = toolbox.fake_telescopes.create_a_fake_telescope()
-    # pyLIMA_parameters = pspl.compute_pyLIMA_parameters(fit_tap.fit_results["best_model"])
-    # model = pspl.compute_the_microlensing_model(model_telescope, pyLIMA_parameters)
-    model_telescope = None
+    pyLIMA_plots.list_of_fake_telescopes = []
+    pyLIMA_parameters = pspl.compute_pyLIMA_parameters(fit_tap.fit_results["best_model"])
+    model_telescope = pyLIMA_plots.create_telescopes_to_plot_model(pspl, pyLIMA_parameters)[0]
+    flux_model = pspl.compute_the_microlensing_model(model_telescope, pyLIMA_parameters)['photometry']
+    magnitude = toolbox.brightness_transformation.flux_to_magnitude(flux_model)
+    model_telescope.lightcurve_magnitude["mag"] = magnitude * unit.mag
+    mask = ~np.isnan(magnitude)
+    model_telescope.lightcurve_magnitude = model_telescope.lightcurve_magnitude[mask]
     try:
         to_return = [np.around(t0_fit, 3), np.around(u0_fit, 5), np.around(tE_fit, 3), np.around(piEN_fit, 5),
                      np.around(piEE_fit, 5),
