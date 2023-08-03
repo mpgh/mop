@@ -14,6 +14,8 @@ import numpy as np
 from astropy.time import Time, TimezoneInfo
 import datetime
 from mop.toolbox import logs
+import requests
+import re
 
 BROKER_URL = 'https://www.massey.ac.nz/~iabond/moa/'
 photometry = "https://www.massey.ac.nz/~iabond/moa/alert2019/fetchtxt.php?path=moa/ephot/"
@@ -25,7 +27,7 @@ class MOAQueryForm(GenericQueryForm):
         label='Cone Search',
         help_text='RA,Dec,radius in degrees'
     )
-
+    
     def clean(self):
         if len(self.cleaned_data['target_name']) == 0 and \
                         len(self.cleaned_data['cone']) == 0:
@@ -36,16 +38,16 @@ class MOAQueryForm(GenericQueryForm):
 class MOABroker(GenericBroker):
     name = 'MOA'
     form = MOAQueryForm
-
+    
     def add_arguments(self, parser):
         parser.add_argument('years', help='years you want to harvest, spearted by ,')
-
+    
     def fetch_alerts(self, moa_files_directories, years = []):
-
+    
         # Start logging process:
         log = logs.start_log()
         log.info('Started ingester for MOA alerts for year(s) '+repr(years))
-
+        
         #ingest the TOM db
         list_of_targets = []
         self.event_dictionnary = {}
@@ -53,72 +55,101 @@ class MOABroker(GenericBroker):
         for year in years:
             url_file_path = os.path.join(BROKER_URL+'alert'+str(year)+'/index.dat' )
             log.info('MOA ingester: querying url: '+url_file_path)
-            
+             
             events = urllib.request.urlopen(url_file_path).readlines()
-
+            
             for event in events[0:]:
-
-                   event = event.decode("utf-8").split(' ')
-                   name = 'MOA-'+event[0]
-                   #Create or load
-                   self.event_dictionnary[name] = [event[1],event[-2],event[-1]]
-                   coords = [float(event[2]),float(event[3])]
-                   cible = SkyCoord(coords[0],coords[1],unit="deg")
-                   target, created = Target.objects.get_or_create(name=name,ra=cible.ra.degree,dec=cible.dec.degree,
-                                   type='SIDEREAL',epoch=2000)
-                   if created:
-
-                       target.save()
-
-                   list_of_targets.append(target)
-
+                event = event.decode("utf-8").split(' ')
+                name = 'MOA-'+event[0]
+                #Create or load
+                self.event_dictionnary[name] = [event[1],event[-2],event[-1]]
+                coords = [float(event[2]),float(event[3])]
+                cible = SkyCoord(coords[0],coords[1],unit="deg")
+                target, created = Target.objects.get_or_create(name=name,ra=cible.ra.degree,dec=cible.dec.degree,
+                                  type='SIDEREAL',epoch=2000)
+                if created:
+                    target.save()
+                list_of_targets.append(target)
+                
         logs.stop_log(log)
-
+        
         return list_of_targets
 
 
+    def extract_moa_calib_values(self, url):
+        ''' Will get the event specific flux to mag calibration parameters from the MOA event page.
+        '''
+        try:
+            # Send a GET url request
+            response = requests.get(url)
+            # Check if the request was successful
+            if response.status_code != 200:
+                print("Failed to fetch url. Status code:", response.status_code)
+                return None
+            
+            # Find the line containing "Calibration:"
+            pattern = r'Calibration:(.*?)</div>'
+            match = re.search(pattern, response.text, re.DOTALL)
+            
+            if match:
+                # Extract the values from the matched group
+                calibration_values = match.group(1).strip()
+                zeropoint = float(calibration_values.split()[3])
+                calibration_flux = float(calibration_values.split()[-1].strip(')'))
+                return zeropoint, calibration_flux
+            
+            else:
+                print("Could not find the 'Calibration' line on the webpage.")
+                return None
+        
+        except Exception as e:
+            print("An error occurred:", str(e))
+            return None
+    
     def find_and_ingest_photometry(self, targets):
-
-
+        
         time_now = Time(datetime.datetime.now()).jd
         for target in targets:
-
+            
             datasets = ReducedDatum.objects.filter(target=target)
             existing_time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
-
+            
             year = target.name.split('-')[1]
             event = self.event_dictionnary[target.name][0]
-
-
+            
             url_file_path = os.path.join(BROKER_URL+'alert'+str(year)+'/fetchtxt.php?path=moa/ephot/phot-'+event+'.dat' )
             lines = urllib.request.urlopen(url_file_path).readlines()
-
+            
+            url_event_calibr_pars_path = os.path.join(BROKER_URL+'alert{}/display.php?id={}'.format(str(year), event) )
+            # Get the calibration values from the MOA event page 
+            zeropoint, calib_flux = extract_moa_calib_values(event_calib_url)
+            
             jd = []
             mags = []
             emags = []
-
+            
             for line in lines:
-
+                
                 line = line.decode("utf-8").split("  ")
                 try:
-
+                    
                     phot = [i for i in line if i!='']
-                    tot_flux = float(self.event_dictionnary[target.name][2])+float(phot[1])
-
+                    #tot_flux = float(self.event_dictionnary[target.name][2])+float(phot[1])
+                    tot_flux = float(calib_flux)+float(phot[1])
                     time = float(phot[0])
-                    mag = float(self.event_dictionnary[target.name][1])-2.5*np.log10(tot_flux)
-                    emag = float(phot[2])/tot_flux*2.5/np.log(10)
-                    if (np.isfinite(mag)) & (emag>0) & (emag<1.0) & (time>time_now-2*365.25) & (time not in existing_time): #Harvest the last 2 years
+                    #mag = float(self.event_dictionnary[target.name][1])-2.5*np.log10(tot_flux)
+                    mag = float(zeropoint)-2.5*np.log10(tot_flux)
+                    emag = (float(phot[2])/tot_flux)*(2.5/np.log(10))
+                    if (np.isfinite(mag)) & (emag>0) & (emag<0.45) & (time>time_now-2*365.25) & (time not in existing_time): #Harvest the last 2 years
                         jd.append(time)
                         mags.append(mag)
                         emags.append(emag)
-
+                
                 except:
                     pass
-
-
+            
             photometry = np.c_[jd,mags,emags]
-
+            
             for index,point in enumerate(photometry):
                 try:
                     jd = Time(point[0], format='jd', scale='utc')
@@ -134,18 +165,18 @@ class MOABroker(GenericBroker):
                     source_location=target.name,
                     data_type='photometry',
                     target=target)
-
+                    
                     if created:
-
                         rd.save()
-
+                    
                     else:
                         # photometry already there (I hope!)
                         #break
                         pass
                 except:
-                        pass
-
+                    pass
+            
             print(target.name,'Ingest done!')
+    
     def to_generic_alert(self, alert):
         pass
