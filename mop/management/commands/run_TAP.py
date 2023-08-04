@@ -56,19 +56,31 @@ class Command(BaseCommand):
                         u0_pspl = event.extra_fields['u0']
                         tE_pspl = event.extra_fields['tE']
 
-
                         covariance = np.array(json.loads(event.extra_fields['Fit_covariance']))
 
                         planet_priority = TAP.TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl)
                         planet_priority_error = TAP.TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance)
+
+                        ## KK: Adding long event priority
+                        t_last = TAP.TAP_time_last_datapoint(event)
+
+                        long_priority = TAP.TAP_long_event_priority(time_now, t_last, tE_pspl)
+                        long_priority_error = TAP.TAP_long_event_priority_error(tE_pspl, covariance)
 
                         #psi_deriv = TAP.psi_derivatives_squared(time_now,t0_pspl,u0_pspl,tE_pspl)
                         #error = (psi_deriv[2] * covariance[2,2] + psi_deriv[1] * covariance[1,1] + psi_deriv[0] * covariance[0,0])**0.5
                         ### need to create a reducedatum for planet priority
 
 
-                        data = {'tap': planet_priority,
-                                'tap_error': planet_priority_error
+                        # data = {'tap': planet_priority,
+                        #         'tap_error': planet_priority_error
+                        #         }
+
+                        # Storing both types of priority
+                        data = {'tap_planet': planet_priority,
+                                'tap_planet_error': planet_priority_error,
+                                'tap_long': long_priority,
+                                'tap_long_error': long_priority_error
                                 }
 
                         rd, created = ReducedDatum.objects.get_or_create(
@@ -81,7 +93,10 @@ class Command(BaseCommand):
 
                         if created:
                             rd.save()
-                        extras = {'TAP_priority':np.around(planet_priority,5)}
+
+                        # KK: modified to include long event pririty
+                        extras = {'TAP_planet_priority':np.around(planet_priority,5),
+                                  'TAP_long_priority': np.around(long_priority, 5)}
                         event.save(extras = extras)
 
 
