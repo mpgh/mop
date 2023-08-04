@@ -404,3 +404,21 @@ def TAP_time_last_datapoint(target):
 
     return t_last
 
+def new_TAP_observing_mode(planet_priority, planet_priority_error,
+                           long_priority, long_priority_error,
+                           mag_now, mag_baseline):
+### Fixing the time consumption
+
+   if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
+
+
+       return 'Priority'
+
+   elif (long_priority > 50):
+       return 'Long priority'
+
+   elif (long_priority > 10):
+       return 'Long regular'
+   else:
+
+       return None
