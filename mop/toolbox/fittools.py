@@ -3,6 +3,7 @@ from pyLIMA import event
 from pyLIMA import telescopes
 from pyLIMA import toolbox
 from pyLIMA.fits import TRF_fit
+from pyLIMA.fits import stats
 from pyLIMA.models import PSPL_model
 from pyLIMA.outputs import pyLIMA_plots
 from astropy import units as unit
@@ -106,6 +107,7 @@ def fit_pspl_omega2(ra, dec, photometry, emag_limit=None):
         mag_blend_fit = "null"
         mag_source_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
         mag_baseline_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
+        fit_type = 'soft_l1'
     else:
         pspl = PSPL_model.PSPLmodel(current_event, parallax=['None', 0.])
         pspl.define_model_parameters()
@@ -117,6 +119,7 @@ def fit_pspl_omega2(ra, dec, photometry, emag_limit=None):
         mag_blend_fit = flux_to_mag(fit_tap.fit_results["best_model"][4])
         mag_source_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
         mag_baseline_fit = flux_to_mag(fit_tap.fit_results["best_model"][3] + fit_tap.fit_results["best_model"][4])
+        fit_type = 'chi2'
     # the numerical noise threshold implicitly modified the permitted minimum u0 to its value
     epsilon_numerical_noise = 1e-5
     if np.abs(fit_tap.fit_parameters["u0"][1][0] - fit_tap.fit_results['best_model'][1]) < epsilon_numerical_noise or\
@@ -144,13 +147,26 @@ def fit_pspl_omega2(ra, dec, photometry, emag_limit=None):
     mask = ~np.isnan(magnitude)
     model_telescope.lightcurve_magnitude = model_telescope.lightcurve_magnitude[mask]
     try:
+        res = fit_tap.model_residuals(fit_tap.fit_results['best_model'])
+        shapiro_wilk = stats.normal_Shapiro_Wilk((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        anderson_darling = stats.normal_Anderson_Darling((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        kolmogorov_smirnov = stats.normal_Kolmogorov_Smirnov((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        chi2_dof = np.sum((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])) ** 2) / (
+                len(np.ravel(res[0]['photometry'])) - 5)
+    except:
+        shapiro_wilk = "null"
+        anderson_darling = "null"
+        komogorov_smirnov = "null"
+        chi2_dof = "null"
+    # chi2_fit is only an actual chi-squared if the loss function was deactivated
+    try:
         to_return = [np.around(t0_fit, 3), np.around(u0_fit, 5), np.around(tE_fit, 3), np.around(piEN_fit, 5),
                      np.around(piEE_fit, 5),
                      np.around(mag_source_fit, 3), np.around(mag_blend_fit, 3), np.around(mag_baseline_fit, 3),
-                     fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), red_chi2]
+                     fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), chi2_dof]
     except:
         to_return = [np.around(t0_fit, 3), np.around(u0_fit, 5), np.around(tE_fit, 3), np.around(piEN_fit, 5),
                      np.around(piEE_fit, 5),
                      np.around(mag_source_fit, 3), mag_blend_fit, np.around(mag_baseline_fit, 3),
-                     fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), red_chi2]
+                     fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), chi2_dof]
     return to_return
