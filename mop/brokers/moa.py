@@ -123,7 +123,7 @@ class MOABroker(GenericBroker):
             url_event_calibr_pars_path = os.path.join(BROKER_URL+'alert{}/display.php?id={}'.format(str(year), event) )
             # Get the calibration values from the MOA event page 
             zeropoint, calib_flux = extract_moa_calib_values(event_calib_url)
-            
+            #zeropoint, calib_flux = float(self.event_dictionnary[target.name][1]),float(self.event_dictionnary[target.name][2])
             jd = []
             mags = []
             emags = []
