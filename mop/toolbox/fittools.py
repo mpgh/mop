@@ -148,25 +148,27 @@ def fit_pspl_omega2(ra, dec, photometry, emag_limit=None):
     model_telescope.lightcurve_magnitude = model_telescope.lightcurve_magnitude[mask]
     try:
         res = fit_tap.model_residuals(fit_tap.fit_results['best_model'])
-        shapiro_wilk = stats.normal_Shapiro_Wilk((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
-        anderson_darling = stats.normal_Anderson_Darling((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
-        kolmogorov_smirnov = stats.normal_Kolmogorov_Smirnov((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        sw_test = stats.normal_Shapiro_Wilk((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        ad_test = stats.normal_Anderson_Darling((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        ks_test = stats.normal_Kolmogorov_Smirnov((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
         chi2_dof = np.sum((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])) ** 2) / (
                 len(np.ravel(res[0]['photometry'])) - 5)
     except:
-        shapiro_wilk = "null"
-        anderson_darling = "null"
-        komogorov_smirnov = "null"
+        sw_test = "null"
+        ad_test = "null"
+        ks_test = "null"
         chi2_dof = "null"
     # chi2_fit is only an actual chi-squared if the loss function was deactivated
     try:
         to_return = [np.around(t0_fit, 3), np.around(u0_fit, 5), np.around(tE_fit, 3), np.around(piEN_fit, 5),
                      np.around(piEE_fit, 5),
                      np.around(mag_source_fit, 3), np.around(mag_blend_fit, 3), np.around(mag_baseline_fit, 3),
-                     fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), chi2_dof]
+                     fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), chi2_dof,
+                     sw_test, ad_test, ks_test]
     except:
         to_return = [np.around(t0_fit, 3), np.around(u0_fit, 5), np.around(tE_fit, 3), np.around(piEN_fit, 5),
                      np.around(piEE_fit, 5),
                      np.around(mag_source_fit, 3), mag_blend_fit, np.around(mag_baseline_fit, 3),
-                     fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), chi2_dof]
+                     fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), chi2_dof,
+                     sw_test, ad_test, ks_test]
     return to_return
