@@ -127,9 +127,11 @@ class Command(BaseCommand):
 
                         mag_now = TAP.TAP_mag_now(event)
                         mag_baseline = event.extra_fields['Baseline_magnitude']
-                        new_observing_mode = TAP.TAP_observing_mode(planet_priority,planet_priority_error,mag_now,mag_baseline)
+                        new_observing_mode = TAP.TAP_observing_mode(planet_priority, planet_priority_error,
+                                                                    long_priority, long_priority_error,
+                                                                    mag_now, mag_baseline)
 
-                        if new_observing_mode:
+                        if new_observing_mode == 'Priority':
                            tap_list.targets.add(event)
 
 
@@ -137,6 +139,22 @@ class Command(BaseCommand):
                            event.save(extras = extras)
                            print(planet_priority,planet_priority_error)
                            obs_control.build_and_submit_priority_phot(event)
+
+                        elif new_observing_mode == 'Long priority':
+                            tap_list.targets.add(event)
+
+                            extras = {'Observing_mode': new_observing_mode}
+                            event.save(extras=extras)
+                            # print(long_priority, long_priority_error)
+                            obs_control.build_and_submit_long_priority_phot(event)
+
+                        elif new_observing_mode == 'Long regular':
+                            tap_list.targets.add(event)
+
+                            extras = {'Observing_mode': new_observing_mode}
+                            event.save(extras=extras)
+                            # print(long_priority, long_priority_error)
+                            obs_control.build_and_submit_long_regular_phot(event)
 
                         ### Spectroscopy
                         if (event.extra_fields['Spectras']<1) & (event.extra_fields['Observing_mode'] != 'No'):
