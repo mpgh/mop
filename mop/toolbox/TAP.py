@@ -414,10 +414,10 @@ def new_TAP_observing_mode(planet_priority, planet_priority_error,
 
        return 'Priority'
 
-   elif (long_priority > 50):
+   elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
        return 'Long priority'
 
-   elif (long_priority > 10):
+   elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
        return 'Long regular'
    else:
 
