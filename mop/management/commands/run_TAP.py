@@ -4,6 +4,7 @@ from tom_targets.models import Target,TargetExtra,TargetList
 from astropy.time import Time
 from mop.toolbox import TAP
 from mop.toolbox import obs_control
+from mop.toolbox import omegaII_strategy
 import datetime
 import json
 import numpy as np
@@ -84,10 +85,8 @@ class Command(BaseCommand):
                         extras = {'TAP_priority':np.around(planet_priority,5)}
                         event.save(extras = extras)
 
-
-
-
-                        ### Regular obs
+                        # Gather the information required to make a strategy decision
+                        # for this target:
 
                         # Exclude events that are within the High Cadence Zone
                         # event_in_the_Bulge = TAP.event_in_the_Bulge(event.ra, event.dec)
@@ -109,15 +108,22 @@ class Command(BaseCommand):
                         else:
 
                             category = TAP.categorize_event_timescale(event)
+                            mag_now = TAP.TAP_mag_now(event)
 
-                            if 'stellar/planet' in category:
-                               extras = {'Observing_mode':'Regular'}
-                               event.save(extras = extras)
-                               obs_control.build_and_submit_regular_phot(event)
-                            elif 'Long-tE in category':
-                                extras = {'Observing_mode':'Regular'}
-                                event.save(extras = extras)
-                               obs_control.build_and_submit_regular_phot(event)
+                            # Get the observational configurations for the event, based on the OMEGA-II
+                            # strategy:
+                            obs_configs = omegaII_strategy.determine_obs_config(event, event_not_in_OMEGA_II,
+                                                                                category, mag_now, t0_pspl, tE_pspl)
+
+                            # Filter this list of hypothetical observations, removing any for which a similar
+                            # request has already been submitted and has status 'PENDING'
+                            obs_configs = obs_control.filter_duplicated_observations(obs_configs)
+
+                            # Build the corresponding observation requests in LCO format:
+                            obs_requests = obs_control.build_lco_obs_request(obs_configs)
+
+                            # Submit the set of observation requests:
+                            submit_lco_obs_requests(obs_requests)
 
                         # Priority mode
                         # Switched off since this will be handled manually for now

@@ -10,7 +10,6 @@ import datetime
 import numpy as np
 from pyLIMA import event
 from pyLIMA import telescopes
-from pyLIMA import microlmodels
 
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon

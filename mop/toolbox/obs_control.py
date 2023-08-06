@@ -34,6 +34,22 @@ def check_pending_observations(name,status):
 
     return need_to_submit
 
+def filter_duplicated_observations(configs):
+    """Function designed to filter a list of dictionaries containing the parameters of
+    observing requests for a given target.
+    This function checks to see if an observation with similar parameters has already
+    been submitted and is still active.  If this is the case, the superfluous configuration
+    is removed from the list; otherwise the list is returned unchanged.
+    """
+
+    new_configs = []
+    for conf in configs:
+        need_to_submit = check_pending_observations(conf['name'], 'PENDING')
+        if need_to_submit:
+            new_configs.append(conf)
+
+    return new_configs
+
 def build_arc_calibration_template(science_obs):
 
     config_arc = copy.deepcopy(science_obs['requests'][0]['configurations'][0])
@@ -368,18 +384,16 @@ def build_and_submit_phot(target, obs_type):
                                       observation_id=observation_id
                                       )
 
-def build_lco_obs_request(request_name, target, observation_mode, start_date, end_date, ipp,
-                          exposure_count_list, exposure_times_list, filter_list, cadence, jitter,
-                          proposal,
-                          max_airmass=2.0):
+def build_lco_obs_request(configs):
     """
     Function to build a dictionary of the parameters of an observation request in the
     standard TOM format for the LCO facility
     Parameters:
-        request_name    str             Name of the observation request
+        configs is a list of dictionaries, each of which contains the following parameters:
+        name            str             Name of the observation request
         target          Target object   MOP DB entry for the target
-        start_date      Datetime        UTC datetime for the start of the observing window
-        end_date        Datetime        UTC datetime for the end of the observing window
+        start           Datetime        UTC datetime for the start of the observing window
+        end             Datetime        UTC datetime for the end of the observing window
         observation_mode str            LCO scheduling mode, {'NORMAL'. 'RAPID_RESPONSE'}
         ipp              float          Inter-proposal priority, in the range ~0.9 to 1.5
         exposure_count_list   list of ints   List of the number of exposures in each instrument configuration
@@ -391,38 +405,15 @@ def build_lco_obs_request(request_name, target, observation_mode, start_date, en
         max_airmass     float           Maximum allowed airmass for observations [default=2.0]
     """
 
-    obs_params = {}
-    obs_params['name'] = request_name
-    obs_params['target_id'] = target.id
-    obs_params['start'] = start_date
-    obs_params['end'] = end_date
-    obs_params['observation_mode'] = observation_mode
-    obs_params['ipp_value'] = ipp
-    obs_params['exposure_count'] = 1
-    obs_params['exposure_time'] = exposure_time_ip + exposure_time_gp + 300  # Hack
-    obs_params['period'] = cadence + exposure_time_gp / 3600. * 2  # Hack
-    obs_params['jitter'] = jitter + exposure_time_gp / 3600. * 2  # Hack
-    obs_params['max_airmass'] = max_airmass
-    obs_params['proposal'] = proposal
-    obs_params['filter'] = "ip"
-    obs_params['instrument_type'] = instrument_type
-    obs_params['facility'] = facility
-    obs_params['observation_type'] = observing_type
+    obs_requests = []
+    for conf in configs:
+        obs = lco.LCOBaseObservationForm(conf)
+        obs.is_valid()
+        obs_requests.append(obs)
 
-    request_obs = lco.LCOBaseObservationForm(obs_params)
-    request_obs.is_valid()
-    payload = request_obs.observation_payload()
 
-    list_of_filters = ["ip", "gp"]
-
-    # if in the Bulge, switch gp to rp
-
-    event_in_the_Bulge = TAP.event_in_the_Bulge(target.ra, target.dec)
-
-    if (event_in_the_Bulge):
-        list_of_filters[-1] = "rp"
-        exposure_time_gp = exposure_time_gp / 2  # Factor 3/2 returns same SNR for ~(g-i) = 0.4
-
+    # Is it necessary to hack the payload like this for multiple obs requests now?
+        payload = request_obs.observation_payload()
     # Hacking the LCO TOM form to add several filters
     instument_config = payload['requests'][0]['configurations'][0]['instrument_configs'][0]
     exposure_times = [exposure_time_ip, exposure_time_gp]
@@ -440,25 +431,27 @@ def build_lco_obs_request(request_name, target, observation_mode, start_date, en
                 the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'][0][
                     'exposure_time'] = exposure_time_ip
 
+    return obs_requests
 
-def submit_lco_obs_request(params):
+def submit_lco_obs_requests(obs_requests):
     """
     Function to build a TOM-standard observation request form for the LCO facility class,
     based on the parameters defined in the input dictionary, submit the requests to LCO,
     and record the corresponding observations in the TOM.
-
     """
 
     telescope = lco.LCOFacility()
-    observation_ids = telescope.submit_observation(params)
+    for obs in obs_requests:
+        payload = obs.observation_payload()
+        observation_ids = telescope.submit_observation(payload)
 
-    for observation_id in observation_ids:
-        record = ObservationRecord.objects.create(
-                                      target=target,
-                                      facility='LCO',
-                                      parameters=request_obs.serialize_parameters(),
-                                      observation_id=observation_id
-                                      )
+        for observation_id in observation_ids:
+            record = ObservationRecord.objects.create(
+                target=target,
+                facility='LCO',
+                parameters=payload.serialize_parameters(),
+                observation_id=observation_id
+            )
 
 def build_and_submit_muscat(target, obs_type):
 
