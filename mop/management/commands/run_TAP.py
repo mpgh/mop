@@ -110,6 +110,8 @@ class Command(BaseCommand):
                             category = TAP.categorize_event_timescale(event)
                             mag_now = TAP.TAP_mag_now(event)
 
+                            # CHECK HERE FOR VISIBILITY
+
                             # Get the observational configurations for the event, based on the OMEGA-II
                             # strategy:
                             obs_configs = omegaII_strategy.determine_obs_config(event, event_not_in_OMEGA_II,
