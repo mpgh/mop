@@ -34,6 +34,22 @@ def check_pending_observations(name,status):
 
     return need_to_submit
 
+def filter_duplicated_observations(configs):
+    """Function designed to filter a list of dictionaries containing the parameters of
+    observing requests for a given target.
+    This function checks to see if an observation with similar parameters has already
+    been submitted and is still active.  If this is the case, the superfluous configuration
+    is removed from the list; otherwise the list is returned unchanged.
+    """
+
+    new_configs = []
+    for conf in configs:
+        need_to_submit = check_pending_observations(conf['name'], 'PENDING')
+        if need_to_submit:
+            new_configs.append(conf)
+
+    return new_configs
+
 def build_arc_calibration_template(science_obs):
 
     config_arc = copy.deepcopy(science_obs['requests'][0]['configurations'][0])
@@ -183,14 +199,29 @@ def build_and_submit_phot(target, obs_type):
        max_airmass = 2
 
        if obs_type == 'priority':
-
+          # planet priority mode
           ipp = 1.0
           obs_name = target.name+'_'+'PRI_phot'
           obs_duration = 3 #days
           cadence = 1 #delta_hours/points
 
-       else:
+       elif obs_type == 'long_priority':
+           # long event priority mode after a gap
+           ipp = 1.0
+           obs_name = target.name + '_' + 'PRI_phot'
+           obs_duration = 3  # days
+           cadence = 0.5  # delta_hours/points
 
+       elif obs_type == 'long_regular':
+           # long event regular mode
+           ipp = 0.95
+           obs_name = target.name + '_' + 'REG_phot'
+           obs_duration = 7  # days
+
+           cadence = 0.5  # points/days
+
+       else:
+          # planet regular mode
           ipp = 0.95
           obs_name = target.name+'_'+'REG_phot'
           obs_duration = 7 #days
@@ -368,6 +399,74 @@ def build_and_submit_phot(target, obs_type):
                                       observation_id=observation_id
                                       )
 
+def build_lco_obs_request(configs):
+    """
+    Function to build a dictionary of the parameters of an observation request in the
+    standard TOM format for the LCO facility
+    Parameters:
+        configs is a list of dictionaries, each of which contains the following parameters:
+        name            str             Name of the observation request
+        target          Target object   MOP DB entry for the target
+        start           Datetime        UTC datetime for the start of the observing window
+        end             Datetime        UTC datetime for the end of the observing window
+        observation_mode str            LCO scheduling mode, {'NORMAL'. 'RAPID_RESPONSE'}
+        ipp              float          Inter-proposal priority, in the range ~0.9 to 1.5
+        exposure_count_list   list of ints   List of the number of exposures in each instrument configuration
+        exposure_times_list   list of floats List of the exposures times of each instrument configuration
+        filter_list      list of str    List of the filters for each instrument configuration
+        cadence         float           Number of hours between repeated visits to target
+        jitter          float           Number of hours flexibiltiy allowed in repeated visits to target
+        proposal        str             Active proposal code
+        max_airmass     float           Maximum allowed airmass for observations [default=2.0]
+    """
+
+    obs_requests = []
+    for conf in configs:
+        obs = lco.LCOBaseObservationForm(conf)
+        obs.is_valid()
+        obs_requests.append(obs)
+
+
+    # Is it necessary to hack the payload like this for multiple obs requests now?
+        payload = request_obs.observation_payload()
+    # Hacking the LCO TOM form to add several filters
+    instument_config = payload['requests'][0]['configurations'][0]['instrument_configs'][0]
+    exposure_times = [exposure_time_ip, exposure_time_gp]
+
+    for ind_req, req in enumerate(the_obs['requests']):
+        for ind_fil, fil in enumerate(list_of_filters):
+
+            if ind_fil > 0:
+                new_instrument_config = copy.deepcopy(instument_config)
+                new_instrument_config['optical_elements']['filter'] = fil
+                new_instrument_config['exposure_time'] = exposure_time_gp
+
+                the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'].append(new_instrument_config)
+            else:
+                the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'][0][
+                    'exposure_time'] = exposure_time_ip
+
+    return obs_requests
+
+def submit_lco_obs_requests(obs_requests):
+    """
+    Function to build a TOM-standard observation request form for the LCO facility class,
+    based on the parameters defined in the input dictionary, submit the requests to LCO,
+    and record the corresponding observations in the TOM.
+    """
+
+    telescope = lco.LCOFacility()
+    for obs in obs_requests:
+        payload = obs.observation_payload()
+        observation_ids = telescope.submit_observation(payload)
+
+        for observation_id in observation_ids:
+            record = ObservationRecord.objects.create(
+                target=target,
+                facility='LCO',
+                parameters=payload.serialize_parameters(),
+                observation_id=observation_id
+            )
 
 def build_and_submit_muscat(target, obs_type):
 
@@ -497,204 +596,6 @@ def build_and_submit_regular_spectro(target):
 
     build_and_submit_spectro(target, 'regular')
 
-
-def new_build_and_submit_phot(target, obs_type):
-    # Defaults
-    observing_type = 'IMAGING'
-    instrument_type = '1M0-SCICAM-SINISTRO'
-    proposal = os.getenv('LCO_PROPOSAL_ID')
-    facility = 'LCO'
-    observation_mode = 'NORMAL'
-    max_airmass = 2
-
-    if obs_type == 'priority':
-
-        ipp = 1.0
-        obs_name = target.name + '_' + 'PRI_phot'
-        obs_duration = 3  # days
-        cadence = 1  # delta_hours/points
-
-    elif obs_type == 'long_priority':
-
-        ipp = 1.0
-        obs_name = target.name + '_' + 'PRI_phot'
-        obs_duration = 3 # days
-        cadence = 0.5
-
-    elif obs_type == 'long_regular':
-
-        ipp = 0.95
-        obs_name = target.name + '_' + 'REG_phot'
-        obs_duration = 7  # days
-
-        cadence = 0.5
-
-    else:
-        # planet regular mode
-        ipp = 0.95
-        obs_name = target.name + '_' + 'REG_phot'
-        obs_duration = 7  # days
-
-        cadence = 20 / target.extra_fields['tE']  # points/days
-
-        if cadence < 0.5:
-            cadence = 0.5
-
-        if cadence > 4:
-            cadence = 4
-
-        cadence = 24 / cadence  # delta_hours/points
-
-        ### Fixing the time consumption
-        cadence *= 2 / 3
-        ipp *= 2 / 3
-
-    jitter = cadence
-    need_to_submit = check_pending_observations(obs_name, 'PENDING')
-
-    if need_to_submit is False:
-        return
-
-    mag_now = TAP.TAP_mag_now(target)
-    mag_exposure = mag_now
-
-    exposure_time_ip = TAP.calculate_exptime_omega_sdss_i(mag_exposure)
-
-    telescope_class = TAP.TAP_telescope_class(mag_now)
-
-    if telescope_class == '2m':
-
-        start = Time(datetime.datetime.utcnow())
-        end = Time(datetime.datetime.utcnow() + datetime.timedelta(days=obs_duration))
-
-        visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OGG', max_airmass=max_airmass)
-        moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OGG', sample_size=75)
-
-        if visible_at_muscat and min(moon_sep_at_muscat[0]) >= 15:
-
-            build_and_submit_muscat(target, obs_type)
-            return
-
-        else:
-
-            instrument_type = '2M0-SCICAM-SPECTRAL'
-            exposure_time_ip /= 2  # area ratio (kind of...)
-
-    if telescope_class == '0.4m':
-        # currently disabled this since we do not have 0.4m time
-        pass
-        # instrument_type = '0M4-SCICAM-SBIG'
-        # exposure_time_ip *= 4 # area ratio
-
-    exposure_time_gp = np.min(
-        (exposure_time_ip * 3., 600))  # no more than 10 min. Factor 3 returns same SNR for ~(g-i) = 1.2
-
-    # ip alone
-    obs_dic = {}
-
-    start = datetime.datetime.utcnow().isoformat()
-    end = (datetime.datetime.utcnow() + datetime.timedelta(days=obs_duration)).isoformat()
-    obs_dic['name'] = obs_name
-    obs_dic['target_id'] = target.id
-    obs_dic['start'] = start
-    obs_dic['end'] = end
-    obs_dic['observation_mode'] = observation_mode
-
-    obs_dic['ipp_value'] = ipp
-    obs_dic['exposure_count'] = 1
-    obs_dic['exposure_time'] = exposure_time_ip
-    obs_dic['period'] = cadence
-    obs_dic['jitter'] = jitter
-    obs_dic['max_airmass'] = max_airmass
-    obs_dic['proposal'] = proposal
-    obs_dic['filter'] = "ip"
-    obs_dic['instrument_type'] = instrument_type
-    obs_dic['facility'] = facility
-    obs_dic['observation_type'] = observing_type
-
-    request_obs = lco.LCOBaseObservationForm(obs_dic)
-    request_obs.is_valid()
-    the_obs = request_obs.observation_payload()
-
-    telescope = lco.LCOFacility()
-    observation_ids = telescope.submit_observation(the_obs)
-
-    for observation_id in observation_ids:
-        record = ObservationRecord.objects.create(
-            target=target,
-            facility='LCO',
-            parameters=request_obs.serialize_parameters(),
-            observation_id=observation_id
-        )
-    # gp,ip
-
-    delta_time = cadence / 2
-
-    start = (datetime.datetime.utcnow() + datetime.timedelta(hours=delta_time)).isoformat()
-    end = (datetime.datetime.utcnow() + datetime.timedelta(days=obs_duration) + datetime.timedelta(
-        hours=delta_time) + datetime.timedelta(hours=4 * (exposure_time_gp + 300) / 3600.)).isoformat()
-
-    obs_dic = {}
-    obs_dic['name'] = obs_name
-    obs_dic['target_id'] = target.id
-    obs_dic['start'] = start
-    obs_dic['end'] = end
-    obs_dic['observation_mode'] = observation_mode
-
-    obs_dic['ipp_value'] = ipp
-    obs_dic['exposure_count'] = 1
-    obs_dic['exposure_time'] = exposure_time_ip + exposure_time_gp + 300  # Hack
-    obs_dic['period'] = cadence + exposure_time_gp / 3600. * 2  # Hack
-    obs_dic['jitter'] = jitter + exposure_time_gp / 3600. * 2  # Hack
-    obs_dic['max_airmass'] = max_airmass
-    obs_dic['proposal'] = proposal
-    obs_dic['filter'] = "ip"
-    obs_dic['instrument_type'] = instrument_type
-    obs_dic['facility'] = facility
-    obs_dic['observation_type'] = observing_type
-
-    request_obs = lco.LCOBaseObservationForm(obs_dic)
-    request_obs.is_valid()
-    the_obs = request_obs.observation_payload()
-
-    list_of_filters = ["ip", "gp"]
-
-    # if in the Bulge, switch gp to rp
-
-    event_in_the_Bulge = TAP.event_in_the_Bulge(target.ra, target.dec)
-
-    if (event_in_the_Bulge):
-        list_of_filters[-1] = "rp"
-        exposure_time_gp = exposure_time_gp / 2  # Factor 3/2 returns same SNR for ~(g-i) = 0.4
-
-    # Hacking the LCO TOM form to add several filters
-    instument_config = the_obs['requests'][0]['configurations'][0]['instrument_configs'][0]
-    exposure_times = [exposure_time_ip, exposure_time_gp]
-
-    for ind_req, req in enumerate(the_obs['requests']):
-        for ind_fil, fil in enumerate(list_of_filters):
-
-            if ind_fil > 0:
-                new_instrument_config = copy.deepcopy(instument_config)
-                new_instrument_config['optical_elements']['filter'] = fil
-                new_instrument_config['exposure_time'] = exposure_time_gp
-
-                the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'].append(new_instrument_config)
-            else:
-                the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'][0][
-                    'exposure_time'] = exposure_time_ip
-
-    telescope = lco.LCOFacility()
-    observation_ids = telescope.submit_observation(the_obs)
-
-    for observation_id in observation_ids:
-        record = ObservationRecord.objects.create(
-            target=target,
-            facility='LCO',
-            parameters=request_obs.serialize_parameters(),
-            observation_id=observation_id
-        )
-
 def build_and_submit_long_priority_phot(target):
 
 
@@ -704,3 +605,200 @@ def build_and_submit_long_regular_phot(target):
 
 
     build_and_submit_phot(target, 'long_regular')
+
+# def new_build_and_submit_phot(target, obs_type):
+#     # Defaults
+#     observing_type = 'IMAGING'
+#     instrument_type = '1M0-SCICAM-SINISTRO'
+#     proposal = os.getenv('LCO_PROPOSAL_ID')
+#     facility = 'LCO'
+#     observation_mode = 'NORMAL'
+#     max_airmass = 2
+#
+#     if obs_type == 'priority':
+#
+#         ipp = 1.0
+#         obs_name = target.name + '_' + 'PRI_phot'
+#         obs_duration = 3  # days
+#         cadence = 1  # delta_hours/points
+#
+#     elif obs_type == 'long_priority':
+#
+#         ipp = 1.0
+#         obs_name = target.name + '_' + 'PRI_phot'
+#         obs_duration = 3 # days
+#         cadence = 0.5
+#
+#     elif obs_type == 'long_regular':
+#
+#         ipp = 0.95
+#         obs_name = target.name + '_' + 'REG_phot'
+#         obs_duration = 7  # days
+#
+#         cadence = 0.5
+#
+#     else:
+#         # planet regular mode
+#         ipp = 0.95
+#         obs_name = target.name + '_' + 'REG_phot'
+#         obs_duration = 7  # days
+#
+#         cadence = 20 / target.extra_fields['tE']  # points/days
+#
+#         if cadence < 0.5:
+#             cadence = 0.5
+#
+#         if cadence > 4:
+#             cadence = 4
+#
+#         cadence = 24 / cadence  # delta_hours/points
+#
+#         ### Fixing the time consumption
+#         cadence *= 2 / 3
+#         ipp *= 2 / 3
+#
+#     jitter = cadence
+#     need_to_submit = check_pending_observations(obs_name, 'PENDING')
+#
+#     if need_to_submit is False:
+#         return
+#
+#     mag_now = TAP.TAP_mag_now(target)
+#     mag_exposure = mag_now
+#
+#     exposure_time_ip = TAP.calculate_exptime_omega_sdss_i(mag_exposure)
+#
+#     telescope_class = TAP.TAP_telescope_class(mag_now)
+#
+#     if telescope_class == '2m':
+#
+#         start = Time(datetime.datetime.utcnow())
+#         end = Time(datetime.datetime.utcnow() + datetime.timedelta(days=obs_duration))
+#
+#         visible_at_muscat = calculate_visibility(target.ra, target.dec, start, end, 'OGG', max_airmass=max_airmass)
+#         moon_sep_at_muscat = all_night_moon_sep(target.ra, target.dec, start, end, 'OGG', sample_size=75)
+#
+#         if visible_at_muscat and min(moon_sep_at_muscat[0]) >= 15:
+#
+#             build_and_submit_muscat(target, obs_type)
+#             return
+#
+#         else:
+#
+#             instrument_type = '2M0-SCICAM-SPECTRAL'
+#             exposure_time_ip /= 2  # area ratio (kind of...)
+#
+#     if telescope_class == '0.4m':
+#         # currently disabled this since we do not have 0.4m time
+#         pass
+#         # instrument_type = '0M4-SCICAM-SBIG'
+#         # exposure_time_ip *= 4 # area ratio
+#
+#     exposure_time_gp = np.min(
+#         (exposure_time_ip * 3., 600))  # no more than 10 min. Factor 3 returns same SNR for ~(g-i) = 1.2
+#
+#     # ip alone
+#     obs_dic = {}
+#
+#     start = datetime.datetime.utcnow().isoformat()
+#     end = (datetime.datetime.utcnow() + datetime.timedelta(days=obs_duration)).isoformat()
+#     obs_dic['name'] = obs_name
+#     obs_dic['target_id'] = target.id
+#     obs_dic['start'] = start
+#     obs_dic['end'] = end
+#     obs_dic['observation_mode'] = observation_mode
+#
+#     obs_dic['ipp_value'] = ipp
+#     obs_dic['exposure_count'] = 1
+#     obs_dic['exposure_time'] = exposure_time_ip
+#     obs_dic['period'] = cadence
+#     obs_dic['jitter'] = jitter
+#     obs_dic['max_airmass'] = max_airmass
+#     obs_dic['proposal'] = proposal
+#     obs_dic['filter'] = "ip"
+#     obs_dic['instrument_type'] = instrument_type
+#     obs_dic['facility'] = facility
+#     obs_dic['observation_type'] = observing_type
+#
+#     request_obs = lco.LCOBaseObservationForm(obs_dic)
+#     request_obs.is_valid()
+#     the_obs = request_obs.observation_payload()
+#
+#     telescope = lco.LCOFacility()
+#     observation_ids = telescope.submit_observation(the_obs)
+#
+#     for observation_id in observation_ids:
+#         record = ObservationRecord.objects.create(
+#             target=target,
+#             facility='LCO',
+#             parameters=request_obs.serialize_parameters(),
+#             observation_id=observation_id
+#         )
+#     # gp,ip
+#
+#     delta_time = cadence / 2
+#
+#     start = (datetime.datetime.utcnow() + datetime.timedelta(hours=delta_time)).isoformat()
+#     end = (datetime.datetime.utcnow() + datetime.timedelta(days=obs_duration) + datetime.timedelta(
+#         hours=delta_time) + datetime.timedelta(hours=4 * (exposure_time_gp + 300) / 3600.)).isoformat()
+#
+#     obs_dic = {}
+#     obs_dic['name'] = obs_name
+#     obs_dic['target_id'] = target.id
+#     obs_dic['start'] = start
+#     obs_dic['end'] = end
+#     obs_dic['observation_mode'] = observation_mode
+#
+#     obs_dic['ipp_value'] = ipp
+#     obs_dic['exposure_count'] = 1
+#     obs_dic['exposure_time'] = exposure_time_ip + exposure_time_gp + 300  # Hack
+#     obs_dic['period'] = cadence + exposure_time_gp / 3600. * 2  # Hack
+#     obs_dic['jitter'] = jitter + exposure_time_gp / 3600. * 2  # Hack
+#     obs_dic['max_airmass'] = max_airmass
+#     obs_dic['proposal'] = proposal
+#     obs_dic['filter'] = "ip"
+#     obs_dic['instrument_type'] = instrument_type
+#     obs_dic['facility'] = facility
+#     obs_dic['observation_type'] = observing_type
+#
+#     request_obs = lco.LCOBaseObservationForm(obs_dic)
+#     request_obs.is_valid()
+#     the_obs = request_obs.observation_payload()
+#
+#     list_of_filters = ["ip", "gp"]
+#
+#     # if in the Bulge, switch gp to rp
+#
+#     event_in_the_Bulge = TAP.event_in_the_Bulge(target.ra, target.dec)
+#
+#     if (event_in_the_Bulge):
+#         list_of_filters[-1] = "rp"
+#         exposure_time_gp = exposure_time_gp / 2  # Factor 3/2 returns same SNR for ~(g-i) = 0.4
+#
+#     # Hacking the LCO TOM form to add several filters
+#     instument_config = the_obs['requests'][0]['configurations'][0]['instrument_configs'][0]
+#     exposure_times = [exposure_time_ip, exposure_time_gp]
+#
+#     for ind_req, req in enumerate(the_obs['requests']):
+#         for ind_fil, fil in enumerate(list_of_filters):
+#
+#             if ind_fil > 0:
+#                 new_instrument_config = copy.deepcopy(instument_config)
+#                 new_instrument_config['optical_elements']['filter'] = fil
+#                 new_instrument_config['exposure_time'] = exposure_time_gp
+#
+#                 the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'].append(new_instrument_config)
+#             else:
+#                 the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'][0][
+#                     'exposure_time'] = exposure_time_ip
+#
+#     telescope = lco.LCOFacility()
+#     observation_ids = telescope.submit_observation(the_obs)
+#
+#     for observation_id in observation_ids:
+#         record = ObservationRecord.objects.create(
+#             target=target,
+#             facility='LCO',
+#             parameters=request_obs.serialize_parameters(),
+#             observation_id=observation_id
+#         )
