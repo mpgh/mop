@@ -57,19 +57,31 @@ class Command(BaseCommand):
                         u0_pspl = event.extra_fields['u0']
                         tE_pspl = event.extra_fields['tE']
 
-
                         covariance = np.array(json.loads(event.extra_fields['Fit_covariance']))
 
                         planet_priority = TAP.TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl)
                         planet_priority_error = TAP.TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance)
+
+                        ## KK: Adding long event priority
+                        t_last = event.extra_fields['Latest_data_HJD']
+
+                        long_priority = TAP.TAP_long_event_priority(time_now, t_last, tE_pspl)
+                        long_priority_error = TAP.TAP_long_event_priority_error(tE_pspl, covariance)
 
                         #psi_deriv = TAP.psi_derivatives_squared(time_now,t0_pspl,u0_pspl,tE_pspl)
                         #error = (psi_deriv[2] * covariance[2,2] + psi_deriv[1] * covariance[1,1] + psi_deriv[0] * covariance[0,0])**0.5
                         ### need to create a reducedatum for planet priority
 
 
-                        data = {'tap': planet_priority,
-                                'tap_error': planet_priority_error
+                        # data = {'tap': planet_priority,
+                        #         'tap_error': planet_priority_error
+                        #         }
+
+                        # Storing both types of priority
+                        data = {'tap_planet': planet_priority,
+                                'tap_planet_error': planet_priority_error,
+                                'tap_long': long_priority,
+                                'tap_long_error': long_priority_error
                                 }
 
                         rd, created = ReducedDatum.objects.get_or_create(
@@ -82,7 +94,10 @@ class Command(BaseCommand):
 
                         if created:
                             rd.save()
-                        extras = {'TAP_priority':np.around(planet_priority,5)}
+
+                        # KK: modified to include long event pririty
+                        extras = {'TAP_priority':np.around(planet_priority,5),
+                                  'TAP_priority_longtE': np.around(long_priority, 5)}
                         event.save(extras = extras)
 
                         # Gather the information required to make a strategy decision
@@ -111,6 +126,15 @@ class Command(BaseCommand):
                             mag_now = TAP.TAP_mag_now(event)
 
                             # CHECK HERE FOR VISIBILITY
+
+                        mag_now = TAP.TAP_mag_now(event)
+                        mag_baseline = event.extra_fields['Baseline_magnitude']
+                        new_observing_mode = TAP.TAP_observing_mode(planet_priority, planet_priority_error,
+                                                                    long_priority, long_priority_error,
+                                                                    mag_now, mag_baseline)
+
+                        if new_observing_mode == 'Priority':
+                           tap_list.targets.add(event)
 
                             # Get the observational configurations for the event, based on the OMEGA-II
                             # strategy:
@@ -143,6 +167,22 @@ class Command(BaseCommand):
                                event.save(extras = extras)
                                print(planet_priority,planet_priority_error)
                                obs_control.build_and_submit_priority_phot(event)
+
+                        elif new_observing_mode == 'Long priority':
+                            tap_list.targets.add(event)
+
+                            extras = {'Observing_mode': new_observing_mode}
+                            event.save(extras=extras)
+                            # print(long_priority, long_priority_error)
+                            obs_control.build_and_submit_long_priority_phot(event)
+
+                        elif new_observing_mode == 'Long regular':
+                            tap_list.targets.add(event)
+
+                            extras = {'Observing_mode': new_observing_mode}
+                            event.save(extras=extras)
+                            # print(long_priority, long_priority_error)
+                            obs_control.build_and_submit_long_regular_phot(event)
 
                         ### Spectroscopy
                         if (event.extra_fields['Spectras']<1) & (event.extra_fields['Observing_mode'] != 'No'):

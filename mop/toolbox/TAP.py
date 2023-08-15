@@ -21,23 +21,21 @@ def TAP_anomaly():
 
     pass
 
-def TAP_observing_mode(priority,priority_error,mag_now,mag_baseline):
-
-#   if (priority-priority_error>10) & (mag_baseline-mag_now>0.2) & (mag_now<19): #mag cut for high blended events
-
-#       return 'Priority'
-
-#   else:
-
-#       return None
-
+def TAP_observing_mode(planet_priority, planet_priority_error,
+                           long_priority, long_priority_error,
+                           mag_now, mag_baseline):
 ### Fixing the time consumption
 
-   if (priority>10) & (priority/priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
+   if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
 
 
        return 'Priority'
 
+   elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
+       return 'Long priority'
+
+   elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
+       return 'Long regular'
    else:
 
        return None
@@ -267,7 +265,6 @@ def TAP_telescope_class(sdss_i_mag):
 #   return mag_now
 
 def TAP_mag_now(target):
-
    lightcurve = ReducedDatum.objects.filter(target=target,data_type='lc_model')
    time_now = Time(datetime.datetime.now()).jd
 
@@ -328,6 +325,102 @@ def event_not_in_OMEGA_II(ra, dec, KMTNet_fields):
         not_in_OMEGA_II = True
 
     return not_in_OMEGA_II
+
+def TAP_long_event_priority(t_now, t_last, t_E):
+    """
+    This function calculates priority of a long microlensing event.
+    If the event has a timescale equal to t_E_base, and was not
+    observed for t_obs_gap days, the priority should be close to 10.
+    If the event was not observed for more than 10 days,
+    the priority is boosted by 10.
+    If the fit was bad (indicated by t_E being a NaN), than
+    the priority drops to 0.
+    Inspired by Horn et al. 2009.
+
+    :param t_now: current JD
+    :param t_last: JD of the latest datapoint in any lightcurve
+                    assigned to the dataset
+    :param t_E: Einstein timescale of the event
+
+    :return: priority of the long microlensing event
+    """
+
+    if (np.isnan(t_E)):
+        # t_E may hit the fit bounds. This means, the fit was
+        # wrong. In this case the event should not be observed
+        # and wait for a better estimate of the values.
+        psi = 0.
+    else:
+        t_E_base = 250.
+        t_obs_gap = 2.
+
+        # Events with t_E of t_E_base days will have priority 10.
+        psi = t_E / t_E_base
+
+        # If the event was not observed for t_obs_gap days the priority
+        # should rise.
+        delta_t = t_now - t_last
+        x = (delta_t / t_obs_gap) - t_obs_gap
+        psi *= 10. * 1. / (1. + np.exp(-x))
+
+        # The event priority should be boosted if it was not
+        # observed for more than 10 days and it is a long event.
+        if (delta_t > 10. and t_E / t_E_base > 0.8 ):
+            psi *= 10.
+
+    return psi
+
+def TAP_long_event_priority_error(t_E, covariance):
+    """
+    This function calculates error of the priority
+    of a long microlensing event.
+
+    :param t_E: Einstein timescale of the event
+    :param covariance: covariance matrix
+
+    :return: error of the priority of the long microlensing event.
+    """
+
+    t_E_base = 250.
+
+    if(np.isnan(t_E)):
+        err_psi = 0.
+    else:
+        # Simple derevative
+        err_t_E = covariance[2,2]
+        err_psi = err_t_E / t_E_base
+
+    return err_psi
+
+# def TAP_time_last_datapoint(target):
+#     """
+#     Returns time of the latest datapoint in the lightcurve.
+#     """
+#     datasets = ReducedDatum.objects.filter(target=target)
+#     time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
+#     sorted_time = np.sort(time)
+#     t_last = sorted_time[-1]
+#
+#     return t_last
+
+# def new_TAP_observing_mode(planet_priority, planet_priority_error,
+#                            long_priority, long_priority_error,
+#                            mag_now, mag_baseline):
+# ### Fixing the time consumption
+#
+#    if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
+#
+#
+#        return 'Priority'
+#
+#    elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
+#        return 'Long priority'
+#
+#    elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
+#        return 'Long regular'
+#    else:
+#
+#        return None
 
 def categorize_event_timescale(target, threshold=75.0):
     """
