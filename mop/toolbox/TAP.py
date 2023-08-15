@@ -22,23 +22,21 @@ def TAP_anomaly():
 
     pass
 
-def TAP_observing_mode(priority,priority_error,mag_now,mag_baseline):
-
-#   if (priority-priority_error>10) & (mag_baseline-mag_now>0.2) & (mag_now<19): #mag cut for high blended events
-
-#       return 'Priority'
-
-#   else:
-
-#       return None
-
+def TAP_observing_mode(planet_priority, planet_priority_error,
+                           long_priority, long_priority_error,
+                           mag_now, mag_baseline):
 ### Fixing the time consumption
 
-   if (priority>10) & (priority/priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
+   if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
 
 
        return 'Priority'
 
+   elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
+       return 'Long priority'
+
+   elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
+       return 'Long regular'
    else:
 
        return None
@@ -393,32 +391,32 @@ def TAP_long_event_priority_error(t_E, covariance):
 
     return err_psi
 
-def TAP_time_last_datapoint(target):
-    """
-    Returns time of the latest datapoint in the lightcurve.
-    """
-    datasets = ReducedDatum.objects.filter(target=target)
-    time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
-    sorted_time = np.sort(time)
-    t_last = sorted_time[-1]
+# def TAP_time_last_datapoint(target):
+#     """
+#     Returns time of the latest datapoint in the lightcurve.
+#     """
+#     datasets = ReducedDatum.objects.filter(target=target)
+#     time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
+#     sorted_time = np.sort(time)
+#     t_last = sorted_time[-1]
+#
+#     return t_last
 
-    return t_last
-
-def new_TAP_observing_mode(planet_priority, planet_priority_error,
-                           long_priority, long_priority_error,
-                           mag_now, mag_baseline):
-### Fixing the time consumption
-
-   if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
-
-
-       return 'Priority'
-
-   elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
-       return 'Long priority'
-
-   elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
-       return 'Long regular'
-   else:
-
-       return None
+# def new_TAP_observing_mode(planet_priority, planet_priority_error,
+#                            long_priority, long_priority_error,
+#                            mag_now, mag_baseline):
+# ### Fixing the time consumption
+#
+#    if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
+#
+#
+#        return 'Priority'
+#
+#    elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
+#        return 'Long priority'
+#
+#    elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
+#        return 'Long regular'
+#    else:
+#
+#        return None
