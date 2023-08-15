@@ -62,7 +62,7 @@ class Command(BaseCommand):
                         planet_priority_error = TAP.TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance)
 
                         ## KK: Adding long event priority
-                        t_last = TAP.TAP_time_last_datapoint(event)
+                        t_last = event.extra_fields['Latest_data_HJD']
 
                         long_priority = TAP.TAP_long_event_priority(time_now, t_last, tE_pspl)
                         long_priority_error = TAP.TAP_long_event_priority_error(tE_pspl, covariance)
@@ -95,8 +95,8 @@ class Command(BaseCommand):
                             rd.save()
 
                         # KK: modified to include long event pririty
-                        extras = {'TAP_planet_priority':np.around(planet_priority,5),
-                                  'TAP_long_priority': np.around(long_priority, 5)}
+                        extras = {'TAP_priority':np.around(planet_priority,5),
+                                  'TAP_priority_longtE': np.around(long_priority, 5)}
                         event.save(extras = extras)
 
 
