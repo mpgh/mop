@@ -4,6 +4,7 @@ from tom_targets.models import Target,TargetExtra,TargetList
 from astropy.time import Time
 from mop.toolbox import TAP
 from mop.toolbox import obs_control
+from mop.toolbox import omegaII_strategy
 import datetime
 import json
 import numpy as np
@@ -99,31 +100,32 @@ class Command(BaseCommand):
                                   'TAP_priority_longtE': np.around(long_priority, 5)}
                         event.save(extras = extras)
 
+                        # Gather the information required to make a strategy decision
+                        # for this target:
 
-
-
-                        ### Regular obs
-
+                        # Exclude events that are within the High Cadence Zone
                         # event_in_the_Bulge = TAP.event_in_the_Bulge(event.ra, event.dec)
                         event_not_in_OMEGA_II = TAP.event_not_in_OMEGA_II(event.ra, event.dec, KMTNet_fields)
 
+                        # If the event is in the HCZ, set the MOP flag to not observe it
                         if (event_not_in_OMEGA_II):# (event_in_the_Bulge or)  & (event.extra_fields['Baseline_magnitude']>17):
 
                                extras = {'Observing_mode':'No'}
                                event.save(extras = extras)
 
+                        # If the event is flagged as not alive, then it is over, and should also not be observed
+                        elif not event.extra_fields['Alive']:
+                            extras = {'Observing_mode': 'No'}
+                            event.save(extras=extras)
 
+                        # For Alive events outside the HCZ, the strategy depends on whether it is classified as a
+                        # stellar/planetary event, or a long-timescale black hole candidate
                         else:
 
-                           if event.extra_fields['Alive'] == True:
-                               extras = {'Observing_mode':'Regular'}
-                               event.save(extras = extras)
-                               obs_control.build_and_submit_regular_phot(event)
-                           else:
-                               extras = {'Observing_mode':'No'}
-                               event.save(extras = extras)
+                            category = TAP.categorize_event_timescale(event)
+                            mag_now = TAP.TAP_mag_now(event)
 
-                        # Priority mode
+                            # CHECK HERE FOR VISIBILITY
 
                         mag_now = TAP.TAP_mag_now(event)
                         mag_baseline = event.extra_fields['Baseline_magnitude']
@@ -134,11 +136,37 @@ class Command(BaseCommand):
                         if new_observing_mode == 'Priority':
                            tap_list.targets.add(event)
 
+                            # Get the observational configurations for the event, based on the OMEGA-II
+                            # strategy:
+                            obs_configs = omegaII_strategy.determine_obs_config(event, event_not_in_OMEGA_II,
+                                                                                category, mag_now, t0_pspl, tE_pspl)
 
-                           extras = {'Observing_mode':new_observing_mode}
-                           event.save(extras = extras)
-                           print(planet_priority,planet_priority_error)
-                           obs_control.build_and_submit_priority_phot(event)
+                            # Filter this list of hypothetical observations, removing any for which a similar
+                            # request has already been submitted and has status 'PENDING'
+                            obs_configs = obs_control.filter_duplicated_observations(obs_configs)
+
+                            # Build the corresponding observation requests in LCO format:
+                            obs_requests = obs_control.build_lco_obs_request(obs_configs)
+
+                            # Submit the set of observation requests:
+                            submit_lco_obs_requests(obs_requests)
+
+                        # Priority mode
+                        # Switched off since this will be handled manually for now
+                        use_priority_obs = False
+                        if use_priority_obs:
+                            mag_now = TAP.TAP_mag_now(event)
+                            mag_baseline = event.extra_fields['Baseline_magnitude']
+                            new_observing_mode = TAP.TAP_observing_mode(planet_priority,planet_priority_error,mag_now,mag_baseline)
+
+                            if new_observing_mode:
+                               tap_list.targets.add(event)
+
+
+                               extras = {'Observing_mode':new_observing_mode}
+                               event.save(extras = extras)
+                               print(planet_priority,planet_priority_error)
+                               obs_control.build_and_submit_priority_phot(event)
 
                         elif new_observing_mode == 'Long priority':
                             tap_list.targets.add(event)

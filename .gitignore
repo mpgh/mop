@@ -9,4 +9,4 @@ env/
 helm-chart/charts/*.tgz
 
 # Django files
-local_settings.py
+local_settings*
