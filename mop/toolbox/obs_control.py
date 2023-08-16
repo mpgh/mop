@@ -399,7 +399,7 @@ def build_and_submit_phot(target, obs_type):
                                       observation_id=observation_id
                                       )
 
-def build_lco_obs_request(configs):
+def build_lco_imaging_request(configs):
     """
     Function to build a dictionary of the parameters of an observation request in the
     standard TOM format for the LCO facility

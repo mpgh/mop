@@ -1,14 +1,17 @@
 from mop.toolbox import TAP
 from datetime import datetime
 
-def determine_obs_config(target, event_not_in_OMEGA_II, event_category, current_mag, t0, tE):
+def determine_obs_config(target, observing_mode, current_mag, t0, tE):
     """Function to determine the observational configuration for a given event, based on
-    its characteristics and the Key Project's strategy"""
+    its characteristics and the Key Project's strategy
+
+    observing_mode can be one of 'priority_stellar_event', 'priority_long_event', 'regular_long_event'
+    """
 
     configs = []
 
     # Stellar and planetary lenses in the Bulge Extended Region and beyond
-    if not event_not_in_OMEGA_II and event_category == 'Stellar':
+    if observing_mode == 'priority_stellar_event':
 
         # REGULAR MODE: The cadence of regular mode SDSS-i-band observations
         # depends on how close the event is to the peak:
@@ -43,10 +46,13 @@ def determine_obs_config(target, event_not_in_OMEGA_II, event_category, current_
         # human review
 
     # Long-tE events:
-    elif not event_not_in_OMEGA_II and event_category == 'Long-tE':
+    elif observing_mode in ['priority_long_event', 'regular_long_event']:
         conf1 = get_default_obs_config(target)
         conf1['filters'] = ['ip']
-        conf1['ipp_value'] = 1.0
+        if observing_mode == 'priority_long_event':
+            conf1['ipp_value'] = 1.05
+        else:
+            conf1['ipp_value'] = 1.0
         conf1['duration'] = 7.0  # days
         conf1['name'] = target.name + '_' + 'reg_phot_ip'
         conf1['period'] = 48.0   # hrs

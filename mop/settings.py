@@ -273,6 +273,7 @@ DATA_PRODUCT_TYPES = {
     'spectroscopy': ('spectroscopy', 'Spectroscopy'),
     'image_file': ('image_file', 'Image File'),
     'TAP_priority': ('TAP_priority', 'TAP Priority'),
+    'TAP_priority_longtE': ('TAP_priority_longtE', 'TAP Priority Long-tE'),
     'lc_model': ('lc_model', 'Model'),
 }
 

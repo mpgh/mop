@@ -24,21 +24,21 @@ def TAP_anomaly():
 def TAP_observing_mode(planet_priority, planet_priority_error,
                            long_priority, long_priority_error,
                            mag_now, mag_baseline):
-### Fixing the time consumption
 
-   if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
+    print('TAP OBS: ',planet_priority, planet_priority_error,
+                           long_priority, long_priority_error,
+          mag_now, mag_baseline)
 
+    if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
+        return 'priority_stellar_event'
 
-       return 'Priority'
+    elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
+        return 'priority_long_event'
 
-   elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
-       return 'Long priority'
-
-   elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
-       return 'Long regular'
-   else:
-
-       return None
+    elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
+        return 'regular_long_event'
+    else:
+        return None
 
 def calculate_exptime_floyds(magin):
     """
@@ -265,14 +265,20 @@ def TAP_telescope_class(sdss_i_mag):
 #   return mag_now
 
 def TAP_mag_now(target):
-   lightcurve = ReducedDatum.objects.filter(target=target,data_type='lc_model')
-   time_now = Time(datetime.datetime.now()).jd
+    lightcurve = ReducedDatum.objects.filter(target=target,data_type='lc_model')
+    time_now = Time(datetime.datetime.now()).jd
+    print('MAG NOW: ', lightcurve)
 
-   closest_mag = np.argmin(np.abs(lightcurve[0].value['lc_model_time']-time_now))
+    if len(lightcurve) > 0:
+        closest_mag = np.argmin(np.abs(lightcurve[0].value['lc_model_time']-time_now))
+        print('MAG NOW:', closest_mag)
 
-   mag_now =  lightcurve[0].value['lc_model_magnitude'][closest_mag]
+        mag_now =  lightcurve[0].value['lc_model_magnitude'][closest_mag]
+    else:
+        mag_now = None
+    print(mag_now)
 
-   return mag_now
+    return mag_now
    
 def load_KMTNet_fields():
     """
@@ -392,35 +398,16 @@ def TAP_long_event_priority_error(t_E, covariance):
 
     return err_psi
 
-# def TAP_time_last_datapoint(target):
-#     """
-#     Returns time of the latest datapoint in the lightcurve.
-#     """
-#     datasets = ReducedDatum.objects.filter(target=target)
-#     time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
-#     sorted_time = np.sort(time)
-#     t_last = sorted_time[-1]
-#
-#     return t_last
+def TAP_time_last_datapoint(target):
+     """
+     Returns time of the latest datapoint in the lightcurve.
+     """
+     datasets = ReducedDatum.objects.filter(target=target)
+     time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
+     sorted_time = np.sort(time)
+     t_last = sorted_time[-1]
 
-# def new_TAP_observing_mode(planet_priority, planet_priority_error,
-#                            long_priority, long_priority_error,
-#                            mag_now, mag_baseline):
-# ### Fixing the time consumption
-#
-#    if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
-#
-#
-#        return 'Priority'
-#
-#    elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
-#        return 'Long priority'
-#
-#    elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
-#        return 'Long regular'
-#    else:
-#
-#        return None
+     return t_last
 
 def categorize_event_timescale(target, threshold=75.0):
     """
@@ -434,8 +421,9 @@ def categorize_event_timescale(target, threshold=75.0):
     category = 'Microlensing stellar/planet'
 
     if target.extra_fields['tE'] >= threshold:
-        category = 'Microlensing Long-tE'
-        extras = {'Category': 'Microlensing Long-tE'}
-        target.save(extras=extras)
+        category = 'Microlensing long-tE'
+
+    extras = {'Category': category}
+    target.save(extras=extras)
 
     return category
