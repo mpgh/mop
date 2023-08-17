@@ -1,7 +1,9 @@
 from mop.toolbox import TAP
-from datetime import datetime
+from datetime import datetime, timedelta
+import os
+import numpy as np
 
-def determine_obs_config(target, observing_mode, current_mag, t0, tE):
+def determine_obs_config(target, observing_mode, current_mag, time_now, t0, tE):
     """Function to determine the observational configuration for a given event, based on
     its characteristics and the Key Project's strategy
 
@@ -15,7 +17,7 @@ def determine_obs_config(target, observing_mode, current_mag, t0, tE):
 
         # REGULAR MODE: The cadence of regular mode SDSS-i-band observations
         # depends on how close the event is to the peak:
-        deltat = abs(t0 - tE)
+        deltat = abs(t0 - time_now)/tE
         conf1 = get_default_obs_config(target)
         conf1['filters'] = ['ip']
         conf1['ipp_value'] = 1.0
@@ -44,6 +46,8 @@ def determine_obs_config(target, observing_mode, current_mag, t0, tE):
 
         # PRIORITY MODE: For anomalous events not yet implemented; events need
         # human review
+        print(observing_mode)
+        print('CONFIGS: ',configs)
 
     # Long-tE events:
     elif observing_mode in ['priority_long_event', 'regular_long_event']:
@@ -85,8 +89,8 @@ def determine_obs_config(target, observing_mode, current_mag, t0, tE):
                 conf['exposure_times'].append(exposure_time_gp)
             conf['exposure_counts'].append(1)
 
-        start = datetime.datetime.utcnow().isoformat()
-        end = (datetime.datetime.utcnow() + datetime.timedelta(days=obs_duration)).isoformat()
+        start = datetime.utcnow().isoformat()
+        end = (datetime.utcnow() + timedelta(days=conf['duration'])).isoformat()
         del conf['duration']
         conf['start'] = start
         conf['end'] = end

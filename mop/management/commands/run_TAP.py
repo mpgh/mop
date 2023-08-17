@@ -134,6 +134,7 @@ class Command(BaseCommand):
                             mag_now = TAP.TAP_mag_now(event)
                             print('Mag now = ',mag_now)
                             mag_now = 17.5          ### REMOVE THIS TESTING ONLY
+                            mag_baseline = 18.5     ### REMOVE THIS TESTING ONLY
                             if mag_now:
                                 mag_baseline = event.extra_fields['Baseline_magnitude']
                                 print('mag_baseline: ', mag_baseline)
@@ -147,22 +148,22 @@ class Command(BaseCommand):
                             event.save(extras=extras)
 
                             observe = False
-                            if observe:
-                                if observing_mode in ['priority_stellar_event', 'priority_long_event', 'regular_long_event']:
-                                    tap_list.targets.add(event)
+                            if observing_mode in ['priority_stellar_event', 'priority_long_event', 'regular_long_event']:
+                                tap_list.targets.add(event)
 
-                                    # Get the observational configurations for the event, based on the OMEGA-II strategy:
-                                    obs_configs = omegaII_strategy.determine_obs_config(event, observing_mode,
-                                                                                        mag_now, t0_pspl, tE_pspl)
+                                # Get the observational configurations for the event, based on the OMEGA-II strategy:
+                                obs_configs = omegaII_strategy.determine_obs_config(event, observing_mode,
+                                                                                    mag_now, time_now, t0_pspl, tE_pspl)
 
-                                    # Filter this list of hypothetical observations, removing any for which a similar
-                                    # request has already been submitted and has status 'PENDING'
-                                    obs_configs = obs_control.filter_duplicated_observations(obs_configs)
+                                # Filter this list of hypothetical observations, removing any for which a similar
+                                # request has already been submitted and has status 'PENDING'
+                                obs_configs = obs_control.filter_duplicated_observations(obs_configs)
 
-                                    # Build the corresponding observation requests in LCO format:
-                                    obs_requests = obs_control.build_lco_imaging_request(obs_configs)
+                                # Build the corresponding observation requests in LCO format:
+                                obs_requests = obs_control.build_lco_imaging_request(obs_configs)
 
-                                    # Submit the set of observation requests:
+                                # Submit the set of observation requests:
+                                if observe:
                                     submit_lco_obs_requests(obs_requests)
 
                         ### Spectroscopy

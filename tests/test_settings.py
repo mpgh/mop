@@ -70,6 +70,41 @@ TEMPLATES = [
     },
 ]
 
+EXTRA_FIELDS = [{'name':'Alive','type':'boolean', 'default':True},
+                {'name':'Classification','type':'string','default':'Microlensing PSPL'},
+                {'name':'Category','type':'string','default':'Microlensing stellar/planet'},
+                {'name':'Observing_mode','type':'string','default':'No'},
+                {'name':'t0','type':'number','default':0},
+                {'name':'u0','type':'number','default':0},
+                {'name':'tE','type':'number','default':0},
+                {'name':'piEN','type':'number','default':0},
+                {'name':'piEE','type':'number','default':0},
+                {'name':'rho','type':'number','default':0},
+                {'name':'s','type':'number','default':0},
+                {'name':'q','type':'number','default':0},
+                {'name':'alpha','type':'number','default':0},
+                {'name':'Source_magnitude','type':'number','default':0},
+                {'name':'Blend_magnitude','type':'number','default':0},
+                {'name':'Baseline_magnitude','type':'number','default':0},
+                {'name':'Fit_covariance','type':'string','default':''},
+                {'name':'TAP_priority','type':'number','default':''},
+                {'name':'TAP_priority_longtE','type':'number','default':''},
+                {'name':'Spectras','type':'number','default':0},
+                {'name':'Last_fit','type':'number','default':2446756.50000},
+                {'name':'chi2','type':'number','default':99999.9999},
+                {'name':'red_chi2','type':'number','default':99999.9999},
+                {'name':'KS_test','type':'number','default':0},
+                {'name':'SW_test','type':'number','default':0},
+                {'name':'AD_test','type':'number','default':0},
+                {'name':'Latest_data_HJD','type':'number','default':0},
+                {'name':'Latest_data_UTC','type':'datetime','default':''}]
+
+HOOKS = {
+    'target_post_save': 'tom_common.hooks.target_post_save',
+    'observation_change_state': 'tom_common.hooks.observation_change_state',
+    'data_product_post_upload': 'tom_dataproducts.hooks.data_product_post_upload'
+}
+
 try:
     from local_settings import * # noqa
 except ImportError:

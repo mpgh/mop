@@ -25,18 +25,15 @@ def TAP_observing_mode(planet_priority, planet_priority_error,
                            long_priority, long_priority_error,
                            mag_now, mag_baseline):
 
-    print('TAP OBS: ',planet_priority, planet_priority_error,
-                           long_priority, long_priority_error,
-          mag_now, mag_baseline)
-
     if (planet_priority>10) & (planet_priority/planet_priority_error>3) & (mag_baseline-mag_now>2) & (mag_now<19): #mag cut for high blended events
         return 'priority_stellar_event'
 
-    elif (long_priority > 50 & mag_now < 19 & mag_baseline < 19):
+    elif (long_priority > 50) & (mag_now < 19) & (mag_baseline < 19):
         return 'priority_long_event'
 
-    elif (long_priority > 10 & mag_now < 19 & mag_baseline < 19):
+    elif (long_priority > 10) & (mag_now < 19) & (mag_baseline < 19):
         return 'regular_long_event'
+
     else:
         return None
 
