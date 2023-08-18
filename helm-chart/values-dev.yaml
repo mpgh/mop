@@ -90,6 +90,7 @@ runtap:
       memory: 1024Mi
 
 # CronJob: Harvest IPAC ZTF
+# Disabled; used to rely on retired MARS broker
 harvestztfipac:
   enabled: false
   resources:
@@ -101,6 +102,7 @@ harvestztfipac:
       memory: 1024Mi
 
 # CronJob: Harvest ZTF DR3
+# Logs into IPAC archive portal directly
 harvestztfdr3:
   enabled: true
   resources:
@@ -110,6 +112,7 @@ harvestztfdr3:
     limits:
       cpu: 1000m
       memory: 1024Mi
+
 # CronJob: Harvest GAIA
 harvestgaia:
   enabled: true
