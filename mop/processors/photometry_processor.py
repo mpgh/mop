@@ -14,6 +14,7 @@ from tom_dataproducts.exceptions import InvalidFileFormatException
 class PhotometryProcessor(DataProcessor):
 
     def process_data(self, data_product):
+        print('IN PROCESSOR with ',data_product)
 
         mimetype = mimetypes.guess_type(data_product.data.name)[0]
         if mimetype in self.PLAINTEXT_MIMETYPES:

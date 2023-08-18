@@ -99,6 +99,22 @@ EXTRA_FIELDS = [{'name':'Alive','type':'boolean', 'default':True},
                 {'name':'Latest_data_HJD','type':'number','default':0},
                 {'name':'Latest_data_UTC','type':'datetime','default':''}]
 
+TARGET_PERMISSIONS_ONLY=True
+
+FACILITIES = {
+    'LCO': {
+        'portal_url': 'https://observe.lco.global',
+        'api_key': os.environ.get('LCO_API_KEY','dummy'),
+    },
+}
+
+TOM_FACILITY_CLASSES = [
+    'tom_observations.facilities.lco.LCOFacility',
+    'tom_observations.facilities.gemini.GEMFacility',
+    'tom_observations.facilities.soar.SOARFacility',
+    'tom_observations.facilities.lt.LTFacility'
+]
+
 HOOKS = {
     'target_post_save': 'tom_common.hooks.target_post_save',
     'observation_change_state': 'tom_common.hooks.observation_change_state',

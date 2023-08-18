@@ -399,12 +399,12 @@ def build_and_submit_phot(target, obs_type):
                                       observation_id=observation_id
                                       )
 
-def build_lco_imaging_request(configs):
+def build_lco_imaging_request(config):
     """
     Function to build a dictionary of the parameters of an observation request in the
     standard TOM format for the LCO facility
     Parameters:
-        configs is a list of dictionaries, each of which contains the following parameters:
+        configs is a dictionary, containing the following parameters:
         name            str             Name of the observation request
         target          Target object   MOP DB entry for the target
         start           Datetime        UTC datetime for the start of the observing window
@@ -420,33 +420,83 @@ def build_lco_imaging_request(configs):
         max_airmass     float           Maximum allowed airmass for observations [default=2.0]
     """
 
-    obs_requests = []
-    for conf in configs:
-        obs = lco.LCOBaseObservationForm(conf)
-        obs.is_valid()
-        obs_requests.append(obs)
+    obs_request = {
+#        'submitter_id': "string",       # From the TOM?
+        'name': config['name'],
+        'observation_mode': config['observation_mode'],
+        'operator': config['operator'],
+        'ipp_value': config['ipp_value'],
+        'proposal': config['proposal'],
+        'facility': 'LCO',
+        'start': config['start'],
+        'end': config['end'],
+        'period': config['period'],
+        'jitter': config['jitter'],
+        'telescope_class': config['telescope_class'],
+        }
 
+    request = {
+#        'observation_note': "string",
+        'optimization_type': config['optimization_type'],
+        'acceptability_threshold': config['acceptability_threshold'],
+        'configuration_repeats': config['configuration_repeats'],
+        'extra_params': {}
+        }
 
-    # Is it necessary to hack the payload like this for multiple obs requests now?
-        payload = request_obs.observation_payload()
-    # Hacking the LCO TOM form to add several filters
-    instument_config = payload['requests'][0]['configurations'][0]['instrument_configs'][0]
-    exposure_times = [exposure_time_ip, exposure_time_gp]
+    request['location'] = {
+#        'site': 'tst',         # Option not used
+#        'enclosure': 'domc',   # Option not used
+#        'telescope': '2m0a',   # Option not used
+        'telescope_class': config['telescope_class'],
+        }
 
-    for ind_req, req in enumerate(the_obs['requests']):
-        for ind_fil, fil in enumerate(list_of_filters):
+#    request['windows'] = [
+#        {
+#            'start': config['start'],
+#            'end': config['end']
+#        }
+#    ]
 
-            if ind_fil > 0:
-                new_instrument_config = copy.deepcopy(instument_config)
-                new_instrument_config['optical_elements']['filter'] = fil
-                new_instrument_config['exposure_time'] = exposure_time_gp
+#    request['cadence'] = {
+#        'start': config['start'],
+#        'end': config['end'],
+#        'period': config['period'],
+#        'jitter': config['jitter']
+#    }
 
-                the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'].append(new_instrument_config)
-            else:
-                the_obs['requests'][ind_req]['configurations'][0]['instrument_configs'][0][
-                    'exposure_time'] = exposure_time_ip
+    configuration = {
+            'fill_window': True,
+            'constraints': {
+                'max_airmass': config['max_airmass'],
+                'min_lunar_distance': config['min_lunar_distance'],
+                'max_lunar_phase': config['max_lunar_phase']
+            },
+            'target': {
+                'name': config['target'].name,
+                'ra': config['target'].ra,
+                'dec': config['target'].dec,
+            },
+            'instrument_type': config['instrument_type'],
+            'type': 'EXPOSE',
+            'repeat_duration': 0,
+        }
 
-    return obs_requests
+    instrument_configs = []
+    for i in range(0,len(config['filters']),1):
+        instrument_configs.append(
+                    {
+                        'optical_elements': config['filters'][i],
+                        'exposure_time': config['exposure_times'][i],
+                        'exposure_count': config['exposure_counts'][i]
+                    }
+        )
+    configuration['instrument_configs'] = instrument_configs
+    request['configurations'] = configuration
+    obs_request['requests'] = [request]
+
+    obs = lco.LCOImagingObservationForm(obs_request)
+
+    return obs
 
 def submit_lco_obs_requests(obs_requests):
     """

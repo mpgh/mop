@@ -40,4 +40,5 @@ class Command(BaseCommand):
             s = SkyCoord(params['ra'], params['dec'], frame='icrs', unit=(u.hourangle, u.deg))
             target, created = Target.objects.get_or_create(name=target_name, ra=s.ra.deg,
                                                            dec=s.ra.deg, type='SIDEREAL', epoch=2000)
+            print(target, created)
             target.save(extras=params['extras'])

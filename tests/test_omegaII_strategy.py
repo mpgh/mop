@@ -23,10 +23,13 @@ class TestObsConfig(TestCase):
     def test_get_default_obs_config(self):
         config = omegaII_strategy.get_default_obs_config(self.params['target'])
         self.assertTrue(config['observation_mode']=='NORMAL')
+        self.assertTrue(config['operator']=='SINGLE')
         self.assertTrue(config['instrument_type']=='1M0-SCICAM-SINISTRO')
         self.assertTrue(config['proposal']==os.getenv('LCO_PROPOSAL_ID'))
         self.assertTrue(config['facility']=='LCO')
         self.assertTrue(config['max_airmass']==2.0)
+        self.assertTrue(config['min_lunar_distance']==15.0)
+        self.assertTrue(config['max_lunar_phase']==1.0)
         self.assertTrue(config['target_id']==self.params['target'].id)
 
     def test_determine_obs_config(self):

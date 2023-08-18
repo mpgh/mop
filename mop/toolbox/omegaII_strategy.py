@@ -46,8 +46,6 @@ def determine_obs_config(target, observing_mode, current_mag, time_now, t0, tE):
 
         # PRIORITY MODE: For anomalous events not yet implemented; events need
         # human review
-        print(observing_mode)
-        print('CONFIGS: ',configs)
 
     # Long-tE events:
     elif observing_mode in ['priority_long_event', 'regular_long_event']:
@@ -104,10 +102,13 @@ def get_default_obs_config(target):
 
     config = {
                 'observation_mode': 'NORMAL',
+                'operator': 'SINGLE',
                 'instrument_type': '1M0-SCICAM-SINISTRO',
                 'proposal': os.getenv('LCO_PROPOSAL_ID'),
                 'facility': 'LCO',
                 'max_airmass': 2.0,
+                'min_lunar_distance': 15.0,
+                'max_lunar_phase': 1.0,
                 'target_id': target.id,
             }
 
