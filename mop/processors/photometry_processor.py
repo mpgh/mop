@@ -19,7 +19,7 @@ class PhotometryProcessor(DataProcessor):
         mimetype = mimetypes.guess_type(data_product.data.name)[0]
         if mimetype in self.PLAINTEXT_MIMETYPES:
             photometry = self._process_photometry_from_plaintext(data_product)
-            return [(datum.pop('timestamp'), datum) for datum in photometry]
+            return [(datum.pop('timestamp'), datum, datum['filter']) for datum in photometry]
         else:
             raise InvalidFileFormatException('Unsupported file type')
 

@@ -295,8 +295,8 @@ TOM_ALERT_CLASSES = [
     'tom_alerts.brokers.scout.ScoutBroker',
     'tom_alerts.brokers.tns.TNSBroker',
     'tom_alerts.brokers.gaia.GaiaBroker',
-
 ]
+
 #'tom_antares.antares.AntaresBroker',
 #BROKER_CREDENTIALS = {}
 
