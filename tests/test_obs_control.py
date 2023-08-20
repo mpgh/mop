@@ -8,23 +8,16 @@ from mop.toolbox import obs_control
 
 class TestObsConfig(TestCase):
     def setUp(self):
-        # Missing params group_id, submitter, target(name,ra,dec) -> target.id,
-        # Changed names: observation_type -> observation_mode, name -> group_id
-        self.params = [
-                        {
-                            'observation_mode': 'NORMAL',
-                            'operator': 'SINGLE',
-                            'telescope_class': '1m0',
+        # Input dictionary format based on example in TOM Toolkit tom_observations/tests/facilities/test_lco.py
+        self.st = SiderealTargetFactory.create()
+        self.params = [ {
+                            'observation_mode': 'NORMAL', *
                             'instrument_type': '1M0-SCICAM-SINISTRO',
                             'proposal': os.getenv('LCO_PROPOSAL_ID'),
                             'facility': 'LCO',
                             'max_airmass': 2.0,
                             'min_lunar_distance': 15.0,
-                            'max_lunar_phase': 1.0,
-                            'optimization_type': 'TIME',
-                            'acceptability_threshold': 100,
-                            'configuration_repeats': 1,
-                            'target': SiderealTargetFactory.create(),
+                            'target': self.st
                             'filters': ['gp','ip'],
                             'ipp_value': 0.8,
                             'name': 'TEST_reg_phot_ip',
@@ -32,12 +25,33 @@ class TestObsConfig(TestCase):
                             'jitter': 24.0,
                             'exposure_times': [30.0, 30.0],
                             'exposure_counts': [1,1],
-                            'start': datetime.utcnow().isoformat(),
-                            'end': (datetime.utcnow() + timedelta(days=2.0)).isoformat(),
+                            'start': datetime.utcnow(),
+                            'end': (datetime.utcnow() + timedelta(days=2.0)),
                          }
                         ]
     def test_build_lco_imaging_request(self):
-        for config in self.params:
-            obs_request = obs_control.build_lco_imaging_request(config)
-            assert(type(obs_request) == type(lco.LCOImagingObservationForm()))
-            assert(obs_request.is_valid())
+        obs_request = obs_control.build_lco_imaging_request(config)
+        assert(type(obs_request) == type(lco.LCOImagingObservationForm()))
+        assert(obs_request.is_valid())
+
+class TestVisibility(TestCase):
+    def setUp(self):
+        self.st = SiderealTargetFactory.create()
+        self.st.ra = 241.2806       # 16:05:07.3
+        self.st.dec = -56.4367      # -56:26:12.26
+        self.params = [{
+                        'target': self.st,
+                        'timenow': Time('2023-08-20').decimalyear,
+                        'result': True
+                       },{
+                        'target': self.st,
+                        'timenow': Time('2023-01-01').decimalyear,
+                        'result': False
+                       }]
+
+    def test_check_visibility(self):
+        for test_case in self.params:
+            visible = obs_control.check_visibility(test_case['target'],
+                                                   test_case['timenow'])
+            assert(visible == test_case['result'])
+            

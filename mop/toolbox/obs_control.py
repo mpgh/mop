@@ -3,7 +3,8 @@ from tom_observations.facilities import lco
 from tom_observations.cadence import CadenceForm
 from tom_observations.models import ObservationRecord
 from mop.toolbox.obs_details import all_night_moon_sep, calculate_visibility
-from astropy.time import Time
+from mop.toolbox import lco_visibility
+from astropy.time import Time, TimeDecimalYear
 from mop.toolbox import TAP
 import datetime
 from django.conf import settings
@@ -12,6 +13,7 @@ import numpy as np
 import requests
 import os
 import json
+from scipy import interpolate
 
 
 def check_pending_observations(name,status):
@@ -405,94 +407,42 @@ def build_lco_imaging_request(config):
     standard TOM format for the LCO facility
     Parameters:
         configs is a dictionary, containing the following parameters:
-        name            str             Name of the observation request
-        target          Target object   MOP DB entry for the target
-        start           Datetime        UTC datetime for the start of the observing window
-        end             Datetime        UTC datetime for the end of the observing window
-        observation_mode str            LCO scheduling mode, {'NORMAL'. 'RAPID_RESPONSE'}
-        ipp              float          Inter-proposal priority, in the range ~0.9 to 1.5
-        exposure_count_list   list of ints   List of the number of exposures in each instrument configuration
-        exposure_times_list   list of floats List of the exposures times of each instrument configuration
-        filter_list      list of str    List of the filters for each instrument configuration
-        cadence         float           Number of hours between repeated visits to target
-        jitter          float           Number of hours flexibiltiy allowed in repeated visits to target
-        proposal        str             Active proposal code
-        max_airmass     float           Maximum allowed airmass for observations [default=2.0]
+            observation_mode        str     Typically 'NORMAL'
+            instrument_type         str     E.g. '1M0-SCICAM-SINISTRO',
+            proposal                str     Proposal code
+            facility                str     Always 'LCO'
+            max_airmass             float   Typically 2.0
+            min_lunar_distance      float   Typically 15.0 deg
+            target                  Target  Target object from the TOM database
+            filters                 list    String codes describing the filters requested
+            ipp_value               float   Inter-proposal priority value of the observation request
+            name                    str     String identifier for the observation
+            period                  float   Interval after which to repeat the observation request, in hours
+            jitter                  float   Allowed flexibility on the interval of repeat, in hours
+            exposure_times          list    (Floats) Exposure times in seconds for each filter configuration requested
+            exposure_counts         list    (Ints) Number of exposures for each filter
+            start                   Datetime Observation window starting date
+            end                     Datetime Observation window end date
     """
 
     obs_request = {
-#        'submitter_id': "string",       # From the TOM?
-        'name': config['name'],
-        'observation_mode': config['observation_mode'],
-        'operator': config['operator'],
-        'ipp_value': config['ipp_value'],
-        'proposal': config['proposal'],
-        'facility': 'LCO',
-        'start': config['start'],
-        'end': config['end'],
-        'period': config['period'],
-        'jitter': config['jitter'],
-        'telescope_class': config['telescope_class'],
-        }
+                    'name': config['name'],
+                    'facility': 'LCO',
+                    'target_id': config['target'].id,
+                    'ipp_value': config['ipp_value'],
+                    'start':config['start'].isoformat().split('T')[0],
+                    'end': config['end'].isoformat().split('T')[0],
+                    'observation_mode': 'NORMAL',
+                    'proposal': os.getenv('LCO_PROPOSAL_ID'),
+                }
 
-    request = {
-#        'observation_note': "string",
-        'optimization_type': config['optimization_type'],
-        'acceptability_threshold': config['acceptability_threshold'],
-        'configuration_repeats': config['configuration_repeats'],
-        'extra_params': {}
-        }
-
-    request['location'] = {
-#        'site': 'tst',         # Option not used
-#        'enclosure': 'domc',   # Option not used
-#        'telescope': '2m0a',   # Option not used
-        'telescope_class': config['telescope_class'],
-        }
-
-#    request['windows'] = [
-#        {
-#            'start': config['start'],
-#            'end': config['end']
-#        }
-#    ]
-
-#    request['cadence'] = {
-#        'start': config['start'],
-#        'end': config['end'],
-#        'period': config['period'],
-#        'jitter': config['jitter']
-#    }
-
-    configuration = {
-            'fill_window': True,
-            'constraints': {
-                'max_airmass': config['max_airmass'],
-                'min_lunar_distance': config['min_lunar_distance'],
-                'max_lunar_phase': config['max_lunar_phase']
-            },
-            'target': {
-                'name': config['target'].name,
-                'ra': config['target'].ra,
-                'dec': config['target'].dec,
-            },
-            'instrument_type': config['instrument_type'],
-            'type': 'EXPOSE',
-            'repeat_duration': 0,
-        }
-
-    instrument_configs = []
-    for i in range(0,len(config['filters']),1):
-        instrument_configs.append(
-                    {
-                        'optical_elements': config['filters'][i],
-                        'exposure_time': config['exposure_times'][i],
-                        'exposure_count': config['exposure_counts'][i]
-                    }
-        )
-    configuration['instrument_configs'] = instrument_configs
-    request['configurations'] = configuration
-    obs_request['requests'] = [request]
+    for c in range(1,len(config['filters']+2,1)):
+        obs_request['c_'+str(c)+'_ic_1_exposure_count'] = config['exposure_counts'][c]
+        obs_request['c_' + str(c) + '_ic_1_exposure_count'] = config['exposure_counts'][c]
+        obs_request['c_'+str(c)+'_ic_1_filter'] = config['filters'][c]
+        obs_request['c_' + str(c) + '_max_airmass'] = config['max_airmass']
+        obs_request['c_' + str(c) + '_min_lunar_distance'] = config['min_lunar_distance']
+        obs_request['c_' + str(c) + '_instrument_type'] = config['instrument_type']
 
     obs = lco.LCOImagingObservationForm(obs_request)
 
@@ -655,6 +605,33 @@ def build_and_submit_long_regular_phot(target):
 
 
     build_and_submit_phot(target, 'long_regular')
+
+def check_visibility(target, timenow, threshold_hrs=1.0):
+    """Function to calculate the total number of hours for which
+    a given target is visible from the whole LCO 1m network
+    on the given date in decimalyears = Time.now().decimalyear"""
+
+    # Fetch the pre-calculated visibility data for the LCO 1m network
+    (dates, vis_data) = lco_visibility.get_visibility_data()
+
+    # The visibility data is computed per HEALpixel, so work out which
+    # HEALpixel this target lies on, and extract the vis
+    s = SkyCoord(target.ra, target.dec, frame='icrs', unit=(u.hourangle, u.deg))
+    hpindex = healpixel_functions.skycoord_to_HPindex(s, 32, radius=2.0)
+    ipix = hpindex[0]
+
+    # Interpolate the visibility data for this HEALpixel as a function of time,
+    # in order to estimate the total number of hours for which this target
+    # can currently be observed within a 24hr period
+    pixel_vis_func = interpolate.interp1d(dates, vis_data[ipix, :])
+    hrs_visible = pixel_vis_func(timenow)
+
+    # Decide whether or not this target is currently visible:
+    visible = True
+    if hrs_visible < threshold_hrs:
+        visible = False
+
+    return visible
 
 # def new_build_and_submit_phot(target, obs_type):
 #     # Defaults
