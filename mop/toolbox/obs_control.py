@@ -3,9 +3,11 @@ from tom_observations.facilities import lco
 from tom_observations.cadence import CadenceForm
 from tom_observations.models import ObservationRecord
 from mop.toolbox.obs_details import all_night_moon_sep, calculate_visibility
-from mop.toolbox import lco_visibility
+from mop.toolbox import lco_visibility, healpixel_functions
 from astropy.time import Time, TimeDecimalYear
-from mop.toolbox import TAP
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+from mop.toolbox import TAP, lco_observations
 import datetime
 from django.conf import settings
 import copy
@@ -421,34 +423,60 @@ def build_lco_imaging_request(config):
             jitter                  float   Allowed flexibility on the interval of repeat, in hours
             exposure_times          list    (Floats) Exposure times in seconds for each filter configuration requested
             exposure_counts         list    (Ints) Number of exposures for each filter
-            start                   Datetime Observation window starting date
-            end                     Datetime Observation window end date
+            tstart                  Datetime Observation window starting date
+            tend                    Datetime Observation window end date
     """
 
-    obs_request = {
-                    'name': config['name'],
-                    'facility': 'LCO',
-                    'target_id': config['target'].id,
-                    'ipp_value': config['ipp_value'],
-                    'start':config['start'].isoformat().split('T')[0],
-                    'end': config['end'].isoformat().split('T')[0],
-                    'observation_mode': 'NORMAL',
-                    'proposal': os.getenv('LCO_PROPOSAL_ID'),
+    # Add to the configuration dictionary the TOM-configured parameters,
+    # such as the Target information, user and proposal details
+    obs_params = {
+                    "group_id": config['group_id'],
+                    "submitter": os.getenv("LCO_USERNAME"),
+                    "proposal_id": os.getenv('LCO_PROPOSAL_ID'),
+                    "observation_type": "NORMAL",
+                    "telescope_class": config['telescope_class'],
+                    "instrument_type": config['instrument_type'],
+                    "target_name": config['target'].name,
+                    "target_type": "ICRS",
+                    "ra": config['target'].ra,
+                    "dec": config['target'].dec,
+                    "max_airmass": config['max_airmass'],
+                    "min_lunar_distance": config['min_lunar_distance'],
+                    "max_lunar_phase": config['max_lunar_phase'],
+                    "exposure_counts": config['exposure_counts'],
+                    "exposure_times": config['exposure_times'],
+                    "filters": config['filters'],
+                    "ipp": config['ipp'],
+                    "tstart": config['tstart'],
+                    "tend": config['tend']
                 }
 
-    for c in range(1,len(config['filters']+2,1)):
-        obs_request['c_'+str(c)+'_ic_1_exposure_count'] = config['exposure_counts'][c]
-        obs_request['c_' + str(c) + '_ic_1_exposure_count'] = config['exposure_counts'][c]
-        obs_request['c_'+str(c)+'_ic_1_filter'] = config['filters'][c]
-        obs_request['c_' + str(c) + '_max_airmass'] = config['max_airmass']
-        obs_request['c_' + str(c) + '_min_lunar_distance'] = config['min_lunar_distance']
-        obs_request['c_' + str(c) + '_instrument_type'] = config['instrument_type']
+    obs_request = lco_observations.LasCumbresObservation(obs_params)
+    obs_request.build_obs_request()
 
-    obs = lco.LCOImagingObservationForm(obs_request)
+    return obs_request
 
-    return obs
+def submit_lco_obs_request(obs_request, target):
+    """Function to submit observation requests to LCO using MOP's own LCO observation class,
+    and to record the submission to the MOP DB"""
 
-def submit_lco_obs_requests(obs_requests):
+    # Submit the observation
+    credentials = {'lco_token': os.getenv('LCO_API_KEY')}
+    response = obs_request.submit(credentials)
+
+    # Record the observation
+    if 'id' in response.keys() and 'requests' in response.keys():
+        if response['requests'][0]['state'] == 'PENDING':
+            record = ObservationRecord.objects.create(
+                target=target,
+                facility='LCO',
+                parameters=obs_request.request,
+                observation_id=response['id']
+            )
+    else:
+        print(response['requests']['non_field_errors'])
+
+def submit_lco_obs_requests_old(obs_request):
     """
     Function to build a TOM-standard observation request form for the LCO facility class,
     based on the parameters defined in the input dictionary, submit the requests to LCO,
@@ -606,17 +634,26 @@ def build_and_submit_long_regular_phot(target):
 
     build_and_submit_phot(target, 'long_regular')
 
-def check_visibility(target, timenow, threshold_hrs=1.0):
+def check_visibility(target, timenow, threshold_hrs=2.0*3.0):
     """Function to calculate the total number of hours for which
     a given target is visible from the whole LCO 1m network
-    on the given date in decimalyears = Time.now().decimalyear"""
+    on the given date in decimalyears = Time.now().decimalyear
+
+    The threshold for visibility is set by assuming that a target will
+    be visible typically from three sites within 1 day, so the minimum
+    observable period is 2hr per site.  Although this is on the generous
+    side, the pixelized nature of the pre-calculated data is somewhat
+    approximate, so in practise this gives reasonable results.
+    """
 
     # Fetch the pre-calculated visibility data for the LCO 1m network
+    # Subtract the integer year from the timenow date, as the date array
+    # is generic for all years. 
     (dates, vis_data) = lco_visibility.get_visibility_data()
-
+    timenow = timenow - int(timenow)
     # The visibility data is computed per HEALpixel, so work out which
     # HEALpixel this target lies on, and extract the vis
-    s = SkyCoord(target.ra, target.dec, frame='icrs', unit=(u.hourangle, u.deg))
+    s = SkyCoord(target.ra, target.dec, frame='icrs', unit=(u.deg, u.deg))
     hpindex = healpixel_functions.skycoord_to_HPindex(s, 32, radius=2.0)
     ipix = hpindex[0]
 
@@ -630,7 +667,7 @@ def check_visibility(target, timenow, threshold_hrs=1.0):
     visible = True
     if hrs_visible < threshold_hrs:
         visible = False
-
+    
     return visible
 
 # def new_build_and_submit_phot(target, obs_type):

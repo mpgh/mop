@@ -129,42 +129,45 @@ class Command(BaseCommand):
                         # For Alive events outside the HCZ, the strategy depends on whether it is classified as a
                         # stellar/planetary event, or a long-timescale black hole candidate
                         else:
-                            # CHECK HERE FOR VISIBILITY
-                            print('Would be scheduling obs')
-                            mag_now = TAP.TAP_mag_now(event)
-                            print('Mag now = ',mag_now)
-                            mag_now = 17.5          ### REMOVE THIS TESTING ONLY
-                            mag_baseline = 18.5     ### REMOVE THIS TESTING ONLY
-                            if mag_now:
-                                mag_baseline = event.extra_fields['Baseline_magnitude']
-                                print('mag_baseline: ', mag_baseline)
-                                observing_mode = TAP.TAP_observing_mode(planet_priority, planet_priority_error,
-                                                                    long_priority, long_priority_error,
-                                                                    mag_now, mag_baseline)
-                            else:
-                                observing_mode = None
-                            print(event.name, observing_mode)
-                            extras = {'Observing_mode': observing_mode}
-                            event.save(extras=extras)
+                            # Check target for visibility
+                            visible = obs_control.check_visibility(event, Time.now().decimalyear)
 
-                            observe = False
-                            if observing_mode in ['priority_stellar_event', 'priority_long_event', 'regular_long_event']:
-                                tap_list.targets.add(event)
+                            if visible:
+                                print('Would be scheduling obs')
+                                mag_now = TAP.TAP_mag_now(event)
+                                print('Mag now = ',mag_now)
+                                mag_now = 17.5          ### REMOVE THIS TESTING ONLY
+                                mag_baseline = 18.5     ### REMOVE THIS TESTING ONLY
+                                if mag_now:
+                                    mag_baseline = event.extra_fields['Baseline_magnitude']
+                                    print('mag_baseline: ', mag_baseline)
+                                    observing_mode = TAP.TAP_observing_mode(planet_priority, planet_priority_error,
+                                                                        long_priority, long_priority_error,
+                                                                        mag_now, mag_baseline)
+                                else:
+                                    observing_mode = None
+                                print(event.name, observing_mode)
+                                extras = {'Observing_mode': observing_mode}
+                                event.save(extras=extras)
 
-                                # Get the observational configurations for the event, based on the OMEGA-II strategy:
-                                obs_configs = omegaII_strategy.determine_obs_config(event, observing_mode,
-                                                                                    mag_now, time_now, t0_pspl, tE_pspl)
+                                observe = False
+                                if observing_mode in ['priority_stellar_event', 'priority_long_event', 'regular_long_event']:
+                                    tap_list.targets.add(event)
 
-                                # Filter this list of hypothetical observations, removing any for which a similar
-                                # request has already been submitted and has status 'PENDING'
-                                obs_configs = obs_control.filter_duplicated_observations(obs_configs)
+                                    # Get the observational configurations for the event, based on the OMEGA-II strategy:
+                                    obs_configs = omegaII_strategy.determine_obs_config(event, observing_mode,
+                                                                                        mag_now, time_now, t0_pspl, tE_pspl)
 
-                                # Build the corresponding observation requests in LCO format:
-                                obs_requests = obs_control.build_lco_imaging_request(obs_configs)
+                                    # Filter this list of hypothetical observations, removing any for which a similar
+                                    # request has already been submitted and has status 'PENDING'
+                                    obs_configs = obs_control.filter_duplicated_observations(obs_configs)
 
-                                # Submit the set of observation requests:
-                                if observe:
-                                    submit_lco_obs_requests(obs_requests)
+                                    # Build the corresponding observation requests in LCO format:
+                                    obs_request = obs_control.build_lco_imaging_request(obs_configs)
+
+                                    # Submit the set of observation requests:
+                                    if observe:
+                                        obs_control.submit_lco_obs_request(obs_request, event)
 
                         ### Spectroscopy
                         if (event.extra_fields['Spectras']<1) & (event.extra_fields['Observing_mode'] != 'No'):
