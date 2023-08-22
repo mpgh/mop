@@ -19,16 +19,16 @@ def determine_obs_config(target, observing_mode, current_mag, time_now, t0, tE):
         # depends on how close the event is to the peak:
         deltat = abs(t0 - time_now)/tE
         conf1 = get_default_obs_config(target)
-        conf1['filters'] = ['ip']
-        conf1['ipp_value'] = 1.0
+        conf1['filters'] = ['SDSS-i']
+        conf1['ipp'] = 1.0
         conf1['duration'] = 3.0   # days
-        conf1['name'] = target.name+'_'+'reg_phot_ip'
+        conf1['group_id'] = target.name+'_'+'reg_phot_ip'
 
         conf2 = get_default_obs_config(target)
-        conf2['filters'] = ['gp','ip']
-        conf2['ipp_value'] = 1.0
+        conf2['filters'] = ['SDSS-g','SDSS-i']
+        conf2['ipp'] = 1.0
         conf2['duration'] = 3.0   # days
-        conf2['name'] = target.name+'_'+'reg_phot_gp',
+        conf2['group_id'] = target.name+'_'+'reg_phot_gpip',
         if deltat <= 0.2:
             conf1['period'] = 2.0   # hrs
             conf1['jitter'] = 2.0    # hrs
@@ -50,21 +50,21 @@ def determine_obs_config(target, observing_mode, current_mag, time_now, t0, tE):
     # Long-tE events:
     elif observing_mode in ['priority_long_event', 'regular_long_event']:
         conf1 = get_default_obs_config(target)
-        conf1['filters'] = ['ip']
+        conf1['filters'] = ['SDSS-i']
         if observing_mode == 'priority_long_event':
-            conf1['ipp_value'] = 1.05
+            conf1['ipp'] = 1.05
         else:
-            conf1['ipp_value'] = 1.0
+            conf1['ipp'] = 1.0
         conf1['duration'] = 7.0  # days
-        conf1['name'] = target.name + '_' + 'reg_phot_ip'
+        conf1['group_id'] = target.name + '_' + 'reg_phot_ip'
         conf1['period'] = 48.0   # hrs
         conf1['jitter'] = 48.0     # hrs
 
         conf2 = get_default_obs_config(target)
-        conf2['filters'] = ['gp','ip']
-        conf2['ipp_value'] = 1.0
+        conf2['filters'] = ['SDSS-g','SDSS-i']
+        conf2['ipp'] = 1.0
         conf2['duration'] = 7.0  # days
-        conf2['name'] = target.name + '_' + 'reg_phot_gp'
+        conf2['group_id'] = target.name + '_' + 'reg_phot_gpip'
         conf2['period'] = 168.0   # hrs
         conf2['jitter'] = 168.0     # hrs
 
@@ -81,17 +81,17 @@ def determine_obs_config(target, observing_mode, current_mag, time_now, t0, tE):
         conf['exposure_times'] = []
         conf['exposure_counts'] = []
         for f in conf['filters']:
-            if f == 'ip':
+            if f == 'SDSS-i':
                 conf['exposure_times'].append(exposure_time_ip)
-            elif f == 'gp':
+            elif f == 'SDSS-g':
                 conf['exposure_times'].append(exposure_time_gp)
             conf['exposure_counts'].append(1)
 
-        start = datetime.utcnow().isoformat()
-        end = (datetime.utcnow() + timedelta(days=conf['duration'])).isoformat()
+        start = datetime.utcnow()
+        end = (datetime.utcnow() + timedelta(days=conf['duration']))
         del conf['duration']
-        conf['start'] = start
-        conf['end'] = end
+        conf['tstart'] = start
+        conf['tend'] = end
 
     return configs
 
@@ -104,12 +104,13 @@ def get_default_obs_config(target):
                 'observation_mode': 'NORMAL',
                 'operator': 'SINGLE',
                 'instrument_type': '1M0-SCICAM-SINISTRO',
+                'telescope_class': '1m0',
                 'proposal': os.getenv('LCO_PROPOSAL_ID'),
                 'facility': 'LCO',
                 'max_airmass': 2.0,
                 'min_lunar_distance': 15.0,
                 'max_lunar_phase': 1.0,
-                'target_id': target.id,
+                'target': target,
             }
 
     return config

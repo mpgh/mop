@@ -19,7 +19,7 @@ class TestObsConfig(TestCase):
         self.st.dec = -30.4068
         self.params = [
                         (
-                            {
+                            [{
                                 "group_id": "TEST1",
                                 "observation_type": "NORMAL",
                                 "telescope_class": "1m0",
@@ -36,8 +36,8 @@ class TestObsConfig(TestCase):
                                 "ipp": 1.05,
                                 "tstart": time_start,
                                 "tend": time_end
-                            },
-                            {
+                            }],
+                            [{
                                 "submitter": os.getenv("LCO_USERNAME"),
                                 "name": "TEST1",
                                 "observation_type": "NORMAL",
@@ -102,19 +102,21 @@ class TestObsConfig(TestCase):
                                         "extra_params": {}
                                     }
                                 ]
-                            }
+                            }]
                         )
                         ]
     def test_build_lco_imaging_request(self):
         for config in self.params:
-            obs = obs_control.build_lco_imaging_request(config[0])
-            assert(type(obs) == type(lco_observations.LasCumbresObservation()))
-            for key, value in config[1].items():
-                if not key=='requests':
-                    assert (obs.request[key] == config[1][key])
-                else:
-                    for key2,value2 in config[1]['requests'][0].items():
-                        assert (obs.request[key][0][key2] == value2)
+            obs_list = obs_control.build_lco_imaging_request(config[0])
+            for obs in obs_list:
+                assert(type(obs) == type(lco_observations.LasCumbresObservation()))
+                for expected_obs in config[1]:
+                    for key, value in expected_obs.items():
+                        if not key=='requests':
+                            assert (obs.request[key] == expected_obs[key])
+                        else:
+                            for key2,value2 in expected_obs['requests'][0].items():
+                                assert (obs.request[key][0][key2] == value2)
 
     @skip("Uncomment this to submit live test observations")
     def test_submit_observations(self):

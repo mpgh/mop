@@ -48,7 +48,7 @@ def filter_duplicated_observations(configs):
 
     new_configs = []
     for conf in configs:
-        need_to_submit = check_pending_observations(conf['name'], 'PENDING')
+        need_to_submit = check_pending_observations(conf['group_id'], 'PENDING')
         if need_to_submit:
             new_configs.append(conf)
 
@@ -403,12 +403,12 @@ def build_and_submit_phot(target, obs_type):
                                       observation_id=observation_id
                                       )
 
-def build_lco_imaging_request(config):
+def build_lco_imaging_request(configurations):
     """
     Function to build a dictionary of the parameters of an observation request in the
     standard TOM format for the LCO facility
     Parameters:
-        configs is a dictionary, containing the following parameters:
+        configs is a list of dictionaries, each containing the following parameters:
             observation_mode        str     Typically 'NORMAL'
             instrument_type         str     E.g. '1M0-SCICAM-SINISTRO',
             proposal                str     Proposal code
@@ -427,54 +427,60 @@ def build_lco_imaging_request(config):
             tend                    Datetime Observation window end date
     """
 
-    # Add to the configuration dictionary the TOM-configured parameters,
-    # such as the Target information, user and proposal details
-    obs_params = {
-                    "group_id": config['group_id'],
-                    "submitter": os.getenv("LCO_USERNAME"),
-                    "proposal_id": os.getenv('LCO_PROPOSAL_ID'),
-                    "observation_type": "NORMAL",
-                    "telescope_class": config['telescope_class'],
-                    "instrument_type": config['instrument_type'],
-                    "target_name": config['target'].name,
-                    "target_type": "ICRS",
-                    "ra": config['target'].ra,
-                    "dec": config['target'].dec,
-                    "max_airmass": config['max_airmass'],
-                    "min_lunar_distance": config['min_lunar_distance'],
-                    "max_lunar_phase": config['max_lunar_phase'],
-                    "exposure_counts": config['exposure_counts'],
-                    "exposure_times": config['exposure_times'],
-                    "filters": config['filters'],
-                    "ipp": config['ipp'],
-                    "tstart": config['tstart'],
-                    "tend": config['tend']
-                }
+    obs_requests = []
+    for config in configurations:
+        # Add to the configuration dictionary the TOM-configured parameters,
+        # such as the Target information, user and proposal details
+        obs_params = {
+                        "group_id": config['group_id'],
+                        "submitter": os.getenv("LCO_USERNAME"),
+                        "proposal_id": os.getenv('LCO_PROPOSAL_ID'),
+                        "observation_type": "NORMAL",
+                        "telescope_class": config['telescope_class'],
+                        "instrument_type": config['instrument_type'],
+                        "target_name": config['target'].name,
+                        "target_type": "ICRS",
+                        "ra": config['target'].ra,
+                        "dec": config['target'].dec,
+                        "max_airmass": config['max_airmass'],
+                        "min_lunar_distance": config['min_lunar_distance'],
+                        "max_lunar_phase": config['max_lunar_phase'],
+                        "exposure_counts": config['exposure_counts'],
+                        "exposure_times": config['exposure_times'],
+                        "filters": config['filters'],
+                        "ipp": config['ipp'],
+                        "tstart": config['tstart'],
+                        "tend": config['tend']
+                    }
 
-    obs_request = lco_observations.LasCumbresObservation(obs_params)
-    obs_request.build_obs_request()
+        obs = lco_observations.LasCumbresObservation(obs_params)
+        obs.build_obs_request()
 
-    return obs_request
+        obs_requests.append(obs)
 
-def submit_lco_obs_request(obs_request, target):
+    return obs_requests
+
+def submit_lco_obs_request(obs_requests, target):
     """Function to submit observation requests to LCO using MOP's own LCO observation class,
     and to record the submission to the MOP DB"""
 
-    # Submit the observation
+    # Submit the observations
     credentials = {'lco_token': os.getenv('LCO_API_KEY')}
-    response = obs_request.submit(credentials)
 
-    # Record the observation
-    if 'id' in response.keys() and 'requests' in response.keys():
-        if response['requests'][0]['state'] == 'PENDING':
-            record = ObservationRecord.objects.create(
-                target=target,
-                facility='LCO',
-                parameters=obs_request.request,
-                observation_id=response['id']
-            )
-    else:
-        print(response['requests']['non_field_errors'])
+    for obs in obs_requests:
+        response = obs.submit(credentials)
+        print(response)
+        # Record each observation
+        if 'id' in response.keys() and 'requests' in response.keys():
+            if response['requests'][0]['state'] == 'PENDING':
+                record = ObservationRecord.objects.create(
+                    target=target,
+                    facility='LCO',
+                    parameters=obs.request,
+                    observation_id=response['id']
+                )
+        else:
+            print(response)
 
 def submit_lco_obs_requests_old(obs_request):
     """
@@ -634,7 +640,7 @@ def build_and_submit_long_regular_phot(target):
 
     build_and_submit_phot(target, 'long_regular')
 
-def check_visibility(target, timenow, threshold_hrs=2.0*3.0):
+def check_visibility(target, timenow, threshold_hrs=2.0*3.0, verbose=False):
     """Function to calculate the total number of hours for which
     a given target is visible from the whole LCO 1m network
     on the given date in decimalyears = Time.now().decimalyear
@@ -645,29 +651,37 @@ def check_visibility(target, timenow, threshold_hrs=2.0*3.0):
     side, the pixelized nature of the pre-calculated data is somewhat
     approximate, so in practise this gives reasonable results.
     """
+    if verbose:
+        print('Checking visibility')
+        print(target.ra, target.dec, timenow)
 
     # Fetch the pre-calculated visibility data for the LCO 1m network
     # Subtract the integer year from the timenow date, as the date array
     # is generic for all years. 
     (dates, vis_data) = lco_visibility.get_visibility_data()
     timenow = timenow - int(timenow)
+
     # The visibility data is computed per HEALpixel, so work out which
     # HEALpixel this target lies on, and extract the vis
     s = SkyCoord(target.ra, target.dec, frame='icrs', unit=(u.deg, u.deg))
     hpindex = healpixel_functions.skycoord_to_HPindex(s, 32, radius=2.0)
+
     ipix = hpindex[0]
+    if verbose: print('Target in HEALpixel '+str(ipix))
 
     # Interpolate the visibility data for this HEALpixel as a function of time,
     # in order to estimate the total number of hours for which this target
     # can currently be observed within a 24hr period
     pixel_vis_func = interpolate.interp1d(dates, vis_data[ipix, :])
     hrs_visible = pixel_vis_func(timenow)
+    if verbose: print('Total hours visible: '+str(hrs_visible))
 
     # Decide whether or not this target is currently visible:
     visible = True
     if hrs_visible < threshold_hrs:
         visible = False
-    
+    if verbose: print('Target visible? '+repr(visible))
+
     return visible
 
 # def new_build_and_submit_phot(target, obs_type):

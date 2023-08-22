@@ -264,16 +264,13 @@ def TAP_telescope_class(sdss_i_mag):
 def TAP_mag_now(target):
     lightcurve = ReducedDatum.objects.filter(target=target,data_type='lc_model')
     time_now = Time(datetime.datetime.now()).jd
-    print('MAG NOW: ', lightcurve)
 
     if len(lightcurve) > 0:
         closest_mag = np.argmin(np.abs(lightcurve[0].value['lc_model_time']-time_now))
-        print('MAG NOW:', closest_mag)
 
         mag_now =  lightcurve[0].value['lc_model_magnitude'][closest_mag]
     else:
         mag_now = None
-    print(mag_now)
 
     return mag_now
    

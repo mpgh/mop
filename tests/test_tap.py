@@ -53,3 +53,20 @@ class TestObservingMode(TestCase):
                 event['mag_baseline']
             )
             self.assertEqual(obs_mode, event['obs_mode'])
+
+class TestEventLocation(TestCase):
+    def setUp(self):
+        self.kmtnet_fields = TAP.load_KMTNet_fields()
+        self.params = [
+            {'test': (268.0, -28.60972),
+             'expect': True},
+            {'test': (150.0, -28.60972),
+             'expect': False},
+            {'test': (268.0, 15.0),
+             'expect': False},
+        ]
+
+    def test_event_not_in_OMEGA_II(self):
+        for config in self.params:
+            status = TAP.event_not_in_OMEGA_II(config['test'][0], config['test'][1], self.kmtnet_fields)
+            assert (status == config['expect'])
