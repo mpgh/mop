@@ -16,6 +16,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
 
         parser.add_argument('target_name', help='name of the event to fit')
+        parser.add_argument('observe', help='whether or not to observe (live_obs or none)')
 
     def handle(self, *args, **options):
         verbose = False
@@ -175,8 +176,11 @@ class Command(BaseCommand):
                                 if verbose: print('Build observation requests: ',obs_requests)
 
                                 # Submit the set of observation requests:
-                                obs_control.submit_lco_obs_request(obs_requests, event)
-                                if verbose: print('SUBMITTING OBSERVATIONS')
+                                if 'live_obs' in options['observe']:
+                                    obs_control.submit_lco_obs_request(obs_requests, event)
+                                    if verbose: print('SUBMITTING OBSERVATIONS')
+                                else:
+                                    print('TAP WARNING: OBSERVATIONS SWITCHED OFF')
 
                         else:
                             if verbose: print('Target '+event.name+' not currently visible')
