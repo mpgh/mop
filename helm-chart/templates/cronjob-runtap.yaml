@@ -37,6 +37,7 @@ spec:
                 - manage.py
                 - run_TAP
                 - all
+                - false
               env:
                 {{- include "mop.backendEnv" . | nindent 16 }}
               resources:
