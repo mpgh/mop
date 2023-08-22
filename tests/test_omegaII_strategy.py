@@ -46,8 +46,8 @@ class TestObsConfig(TestCase):
 
         # Test that the contents of the list of configurations is a set
         # of dictionaries with the following keys populated:
-        expected_keys = ['filters', 'ipp_value','start','end','name',
-                         'period', 'jitter','exposure_times','exposure_counts']
+        expected_keys = ['filters', 'ipp', 'tstart', 'tend', 'group_id',
+                         'period', 'jitter', 'exposure_times', 'exposure_counts']
         for conf in configs:
             for key in expected_keys:
                 self.assertTrue(key in conf.keys())

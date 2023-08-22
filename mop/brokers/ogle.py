@@ -11,6 +11,7 @@ import astropy.units as unit
 import ftplib
 import os
 import numpy as np
+import requests
 
 from astropy.time import Time, TimezoneInfo
 
@@ -37,55 +38,51 @@ class OGLEBroker(GenericBroker):
     name = 'OGLE'
     form = OGLEQueryForm
 
-    def fetch_alerts(self, ogle_files_directories, years = []):
+    def fetch_alerts(self, years = []):
+        """Fetch data on microlensing events discovered by OGLE"""
         
-        #download from OGLE FTP
-        ftp_tunnel = ftplib.FTP( BROKER_URL ) 
-        ftp_tunnel.login()
-        ftp_file_path = os.path.join( 'ogle', 'ogle4', 'ews' )
-        ftp_tunnel.cwd(ftp_file_path)
-
-        output_file = open(os.path.join(ogle_files_directories,'ogle_last.changed'),'wb')
-        ftp_tunnel.retrbinary('RETR last.changed', output_file.write)
-        output_file.close()
-
-        for year in years:
-            
-            ftp_file_path = os.path.join( str(year) )
-            ftp_tunnel.cwd(ftp_file_path)
-            output_file = open(os.path.join(ogle_files_directories,'ogle_lenses_'+str(year)+'.par'), 'wb')
-            ftp_tunnel.retrbinary('RETR lenses.par', output_file.write )
-            output_file.close()
-            ftp_tunnel.cwd('../')
-
-        ftp_tunnel.quit()
+        # Read the lists of events for the given years
+        ogle_events = self.fetch_lens_model_parameters(years)
 
         #ingest the TOM db
-        list_of_targets = []
-        for year in years:
-
-            ogle_events = os.path.join(ogle_files_directories,'ogle_lenses_'+str(year)+'.par')
-          
-
-            events = np.loadtxt(ogle_events,dtype=str)
-
-            for event in events[1:]:
-
-                   name = 'OGLE-'+event[0]
-                   #Create or load
-                   coords = [event[3]+event[4]]
-                   cible = SkyCoord(coords, unit=(unit.hourangle, unit.deg))
-                   target, created = Target.objects.get_or_create(name=name,ra=cible.ra.degree[0],dec=cible.dec.degree[0],
-                                   type='SIDEREAL',epoch=2000)
-                   if created:
-
-                       target.save()
-                   
-                   list_of_targets.append(target)
-
+        list_of_targets = self.ingest_events(ogle_events)
 
         return list_of_targets
 
+    def fetch_lens_model_parameters(self, years):
+        """Method to retrieve the text file of the model parameters for fits by the OGLE survey"""
+
+        events = {}
+        for year in years:
+            par_file_url = os.path.join('https://www.astrouw.edu.pl/ogle/ogle4/ews',year,'lenses.par')
+            response = requests.request('GET', par_file_url)
+            if response.status_code == 200:
+                for line in response.iter_lines():
+                    line = str(line)
+                    if 'StarNo' not in line and len(line) > 5:      # Skip the file header
+                        entries = line.split()
+                        name = 'OGLE-'+entries[0].replace("b'","")
+                        ra = entries[3]
+                        dec = entries[4]
+                        events[name] = (ra,dec)
+
+        return events
+
+    def ingest_events(self, ogle_events):
+        """Function to ingest the targets into the TOM database"""
+
+        list_of_targets = []
+
+        for event_name, event_params in ogle_events.items():
+            s = SkyCoord(event_params[0], event_params[1], unit=(unit.hourangle, unit.deg), frame='icrs')
+            target, created = Target.objects.get_or_create(name=event_name, ra=s.ra.deg, dec=s.dec.deg,
+                                                           type='SIDEREAL', epoch=2000)
+            if created:
+                target.save()
+
+            list_of_targets.append(target)
+
+        return list_of_targets
 
     def find_and_ingest_photometry(self, targets):
         

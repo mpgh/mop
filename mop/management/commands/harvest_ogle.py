@@ -12,7 +12,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         
         Ogle = ogle.OGLEBroker()
-        list_of_targets = Ogle.fetch_alerts('./data/',[options['years']])
+        list_of_targets = Ogle.fetch_alerts([options['years']])
         Ogle.find_and_ingest_photometry(list_of_targets)
 
 
