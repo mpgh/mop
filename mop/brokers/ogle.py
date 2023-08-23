@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.core.exceptions import ObjectDoesNotExist
 from tom_alerts.alerts import GenericBroker, GenericQueryForm
 from django import forms
+from django.db.utils import IntegrityError
 from tom_targets.models import Target
 from tom_observations import facility
 from tom_dataproducts.models import ReducedDatum
@@ -80,11 +81,18 @@ class OGLEBroker(GenericBroker):
 
         for event_name, event_params in ogle_events.items():
             s = SkyCoord(event_params[0], event_params[1], unit=(unit.hourangle, unit.deg), frame='icrs')
-            target, created = Target.objects.get_or_create(name=event_name, ra=s.ra.deg, dec=s.dec.deg,
+            try:
+                target, created = Target.objects.get_or_create(name=event_name, ra=s.ra.deg, dec=s.dec.deg,
                                                            type='SIDEREAL', epoch=2000)
-            if created:
-                target.save()
+                if created:
+                    target.save()
+                    logger.info('OGLE harvester: added event '+event_name+' to MOP')
+                else:
+                    logger.info('OGLE harvester: event ' + event_name + ' already known to MOP')
 
+            except IntegrityError:
+                logger.info('OGLE harvester: event ' + event_name + ' already known to MOP')
+                
             list_of_targets.append(target)
 
         logger.info('OGLE harvester: completed ingest of events')
