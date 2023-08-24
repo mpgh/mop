@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import MultipleObjectsReturned
 from tom_alerts.alerts import GenericBroker, GenericQueryForm
 from django import forms
 from django.db.utils import IntegrityError
@@ -92,7 +93,7 @@ class OGLEBroker(GenericBroker):
 
             except IntegrityError:
                 logger.info('OGLE harvester: event ' + event_name + ' already known to MOP')
-                
+
             list_of_targets.append(target)
 
         logger.info('OGLE harvester: completed ingest of events')
@@ -144,17 +145,19 @@ class OGLEBroker(GenericBroker):
                     'filter': 'OGLE_I',
                     'error': photometry[i][2]
                     }
+            try:
+                rd, created = ReducedDatum.objects.get_or_create(
+                    timestamp=jd.to_datetime(timezone=TimezoneInfo()),
+                    value=datum,
+                    source_name='OGLE',
+                    source_location=target.name,
+                    data_type='photometry',
+                    target=target)
 
-            rd, created = ReducedDatum.objects.get_or_create(
-                timestamp=jd.to_datetime(timezone=TimezoneInfo()),
-                value=datum,
-                source_name='OGLE',
-                source_location=target.name,
-                data_type='photometry',
-                target=target)
-
-            if created:
-                rd.save()
+                if created:
+                    rd.save()
+            except MultipleObjectsReturned:
+                logger.error('OGLE HARVESTER: Found duplicated data for event '+target.name)
 
         return 'OK'
 
