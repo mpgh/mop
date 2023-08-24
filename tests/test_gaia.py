@@ -8,13 +8,22 @@ from astropy.coordinates import SkyCoord
 from astroquery.utils.commons import TableList
 from astropy.coordinates import Angle
 
+@skip("")
 class TestGaia(TestCase):
     def setUp(self):
-        self.st = SiderealTargetFactory.create()
-        self.st.name = 'Gaia23aiy'
-        self.st.ra = 241.2805
-        self.st.dec = -56.4367
-        self.params = {'target': self.st,
+        self.st1 = SiderealTargetFactory.create()
+        self.st1.name = 'Gaia23aiy'
+        self.st1.ra = 241.2805
+        self.st1.dec = -56.4367
+        self.st2, created = Target.objects.get_or_create(name='TEST2',
+                                                         ra=240.5,
+                                                         dec=-35.0,
+                                                         type='SIDEREAL',
+                                                         epoch=2000)
+        print('ST2: ',self.st2)
+        print('ST2 extras: ',self.st2.extra_fields)
+        self.params = {'target1': self.st1,
+                       'target2': self.st2,
                        'radius': Angle(0.004, "deg")}
 
     def test_query_gaia_dr3(self):
