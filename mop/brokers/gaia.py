@@ -54,12 +54,10 @@ def fetch_gaia_dr3_entry(target):
 
     # Search the Gaia DR3 catalog:
     results = query_gaia_dr3(target)
-    print(results[0])
 
     if len(results) > 0:
 
         extra_params = target.extra_fields
-        print('INIT: ',extra_params)
 
         #extra_params = {}
         fields = {
@@ -75,7 +73,8 @@ def fetch_gaia_dr3_entry(target):
             'Dist':'Distance',
             'Teff': 'Teff',
             'logg': 'logg',
-            '[Fe/H]': '[Fe/H]'}
+            '[Fe/H]': '[Fe/H]',
+            'RUWE': ['RUWE']}
         for cat_field, mop_field in fields.items():
             try:
                 if results[0][0][cat_field]:
@@ -83,5 +82,4 @@ def fetch_gaia_dr3_entry(target):
                     print(cat_field, results[0][0][cat_field])
             except KeyError:
                 pass
-        print('EXTRAS: ',extra_params)
         target.save(extras = extra_params)

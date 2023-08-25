@@ -344,11 +344,12 @@ EXTRA_FIELDS = [{'name': 'Alive', 'type': 'boolean', 'default':True},
                 {'name': 'Teff', 'type': 'number', 'default': 0},
                 {'name':  'logg', 'type': 'number', 'default': 0},
                 {'name': '[Fe/H]', 'type': 'number', 'default': 0},
+                {'name': 'RUWE', 'type': 'number', 'default': 0},
                 {'name': 'Fit_covariance', 'type': 'string', 'default': ''},
                 {'name': 'TAP_priority', 'type': 'number', 'default': ''},
                 {'name': 'TAP_priority_longtE', 'type': 'number', 'default': ''},
                 {'name': 'Interferometry_mode', 'type': 'string', 'default': ''},
-                {'name': 'Inteferometry_guide_stars', 'type': 'number', 'default': 0},
+                {'name': 'Inteferometry_guide_star', 'type': 'number', 'default': 0},
                 {'name': 'Spectras', 'type': 'number', 'default': 0},
                 {'name': 'Last_fit', 'type': 'number', 'default': 2446756.50000},
                 {'name': 'chi2', 'type': 'number', 'default': 99999.9999},
@@ -360,9 +361,9 @@ EXTRA_FIELDS = [{'name': 'Alive', 'type': 'boolean', 'default':True},
                 {'name': 'Latest_data_UTC', 'type': 'datetime', 'default': ''},
                 {'name': 'Mag_now', 'type': 'number', 'default': ''},
                 {'name': 'Mag_now_passband', 'type': 'string', 'default': ''},
-                {'name': 'Mag_now_J', 'type': 'number', 'default': ''},
-                {'name': 'Mag_now_H', 'type': 'number', 'default': ''},
-                {'name': 'Mag_now_K', 'type': 'number', 'default': ''}]
+                {'name': 'Mag_peak_J', 'type': 'number', 'default': ''},
+                {'name': 'Mag_peak_H', 'type': 'number', 'default': ''},
+                {'name': 'Mag_peak_K', 'type': 'number', 'default': ''}]
 
 
 
