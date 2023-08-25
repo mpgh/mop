@@ -39,20 +39,27 @@ class OGLEBroker(GenericBroker):
     name = 'OGLE'
     form = OGLEQueryForm
 
-    def fetch_alerts(self, years = []):
+    def fetch_alerts(self, years = [], events='all'):
         """Fetch data on microlensing events discovered by OGLE"""
 
         # Read the lists of events for the given years
         ogle_events = self.fetch_lens_model_parameters(years)
 
+        # Apply selection of events, if any
+        if str(events).lower() != 'all':
+            event_selection = {}
+            event_selection[events] = ogle_events[events]
+        else:
+            event_selection = ogle_events
+
         #ingest the TOM db
-        list_of_targets = self.ingest_events(ogle_events)
+        list_of_targets = self.ingest_events(event_selection)
 
         return list_of_targets
 
     def fetch_lens_model_parameters(self, years):
         """Method to retrieve the text file of the model parameters for fits by the OGLE survey"""
-        logger.info('OGLE harvester: Fetching event model parameters')
+        logger.info('OGLE harvester: Fetching event model parameters for years '+repr(years))
 
         events = {}
         for year in years:
