@@ -1,6 +1,9 @@
 from django.core.management.base import BaseCommand
 from mop.brokers import moa
+from mop.brokers import gaia as gaia_mop
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
 
@@ -13,7 +16,11 @@ class Command(BaseCommand):
         
         Moa = moa.MOABroker()
         list_of_targets = Moa.fetch_alerts('./data/',[options['years']])
+        logger.info('MOA HARVESTER: Found '+str(len(list_of_targets))+' targets')
+
         Moa.find_and_ingest_photometry(list_of_targets)
+        logger.info('MOA HARVESTER: Ingested photometry for MOA targets')
 
-
-   
+        for target in list_of_targets:
+            gaia_mop.fetch_gaia_dr3_entry(target)
+        logger.info('MOA HARVESTER: Retrieved Gaia photometry for MOA targets')

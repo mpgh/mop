@@ -74,12 +74,11 @@ def fetch_gaia_dr3_entry(target):
             'Teff': 'Teff',
             'logg': 'logg',
             '[Fe/H]': '[Fe/H]',
-            'RUWE': ['RUWE']}
+            'RUWE': 'RUWE'}
         for cat_field, mop_field in fields.items():
             try:
                 if results[0][0][cat_field]:
                     extra_params[mop_field] = results[0][0][cat_field]
-                    print(cat_field, results[0][0][cat_field])
             except KeyError:
                 pass
         target.save(extras = extra_params)

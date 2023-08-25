@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from mop.brokers import ogle
+from mop.brokers import gaia as gaia_mop
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,10 @@ class Command(BaseCommand):
         logger.info('Identified and ingested '+str(len(list_of_targets))+' target(s) from OGLE survey')
 
         Ogle.find_and_ingest_photometry(list_of_targets)
+
+        for target in list_of_targets:
+            gaia_mop.fetch_gaia_dr3_entry(target)
+        logger.info('Harvested Gaia photometry for targets')
 
         logger.info('Completed run of OGLE event harvester')
 
