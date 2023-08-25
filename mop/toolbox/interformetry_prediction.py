@@ -1,11 +1,41 @@
 import astropy.units as u
 from astropy.coordinates import SkyCoord
+from astropy import units as u
 from astroquery.gaia import Gaia
 import numpy as np
 import matplotlib.pyplot as plt
 from astroquery.vizier import Vizier
 from astropy.coordinates import Angle
+from astropy.table import Table, Column
 
+def find_companion_stars(target, star_catalog):
+    """Function to identify stars nearby to the target that have JHK brightneses high enough
+    for inteferometry"""
+
+    # Identifies stars with valid photometry in all passbands
+    mask = ~star_catalog[0]['Gmag'].data.mask & ~star_catalog[0]['BP-RP'].data.mask
+
+    # For this subset of stars, calculates the angular separation between each star and the target
+    # Note: this is the wrong formula
+    star = SkyCoord(target.ra, target.dec, frame='icrs', unit=(u.deg, u.deg))
+    neighbours = SkyCoord(star_catalog[0][mask]['RA_ICRS'].data.data,
+                          star_catalog[0][mask]['DE_ICRS'].data.data,
+                          frame='icrs', unit=(u.deg, u.deg))
+    separations = star.separation(neighbours)
+
+    # Sort into order of ascending distance from the target:
+    index = np.argsort(separations)
+
+    # Returns lists of the star subset's photometry in order of ascending distance from
+    # the target
+    column_list = [
+        Column(name='Source', data=star_catalog[0][mask]['Source'][index]),
+        Column(name='Gmag', data=star_catalog[0][mask]['Gmag'][index]),
+        Column(name='BP-RP', data=star_catalog[0][mask]['BP-RP'][index]),
+        Column(name='Separation', data=separations[index])
+    ]
+
+    return Table(column_list)
 
 def interferometry_decision(K_lens,K_neighbours):
 
@@ -118,24 +148,24 @@ def interfero_plot():
     plt.show()
 
 
-JJ = []
-HH = []
-KK = []
+    JJ = []
+    HH = []
+    KK = []
 
-for close_stars_index in distance.argsort()[1:]:
-
-
-    jjj,hhh,kkk = GAIA_toJHK(result[0][mask]['Gmag'][close_stars_index],result[0][mask]['BP-RP'][close_stars_index])
-
-    JJ.append(jjj)
-    HH.append(hhh)
-    KK.append(kkk)
-    
-    if kkk<11:
-    
-        break
+    for close_stars_index in distance.argsort()[1:]:
 
 
-mode,guide = interferometry_decision(K,np.array(KK))
+        jjj,hhh,kkk = GAIA_toJHK(result[0][mask]['Gmag'][close_stars_index],result[0][mask]['BP-RP'][close_stars_index])
 
-print(mode,guide)
+        JJ.append(jjj)
+        HH.append(hhh)
+        KK.append(kkk)
+
+        if kkk<11:
+
+            break
+
+
+    mode,guide = interferometry_decision(K,np.array(KK))
+
+    print(mode,guide)

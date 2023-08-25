@@ -49,7 +49,7 @@ def query_gaia_dr3(target, radius=Angle(0.004, "deg")):
 
     return result
 
-def fetch_gaia_photometry(target):
+def fetch_gaia_dr3_entry(target):
     """Function to retrieve the Gaia photometry for a target and store it in the Target's ExtraParameters"""
 
     # Search the Gaia DR3 catalog:
@@ -85,5 +85,3 @@ def fetch_gaia_photometry(target):
                 pass
         print('EXTRAS: ',extra_params)
         target.save(extras = extra_params)
-
-    return target

@@ -106,3 +106,4 @@ class Command(BaseCommand):
 
             Gaia.process_reduced_data(target)
             gaia_mop.update_gaia_errors(target)
+            gaia_mop.fetch_gaia_dr3_entry(target)

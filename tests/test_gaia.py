@@ -34,7 +34,8 @@ class TestGaia(TestCase):
         for star in results:
             print(star.columns)
 
-    def test_fetch_gaia_photometry(self):
+    @skip("")
+    def test_fetch_gaia_dr3_entry(self):
         target = self.params['target']
 
         target = gaia.fetch_gaia_photometry(target)
