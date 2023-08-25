@@ -1,7 +1,7 @@
 from django.test import TestCase
 from unittest import skip
 from tom_targets.tests.factories import SiderealTargetFactory
-from mop.toolbox import interformetry_prediction
+from mop.toolbox import interferometry_prediction
 from astropy.table import Table, Column
 from mop.brokers import gaia
 from astropy.coordinates import Angle
@@ -39,14 +39,14 @@ class TestInterferometryFunctions(TestCase):
                        }
     def test_convert_Gmag_to_JHK(self):
 
-        (J, H, K) = interformetry_prediction.convert_Gmag_to_JHK(self.params['test_catalog'][0]['Gmag'],
+        (J, H, K) = interferometry_prediction.convert_Gmag_to_JHK(self.params['test_catalog'][0]['Gmag'],
                                                                  self.params['test_catalog'][0]['BP-RP'])
         for passband in [J, H, K]:
             assert(len(passband) == len(self.params['test_catalog'][0]['Gmag']))
 
     def test_find_companion_stars(self):
 
-        stars_table = interformetry_prediction.find_companion_stars(self.params['test_event'],
+        stars_table = interferometry_prediction.find_companion_stars(self.params['test_event'],
                                                                     self.params['test_catalog'])
 
         assert(type(stars_table) == type(Table([])))
@@ -54,25 +54,25 @@ class TestInterferometryFunctions(TestCase):
         assert(len(stars_table.columns) == 4)
 
     def test_estimate_target_Gaia_phot_uncertainties(self):
-        Gmag_error = interformetry_prediction.estimate_target_Gaia_phot_uncertainties(self.params['test_star']['Gmag'],
+        Gmag_error = interferometry_prediction.estimate_target_Gaia_phot_uncertainties(self.params['test_star']['Gmag'],
                                                                                       self.params['test_star']['u0'],
                                                                                       self.params['test_star']['u0_error'])
         assert(Gmag_error < 2.0)
 
     def test_interferometry_decision(self):
-        (mode1, guide1) = interformetry_prediction.interferometry_decision(self.params['test_star']['Gmag'],
+        (mode1, guide1) = interferometry_prediction.interferometry_decision(self.params['test_star']['Gmag'],
                                                                            self.params['test_star']['BPRP'],
                                                                             self.params['test_star']['Kneighbours1'])
         assert(mode1 == 'Dual Field Wide')
         assert(guide1 == 1)
 
-        (mode2, guide2) = interformetry_prediction.interferometry_decision(self.params['test_star']['Gmag'],
+        (mode2, guide2) = interferometry_prediction.interferometry_decision(self.params['test_star']['Gmag'],
                                                                            self.params['test_star']['BPRP'],
                                                                            self.params['test_star']['Kneighbours2'])
         assert (mode2 == 'No')
         assert (guide2 == 0)
 
-        (mode2, guide2) = interformetry_prediction.interferometry_decision(self.params['test_star2']['Gmag'],
+        (mode2, guide2) = interferometry_prediction.interferometry_decision(self.params['test_star2']['Gmag'],
                                                                            self.params['test_star2']['BPRP'],
                                                                            self.params['test_star2']['Kneighbours1'])
         assert (mode2 == 'Single Field')

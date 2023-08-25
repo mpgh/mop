@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from tom_targets.models import Target
 from tom_dataproducts.models import ReducedDatum
 from mop.brokers import gaia
+from mop.toolbox import interferometry_prediction
 from astropy.coordinates import Angle
 import astropy.units as u
 import logging
@@ -44,11 +45,11 @@ class Command(BaseCommand):
             # estimate JHK-band photometry with uncertainties.  This requires a valid model
             if target.extra_fields['Gmag'] > 0.0 and target.extra_fields['BP-RP'] > 0.0 \
                 and target.extra_fields['u0'] > 0.0:
-                (Jtarget, Htarget, Ktarget) = interformetry_prediction.convert_Gmag_to_JHK(target.extra_fields['Gmag'],
+                (Jtarget, Htarget, Ktarget) = interferometry_prediction.convert_Gmag_to_JHK(target.extra_fields['Gmag'],
                                                                      target.extra_fields['BP-RP'])
                 logger.info('-> Calculated J='+str(Jtarget)+'mag, H='+str(Htarget)+'mag K='+str(Ktarget))
 
-                Gmag_error = interformetry_prediction.estimate_target_Gaia_phot_uncertainties(
+                Gmag_error = interferometry_prediction.estimate_target_Gaia_phot_uncertainties(
                     target.extra_fields['Gmag'], target.extra_fields['u0'], 0.01)
 
                 target.save(extras = {
@@ -62,11 +63,11 @@ class Command(BaseCommand):
 
                 # Search the Gaia catalog for all stars neighbouring the target
                 star_catalog = gaia.query_gaia_dr3(target, radius=neighbour_radius)
-                neighbours = interformetry_prediction.find_companion_stars(target, star_catalog)
+                neighbours = interferometry_prediction.find_companion_stars(target, star_catalog)
                 logger.info('-> Identified '+str(len(neighbours)-1)+' neighbouring stars')
 
                 # Estimate the JHK photometry for all neighbouring stars
-                (J, H, K) = interformetry_prediction.convert_Gmag_to_JHK(neighbours['Gmag'],
+                (J, H, K) = interferometry_prediction.convert_Gmag_to_JHK(neighbours['Gmag'],
                                                                          neighbours['BP-RP'])
                 logger.info('-> Computed JHK photometry for neighbouring stars')
 
