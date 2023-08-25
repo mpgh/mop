@@ -7,7 +7,9 @@ from pyLIMA.fits import stats
 from pyLIMA.models import PSPL_model
 from pyLIMA.outputs import pyLIMA_plots
 from astropy import units as unit
+import logging
 
+logger = logging.getLogger(__name__)
 
 def chi2(params, fit):
 
