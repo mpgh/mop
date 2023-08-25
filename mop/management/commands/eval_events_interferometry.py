@@ -5,7 +5,9 @@ from mop.brokers import gaia
 from mop.toolbox import interferometry_prediction
 from astropy.coordinates import Angle
 import astropy.units as u
+from astropy.time import Time, TimezoneInfo
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ class Command(BaseCommand):
         if str(options['target_selection']).lower() == 'all':
             target_list = Target.objects.all()
         else:
-            qs = Target.objects.filter(name=options['target_selction'])
+            qs = Target.objects.filter(name=options['target_selection'])
 
             if len(qs) == 0:
                 logger.info('INTERFERO: No events found to match selection criterion: '+str(options['target_selection']))
@@ -73,7 +75,7 @@ class Command(BaseCommand):
 
                 # Repackage data into a convenient form for storage
                 datum = {
-                    'Gaia_Source_ID': [x for x in neighbours['Source']],
+                    'Gaia_Source_ID': [str(x) for x in neighbours['Source']],
                     'Gmag': [x for x in neighbours['Gmag']],
                     'BP-RP': [x for x in neighbours['BP-RP']],
                     'Jmag': [x for x in J],
@@ -92,7 +94,9 @@ class Command(BaseCommand):
                 logger.info('-> Stored neighbouring star data in MOP')
 
                 # Determine whether or not this is a candidate target for interferometry
-                (mode, guide) = interformetry_prediction.interferometry_decision(Ktarget, np.array(K))
+                (mode, guide) = interferometry_prediction.interferometry_decision(target.extra_fields['Gmag'],
+                                                                                target.extra_fields['BP-RP'],
+                                                                                np.array(K))
                 target.save(extras={
                     'Interferometry_mode': mode,
                     'Inteferometry_guide_star': guide
