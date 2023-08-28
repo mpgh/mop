@@ -68,7 +68,7 @@ harvestmoa:
 # CronJob: Harvest OGLE
 harvestogle:
   enabled: true
-  schedule: "45 17 * * *"
+  schedule: "05 18 * * *"
   resources: {}
 
 # CronJob: Harvest ASAS-SN

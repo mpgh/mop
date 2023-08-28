@@ -36,7 +36,7 @@ spec:
                 - python
                 - manage.py
                 - harvest_ogle
-                - '2023 all'
+                - "2023 all"
               env:
                 {{- include "mop.backendEnv" . | nindent 16 }}
               resources:
