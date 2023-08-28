@@ -115,12 +115,24 @@ class OGLEBroker(GenericBroker):
             year = target.name.split('-')[1]
             event = target.name.split('-')[2]+'-'+target.name.split('-')[3]
 
+            latest_data = ReducedDatum.objects.filter(target=target, source_name='OGLE').order_by('-timestamp')
+            if len(latest_data) > 0:
+                time_latest_data = Time(latest_data[0].timestamp, format='datetime')
+            else:
+                time_latest_data = Time('2023-01-01T00:00:00.0', format='isot')
+
             # Only harvest the photometry for the current year's events, since
-            # it will not otherwise be updating
+            # it will not otherwise be updating.  Also check to see if the latest
+            # datapoint is more recent than those data already ingested, to minimize
+            # runtime.
             if year == current_year:
                 photometry = self.read_ogle_lightcurve(target)
-                status = self.ingest_ogle_photometry(target, photometry)
-                logger.info('OGLE harvester: read and ingested photometry for event '+target.name)
+                if photometry[-1][0] > time_latest_data.jd:
+                    status = self.ingest_ogle_photometry(target, photometry)
+                    logger.info('OGLE harvester: read and ingested photometry for event '+target.name)
+                else:
+                    logger.info('OGLE harvester: most recent photometry for event '
+                                +target.name+' ('+str(photometry[-1][0])+') already ingested')
 
         logger.info('OGLE harvester: Completed ingest of photometry')
 
@@ -167,6 +179,30 @@ class OGLEBroker(GenericBroker):
                 logger.error('OGLE HARVESTER: Found duplicated data for event '+target.name)
 
         return 'OK'
+
+    def sort_target_list(self, list_of_targets):
+        name_list = np.array([x.name for x in list_of_targets])
+        order = np.argsort(name_list)
+        order = order[::-1]
+        return (np.array(list_of_targets)[order]).tolist()
+
+    def select_random_targets(self, list_of_targets, ntargets=100):
+
+        target_index = np.random.randint(0,len(list_of_targets)-1, size=ntargets)
+
+        # Numpy's random routines don't provide a sample with no unique entries,
+        # so filter for that and fill in the gaps.
+        target_index = np.unique(target_index)
+
+        max_iter = 10
+        i = 0
+        while(len(target_index) < ntargets) and (i <= max_iter):
+            i += 1
+            idx = np.random.randint(0,len(list_of_targets), size=1)[0]
+            if idx not in target_index:
+                target_index = np.append(target_index, idx)
+
+        return np.array(list_of_targets)[target_index]
 
     def to_generic_alert(self, alert):
         pass
