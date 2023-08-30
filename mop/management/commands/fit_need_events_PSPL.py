@@ -51,23 +51,26 @@ def run_fit(target, cores):
                 logger.info('FIT: completed modeling process for '+target.name)
 
                 # Store model lightcurve
-                fittools.store_model_lightcurve(target, model)
-                logger.info('FIT: Stored model lightcurve for event '+target.name)
+                if model_telescope:
+                    fittools.store_model_lightcurve(target, model_telescope)
+                    logger.info('FIT: Stored model lightcurve for event '+target.name)
+                else:
+                    logger.warning('FIT: No valid model fit produced so not model lightcurve for event '+target.name)
 
                 # Determine whether or not an event is still active based on the
                 # current time relative to its t0 and tE
-                alive = fittools.check_event_alive(t0_fit.jd, tE_fit)
+                alive = fittools.check_event_alive(model_params['t0'], model_params['tE'])
                 
                 # Store model parameters
                 last_fit = Time(datetime.datetime.utcnow()).jd
 
-                extras = {'Alive':alive, Last_fit: last_fit}
+                extras = {'Alive':alive, 'Last_fit': last_fit}
                 store_keys = ['t0', 'u0', 'tE', 'piEN', 'piEE',
                               'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
                               'Fit_covariance', 'chi2', 'red_chi2']
                 for key in store_keys:
                     extras[key] = model_params[key]
-                logger.info('Fitted parameters for '+target.name+': '+repr(extras))
+                #logger.info('Fitted parameters for '+target.name+': '+repr(extras))
 
                 target.save(extras = extras)
                 logger.info('FIT: Stored model parameters for event ' + target.name)

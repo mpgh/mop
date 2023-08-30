@@ -27,6 +27,12 @@ def flux_to_mag(flux):
     magnitude = ZP_pyLIMA - 2.5 * np.log10(flux)
     return magnitude
 
+def mag_to_flux(mag):
+
+    ZP_pyLIMA = 27.4
+    flux = 10**((mag - ZP_pyLIMA) / -2.5)
+
+    return flux
 
 def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
     """
@@ -45,6 +51,8 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
     -------
     to_return : list of arrays containing fit parameters, model_telescope and cost function
     """
+    # Fit configuration
+    use_boundaries = False
 
     # Initialize the new event to be fitted:
     current_event = event.Event(ra=ra, dec=dec)
@@ -65,113 +73,56 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
     pspl = PSPL_model.PSPLmodel(current_event, parallax=['None', 0.])
     pspl.define_model_parameters()
     fit_tap = TRF_fit.TRFfit(pspl, loss_function='soft_l1')
-    #delta_t0 = 10.
-    #default_t0_lower = fit_tap.fit_parameters["t0"][1][0]
-    #default_t0_upper = fit_tap.fit_parameters["t0"][1][1]
-    #fit_tap.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
-    #fit_tap.fit_parameters["tE"][1] = [1., 3000.]
-    #fit_tap.fit_parameters["u0"][1] = [0., 2.0]
+    if use_boundaries:
+        delta_t0 = 10.
+        default_t0_lower = fit_tap.fit_parameters["t0"][1][0]
+        default_t0_upper = fit_tap.fit_parameters["t0"][1][1]
+        fit_tap.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
+        fit_tap.fit_parameters["tE"][1] = [1., 3000.]
+        fit_tap.fit_parameters["u0"][1] = [0., 2.0]
     fit_tap.fit()
-    cov_fit1 = fit_tap.fit_results["covariance_matrix"]
-    best_fit1 = fit_tap.fit_results["best_model"]
-    mag_blend_fit = flux_to_mag(best_fit1[4])
-    mag_source_fit = flux_to_mag(best_fit1[3])
-    mag_baseline_fit = flux_to_mag(best_fit1[3] + best_fit1[4])
-    fit_type = 'chi2'
-    print('STAGE 1: best fit', best_fit1)
+    model1_params = gather_model_parameters(current_event, fit_tap)
 
-    # MODEL 2: If the initial PSPL fit results indicate a low degree of
-    # blend flux, attempt to refit the data without blending
-    if (np.abs(best_fit1[4]) < 3. * cov_fit1[4, 4] ** 0.5) or\
-            (np.abs(best_fit1[3]) < 3. * cov_fit1[3, 3] ** 0.5) or\
-            (np.abs(best_fit1[2]) < 3. * cov_fit1[2, 2] ** 0.5):
-        print('Got to clause 1')
-        pspl = PSPL_model.PSPLmodel(current_event, parallax=['None', 0.],
+    # Evaluate the quality of the best-available model.
+    # If the fitted values of key parameters are at the boundaries of then they are considered to
+    # be unreliable, and the fit parameters are reset to nan
+    model1_params = evaluate_model(model1_params)
+
+    # By default, we accept the results of this first model fit as our best model.
+    # Then we test whether the initial PSPL fit results indicate a low degree of
+    # blend flux.  If so, we attempt to refit the data without blending
+    best_model = model1_params
+    do_noblend_model = test_quality_of_model_fit(model1_params)
+
+    # MODEL 2: PSPL model without blending or parallax
+    if do_noblend_model:
+        pspl2 = PSPL_model.PSPLmodel(current_event, parallax=['None', 0.],
                                     blend_flux_parameter='noblend')
-        pspl.define_model_parameters()
-        fit_tap = TRF_fit.TRFfit(pspl, loss_function='soft_l1')
-        fit_tap.fit()
-        #fit_tap.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
-        #fit_tap.fit_parameters["tE"][1] = [1., 3000.]
-        #fit_tap.fit_parameters["u0"][1] = [0., 2.0]
+        pspl2.define_model_parameters()
+        fit_tap2 = TRF_fit.TRFfit(pspl2, loss_function='soft_l1')
+        fit_tap2.fit()
+        if use_boundaries:
+            fit_tap2.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
+            fit_tap2.fit_parameters["tE"][1] = [1., 3000.]
+            fit_tap2.fit_parameters["u0"][1] = [0., 2.0]
+        model2_params = gather_model_parameters(current_event, fit_tap2)
         # default null as in the former implementation
-        mag_blend_fit = np.nan
-        mag_source_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
-        mag_baseline_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
-        fit_type = 'soft_l1'
-    # This appears to be repeating the initial PSPL fit, so commenting out
-#    else:
-#        print('Got to clause 2')
-#        pspl = PSPL_model.PSPLmodel(current_event, parallax=['None', 0.])
-#        pspl.define_model_parameters()
-#        fit_tap = TRF_fit.TRFfit(pspl)
-#        fit_tap.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
-#        fit_tap.fit_parameters["tE"][1] = [1., 3000.]
-#        fit_tap.fit_parameters["u0"][1] = [0., 2.0]
-#        fit_tap.fit()
-#        mag_blend_fit = flux_to_mag(fit_tap.fit_results["best_model"][4])
-#        mag_source_fit = flux_to_mag(fit_tap.fit_results["best_model"][3])
-#        mag_baseline_fit = flux_to_mag(fit_tap.fit_results["best_model"][3] + fit_tap.fit_results["best_model"][4])
-#        fit_type = 'chi2'
+        model2_params['Blend_magnitude'] = np.nan
 
-    # Store the fitted model parameter values
-    # the numerical noise threshold implicitly modified the permitted minimum u0 to its value
-    model_params = {}
-    epsilon_numerical_noise = 1e-5
-    if np.abs(fit_tap.fit_parameters["u0"][1][0] - fit_tap.fit_results['best_model'][1]) < epsilon_numerical_noise or\
-            np.abs(fit_tap.fit_parameters["u0"][1][1] - fit_tap.fit_results['best_model'][1]) < epsilon_numerical_noise or\
-            np.abs(fit_tap.fit_parameters["tE"][1][0] - fit_tap.fit_results['best_model'][2]) < epsilon_numerical_noise or\
-            np.abs(fit_tap.fit_parameters["tE"][1][1] - fit_tap.fit_results['best_model'][2]) < epsilon_numerical_noise:
-        for key in ['t0', 'u0', 'tE', 'chi2']:
-            model_params[key] = np.nan
-    else:
-        model_params['t0'] = np.around(fit_tap.fit_results["best_model"][0], 3)
-        model_params['u0'] = np.around(fit_tap.fit_results["best_model"][1], 5)
-        model_params['tE'] = np.around(fit_tap.fit_results["best_model"][2], 3)
-        model_params['chi2'] = np.around(fit_tap.fit_results["chi2"], 3)
-    model_params['piEN'] = 0.0
-    model_params['piEE'] = 0.0
-    ndata = 0
-    for name, lc in datasets.items():
-        ndata += len(lc)
-    model_params['red_chi2'] = model_params['chi2'] / float(ndata - 5)
-    model_params['Source_magnitude'] = np.around(mag_source_fit, 3)
-    model_params['Blend_magnitude'] = np.around(mag_blend_fit, 3)
-    model_params['Baseline_magnitude'] = np.around(mag_baseline_fit, 3)
-    model_params['Fit_covariance'] = fit_tap.fit_results["covariance_matrix"]
+        # Evaluate the quality of this model
+        model2_params = evaluate_model(model2_params)
+
+        # Decide which fit to accept based on the fitted chi2 in each case:
+        if model2_params['chi2'] <= model2_params['chi2']:
+            best_model = model2_params
 
     # Generate the model lightcurve timeseries with the fitted parameters
-    pyLIMA_plots.list_of_fake_telescopes = []
-    pyLIMA_parameters = pspl.compute_pyLIMA_parameters(fit_tap.fit_results["best_model"])
-    model_telescope = pyLIMA_plots.create_telescopes_to_plot_model(pspl, pyLIMA_parameters)[0]
-    flux_model = pspl.compute_the_microlensing_model(model_telescope, pyLIMA_parameters)['photometry']
-    magnitude = toolbox.brightness_transformation.flux_to_magnitude(flux_model)
-    model_telescope.lightcurve_magnitude["mag"] = magnitude * unit.mag
-    mask = ~np.isnan(magnitude)
-    model_telescope.lightcurve_magnitude = model_telescope.lightcurve_magnitude[mask]
+    if not np.isnan(best_model['tE']):
+        model_telescope = generate_model_lightcurve(current_event,best_model)
+    else:
+        model_telescope = None
 
-    # Calculate photometric statistics
-    try:
-        res = fit_tap.model_residuals(fit_tap.fit_results['best_model'])
-        model_params['SW_test'] = stats.normal_Shapiro_Wilk((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
-        model_params['AD_test'] = stats.normal_Anderson_Darling((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
-        model_params['KS_test'] = stats.normal_Kolmogorov_Smirnov((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
-        model_params['chi2_dof'] = np.sum((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])) ** 2) / (
-                len(np.ravel(res[0]['photometry'])) - 5)
-    except:
-        model_params['SW_test'] = np.nan
-        model_params['AD_test'] = np.nan
-        model_params['KS_test'] = np.nan
-        model_params['chi2_dof'] = np.nan
-
-    # chi2_fit is only an actual chi-squared if the loss function was deactivated
-    # [np.around(t0_fit, 3), np.around(u0_fit, 5), np.around(tE_fit, 3), np.around(piEN_fit, 5),
-    #np.around(piEE_fit, 5),
-    #np.around(mag_source_fit, 3), np.around(mag_blend_fit, 3), np.around(mag_baseline_fit, 3),
-    #fit_tap.fit_results["covariance_matrix"], model_telescope, np.around(chi2_fit, 3), chi2_dof,
-    #sw_test, ad_test, ks_test]
-
-    return model_params, model_telescope
+    return best_model, model_telescope
 
 
 def repackage_lightcurves(qs):
@@ -332,3 +283,154 @@ def check_event_alive(t0_fit, tE_fit):
         alive = True
 
     return alive
+
+def gather_model_parameters(pevent, model_fit):
+    """
+    Function to gather the parameters of a PyLIMA fitted model into a dictionary for easier handling.
+    """
+
+    # PyLIMA model objects store the fitted values of the model parameters in the fit_results attribute,
+    # which is a list of the values pertaining to the model used for the fit.  Since this model can have a
+    # variable number of parameters depending on which type of model is used, we use the fit object's built-in
+    # list of key indices
+    param_keys = list(model_fit.fit_parameters.keys())
+
+    model_params = {}
+
+    for i, key in enumerate(param_keys):
+        if key in ['t0' 'tE']:
+            ndp = 3
+        else:
+            ndp = 5
+        model_params[key] = np.around(model_fit.fit_results["best_model"][i], ndp)
+
+    model_params['chi2'] = np.around(model_fit.fit_results["best_model"][-1], 3)
+
+    # If the model did not include parallax, zero those parameters
+    if 'piEN' not in param_keys:
+        model_params['piEN'] = 0.0
+        model_params['piEE'] = 0.0
+
+    # Calculate the reduced chi2
+    ndata = 0
+    for i,tel in enumerate(pevent.telescopes):
+        ndata += len(tel.lightcurve_magnitude)
+    model_params['red_chi2'] = model_params['chi2'] / float(ndata - len(param_keys))
+
+    # Retrieve the flux parameters, converting from PyLIMA's key nomenculture to MOPs
+    key_map = {
+        'fsource_Tel_0': 'Source_magnitude',
+        'fblend_Tel_0': 'Blend_magnitude'
+    }
+
+    flux_index = []
+    for pylima_key,mop_key in key_map.items():
+        try:
+            idx = param_keys.index(pylima_key)
+            model_params[mop_key] = np.around(flux_to_mag(model_fit.fit_results["best_model"][idx]), 3)
+            flux_index.append(idx)
+        except ValueError:
+            model_params[mop_key] = np.nan
+
+    # If the model fitted contains valid entries for both source and blend flux,
+    # use these to calculate the baseline magnitude.  Otherwise, use the source magnitude
+    if not np.isnan(model_params['Source_magnitude']) \
+           and not np.isnan(model_params['Blend_magnitude']):
+        unlensed_flux = model_fit.fit_results["best_model"][flux_index[0]] \
+                            + model_fit.fit_results["best_model"][flux_index[1]]
+        model_params['Baseline_magnitude'] = np.around(flux_to_mag(unlensed_flux), 3)
+    else:
+        model_params['Baseline_magnitude'] = model_params['Source_magnitude']
+    model_params['Fit_covariance'] = model_fit.fit_results["covariance_matrix"]
+
+    model_params['fit_parameters'] = model_fit.fit_parameters
+
+    # Calculate fit statistics
+    try:
+        res = model_fit.model_residuals(model_fit.fit_results['best_model'])
+        model_params['SW_test'] = stats.normal_Shapiro_Wilk(
+            (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        model_params['AD_test'] = stats.normal_Anderson_Darling(
+            (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        model_params['KS_test'] = stats.normal_Kolmogorov_Smirnov(
+            (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        model_params['chi2_dof'] = np.sum((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])) ** 2) / (
+                len(np.ravel(res[0]['photometry'])) - 5)
+    except:
+        model_params['SW_test'] = np.nan
+        model_params['AD_test'] = np.nan
+        model_params['KS_test'] = np.nan
+        model_params['chi2_dof'] = np.nan
+
+    return model_params
+
+def test_quality_of_model_fit(model_params):
+    """Function to evaluate whether the initial model fit indicates a low degree of
+    blend flux.  If so, this criterion is used to determine whether to attempt
+    a second model fit without blending"""
+
+    fit_no_blend = False
+
+    cov_fit = model_params['Fit_covariance']
+
+    if (np.abs(model_params['Blend_magnitude']) < 3.0 * cov_fit[4, 4] ** 0.5) or\
+            (np.abs(model_params['Source_magnitude']) < 3.0 * cov_fit[3, 3] ** 0.5) or\
+            (np.abs(model_params['tE']) < 3. * cov_fit[2, 2] ** 0.5):
+
+        fit_no_blend = True
+
+    return fit_no_blend
+
+def evaluate_model(best_model):
+    """Function to evaluate the overall quality of the fitted model.
+    The numerical noise threshold implicitly modified the permitted minimum u0 to its value.
+    """
+
+    epsilon_numerical_noise = 1e-5
+
+    test1 = np.abs(best_model['fit_parameters']["u0"][1][0] - best_model['u0'])
+    test2 = np.abs(best_model['fit_parameters']["u0"][1][1] - best_model['u0'])
+    test3 = np.abs(best_model['fit_parameters']["tE"][1][0] - best_model['tE'])
+    test4 = np.abs(best_model['fit_parameters']["tE"][1][1] - best_model['tE'])
+
+    if test1 < epsilon_numerical_noise or \
+        test2 < epsilon_numerical_noise or \
+        test3 < epsilon_numerical_noise or \
+        test4 < epsilon_numerical_noise:
+        for key in ['t0', 'u0', 'tE', 'chi2']:
+            best_model[key] = np.nan
+
+    return best_model
+
+def generate_model_lightcurve(pevent, model_params):
+    """Function to generate a photometric timeseries corresponding to the given model parameters"""
+
+    pyLIMA_plots.list_of_fake_telescopes = []
+
+    # This doesn't include parallax right now, since none of the fitted models do either yet
+    pspl = PSPL_model.PSPLmodel(pevent, parallax=['None', 0.])
+
+    params = []
+    parameters = ['t0', 'u0', 'tE', 'Source_magnitude', 'Blend_magnitude']
+    for key in parameters:
+        value = model_params[key]
+        if 'magnitude' in key:
+            if not np.isnan(value):
+                value = mag_to_flux(value)
+            else:
+                value = 0.0
+        params.append(value)
+    pyLIMA_parameters = pspl.compute_pyLIMA_parameters(params)
+
+    model_telescope = pyLIMA_plots.create_telescopes_to_plot_model(pspl, pyLIMA_parameters)[0]
+
+    flux_model = pspl.compute_the_microlensing_model(model_telescope, pyLIMA_parameters)['photometry']
+
+    magnitude = toolbox.brightness_transformation.flux_to_magnitude(flux_model)
+
+    model_telescope.lightcurve_magnitude["mag"] = magnitude * unit.mag
+
+    mask = ~np.isnan(magnitude)
+    model_telescope.lightcurve_magnitude = model_telescope.lightcurve_magnitude[mask]
+
+    return model_telescope

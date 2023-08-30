@@ -8,11 +8,13 @@ from os import getcwd, path
 from mop.toolbox import fittools
 from astropy.time import Time, TimeDelta, TimezoneInfo
 from astropy import units as u
-from astropy.table import Column, Table
+from astropy.table import Column, Table, QTable
 from pyLIMA.models import PSPL_model
+from pyLIMA.fits import TRF_fit
 from pyLIMA import event
 from pyLIMA import telescopes
 from datetime import datetime
+from collections import OrderedDict
 
 class TestModelingTools(TestCase):
     def setUp(self):
@@ -43,12 +45,20 @@ class TestModelingTools(TestCase):
             'Source_magnitude': 20.0,
             'Blend_magnitude': 22.0,
             'Baseline_magnitude': 18.0,
-            'Fit_covariance': np.array([[6.28180528e-02, -2.03716118e-04,  3.18785999e-02, -3.98168135e-02],
-                             [-2.03716118e-04,  1.11524336e-04,  1.66302104e-03,  3.99922604e-03],
-                             [ 3.18785999e-02,  1.66302104e-03,  1.37420159e-01, -2.37194137e-01],
-                             [-3.98168135e-02,  3.99922604e-03, -2.37194137e-01,  1.11839732e+01]]),
+            'Fit_covariance': np.array([[ 6.87022167e-02,  3.98934577e-02, -3.93590563e-01, 1.94853293e+02, -1.94841317e+02],
+                                        [ 3.98934577e-02,  1.85115375e-01, -1.99280530e+00, 9.00451030e+02, -9.00210742e+02],
+                                        [-3.93590563e-01, -1.99280530e+00,  2.17189010e+01, -9.70655580e+03,  9.70368365e+03],
+                                        [ 1.94853293e+02,  9.00451030e+02, -9.70655580e+03, 4.38193327e+06, -4.38077388e+06],
+                                        [-1.94841317e+02, -9.00210742e+02,  9.70368365e+03,-4.38077388e+06,  4.37962601e+06]]),
             'chi2': 3000.0,
-            'red_chi2': 1.02
+            'red_chi2': 1.02,
+            'fit_parameters': OrderedDict(
+                [('t0', [0, (2457790.87823, 2460180.67737)]),
+                 ('u0', [1, (0.0, 1.0)]),
+                 ('tE', [2, (0.1, 500)]),
+                 ('fsource_Tel_0', [3, (0.0, 5445.026528424209)]),
+                 ('fblend_Tel_0', [4, (-5445.026528424209, 5445.026528424209)])]
+                )
             }
         self.params = {
             'target': st1,
@@ -121,7 +131,17 @@ class TestModelingTools(TestCase):
         (model_params, model_lightcurve) = fittools.fit_pspl_omega2(
                 self.params['target'].ra, self.params['target'].dec, datasets)
 
-        print('RESULTS: ',model_params)
+        expected_keys = [
+            't0', 'u0', 'tE', 'piEN', 'piEE',
+            'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
+            'Fit_covariance', 'chi2', 'red_chi2'
+        ]
+
+        for key in expected_keys:
+            assert (key in model_params.keys())
+
+        self.assertAlmostEqual(model_params['chi2'], 1930.62, places=1)
+
     def test_repackage_lightcurves(self):
 
         (datasets, ndata) = fittools.repackage_lightcurves(self.params['photometry'])
@@ -189,3 +209,69 @@ class TestModelingTools(TestCase):
         assert(len(tel_list) == len(datasets))
         for tel in tel_list:
             assert(type(tel) == type(telescopes.Telescope()))
+
+    def test_gather_model_parameters(self):
+
+        # Load test dataset
+        datasets = self.load_test_photometry(self.params['lightcurve_file'])
+
+        # Fit a standard PSPL model
+        pevent = self.params['pylima_event']
+        tel_list = fittools.pylima_telescopes_from_datasets(datasets)
+        for tel in tel_list:
+            pevent.telescopes.append(tel)
+
+        pevent.find_survey('Tel_0')
+        pevent.check_event()
+        pspl = PSPL_model.PSPLmodel(pevent, parallax=['None', 0.])
+        pspl.define_model_parameters()
+        model_fit = TRF_fit.TRFfit(pspl, loss_function='soft_l1')
+        model_fit.fit()
+
+        model_params = fittools.gather_model_parameters(pevent, model_fit)
+
+        expected_keys = [
+            't0', 'u0', 'tE', 'piEN', 'piEE',
+            'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
+            'Fit_covariance', 'chi2', 'red_chi2'
+        ]
+        for key in expected_keys:
+            assert(key in model_params.keys())
+
+    def test_test_quality_of_model_fit(self):
+
+        result = fittools.test_quality_of_model_fit(self.params['model_params'])
+
+        self.assertTrue(result)
+
+    def test_evaluate_model(self):
+
+        revised_model = fittools.evaluate_model(self.params['model_params'])
+
+        for key in ['t0', 'u0', 'tE']:
+            assert(revised_model[key] == self.params['model_params'][key])
+
+        bad_model = self.params['model_params']
+        bad_model['u0'] = bad_model['fit_parameters']['u0'][1][1]
+
+        revised_model = fittools.evaluate_model(bad_model)
+
+        for key in ['t0', 'u0', 'tE']:
+            assert(np.isnan(revised_model[key]))
+    def test_generate_model_lightcurve(self):
+
+        # Load test dataset
+        datasets = self.load_test_photometry(self.params['lightcurve_file'])
+
+        # Create PyLIMA event object with data
+        pevent = self.params['pylima_event']
+        tel_list = fittools.pylima_telescopes_from_datasets(datasets)
+        for tel in tel_list:
+            pevent.telescopes.append(tel)
+
+        # Generate a model lightcurve
+        model_tel = fittools.generate_model_lightcurve(pevent,
+                                                       self.params['model_params'])
+
+        assert(len(model_tel.lightcurve_magnitude) > 0)
+        assert(model_tel.lightcurve_magnitude.colnames == ['time', 'mag', 'err_mag'])
