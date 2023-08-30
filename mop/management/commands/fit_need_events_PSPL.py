@@ -36,90 +36,44 @@ def run_fit(target, cores):
 
         else:
 
-            datasets = ReducedDatum.objects.filter(target=target)
-            time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
+            # Retrieve all available ReducedDatum entries for this target.  Note that this may include data
+            # other than lightcurve photometry, so the data are then filtered and repackaged for later
+            # convenience
+            red_data = ReducedDatum.objects.filter(target=target)
 
-            phot = []
-            for data in datasets:
-                if data.data_type == 'photometry':
-                    try:
-                        phot.append([data.value['magnitude'],data.value['error'],data.value['filter']])
+            (datasets, ndata) = fittools.repackage_lightcurves(red_data)
 
-                    except:
-                        # Weights == 1
-                        phot.append([data.value['magnitude'],1,data.value['filter']])
+            logger.info('FIT: Found '+str(len(datasets))+' datasets and a total of '
+                        +str(ndata)+' datapoints to model for event '+target.name)
 
+            if ndata > 10:
+                (model_params, model_telescope) = fittools.fit_pspl_omega2(target.ra, target.dec, datasets)
+                logger.info('FIT: completed modeling process for '+target.name)
 
-            photometry = np.c_[time,phot]
+                # Store model lightcurve
+                fittools.store_model_lightcurve(target, model)
+                logger.info('FIT: Stored model lightcurve for event '+target.name)
 
-            logger.info('FIT: Found '+str(len(photometry))+' photometry datapoints to model for event '+target.name)
+                # Determine whether or not an event is still active based on the
+                # current time relative to its t0 and tE
+                alive = fittools.check_event_alive(t0_fit.jd, tE_fit)
+                
+                # Store model parameters
+                last_fit = Time(datetime.datetime.utcnow()).jd
 
-            t0_fit, u0_fit, tE_fit, piEN_fit, piEE_fit, mag_source_fit, mag_blend_fit, mag_baseline_fit, cov, model, chi2_fit, red_chi2, sw_test, ad_test, ks_test = fittools.fit_pspl_omega2(target.ra, target.dec, photometry)
-            logger.info('FIT: completed modeling process for '+target.name)
+                extras = {'Alive':alive, Last_fit: last_fit}
+                store_keys = ['t0', 'u0', 'tE', 'piEN', 'piEE',
+                              'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
+                              'Fit_covariance', 'chi2', 'red_chi2']
+                for key in store_keys:
+                    extras[key] = model_params[key]
+                logger.info('Fitted parameters for '+target.name+': '+repr(extras))
 
-            # Add photometry model
-
-            model_time = datetime.datetime.strptime('2018-06-29 08:15:27.243860', '%Y-%m-%d %H:%M:%S.%f')
-            data = {'lc_model_time': model.lightcurve_magnitude['time'].value.tolist(),
-            'lc_model_magnitude': model.lightcurve_magnitude['mag'].value.tolist()
-                   }
-            existing_model = ReducedDatum.objects.filter(source_name='MOP',data_type='lc_model',
-                                                         timestamp=model_time,source_location=target.name)
-            logger.info('FIT: Searched for existing models '+repr(existing_model))
-
-            if existing_model.count() == 0:
-                rd, created = ReducedDatum.objects.get_or_create(
-                                                                   timestamp=model_time,
-                                                                   value=data,
-                                                                   source_name='MOP',
-                                                                   source_location=target.name,
-                                                                   data_type='lc_model',
-                                                                   target=target)
-
-                rd.save()
+                target.save(extras = extras)
+                logger.info('FIT: Stored model parameters for event ' + target.name)
 
             else:
-                rd, created = ReducedDatum.objects.update_or_create(
-                                                                   timestamp=existing_model[0].timestamp,
-                                                                   value=existing_model[0].value,
-                                                                   source_name='MOP',
-                                                                   source_location=target.name,
-                                                                   data_type='lc_model',
-                                                                   target=target,
-                                                                   defaults={'value':data})
-
-                rd.save()
-            logger.info('FIT: Stored model lightcurve for event '+target.name)
-
-
-            time_now = Time(datetime.datetime.now()).jd
-            how_many_tE = (time_now-t0_fit)/tE_fit
-
-
-            if how_many_tE>2:
-
-                alive = False
-
-            else:
-
-                alive = True
-
-            last_fit = Time(datetime.datetime.utcnow()).jd
-
-
-            extras = {'Alive':alive, 't0':t0_fit,'u0':u0_fit,'tE':tE_fit,
-                         'piEN':piEN_fit,'piEE':piEE_fit,
-                         'Source_magnitude':mag_source_fit,
-                         'Blend_magnitude':mag_blend_fit,
-                         'Baseline_magnitude':mag_baseline_fit,
-                         'Fit_covariance':json.dumps(cov.tolist()),
-                         'chi2':chi2_fit,
-                         'red_chi2': red_chi2,
-                         'Last_Fit':last_fit}
-            logger.info('Fitted parameters for '+target.name+': '+repr(extras))
-
-            target.save(extras = extras)
-            logger.info('FIT: Stored model parameters for event ' + target.name)
+                logger.info('Insufficient lightcurve data available to model event '+target.name)
 
     except:
         logger.error('Job failed: '+target.name)
