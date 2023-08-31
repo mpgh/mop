@@ -38,7 +38,7 @@ class TestOgleBroker(TestCase):
     def test_ingest_ogle_events(self):
         broker = ogle.OGLEBroker()
         test_target = SiderealTargetFactory.create()
-        target_list = broker.ingest_events(self.params['events'])
+        (target_list, new_targets) = broker.ingest_events(self.params['events'])
         assert(type(target_list) == type([]))
         for target in target_list:
             assert(type(target) == type(test_target))

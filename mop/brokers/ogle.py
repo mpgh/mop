@@ -46,16 +46,16 @@ class OGLEBroker(GenericBroker):
         ogle_events = self.fetch_lens_model_parameters(years)
 
         # Apply selection of events, if any
-        if str(events).lower() != 'all':
+        if str(events).lower() != 'all' and not str(events).isnumeric():
             event_selection = {}
             event_selection[events] = ogle_events[events]
         else:
             event_selection = ogle_events
 
         #ingest the TOM db
-        list_of_targets = self.ingest_events(event_selection)
+        (list_of_targets, new_targets) = self.ingest_events(event_selection)
 
-        return list_of_targets
+        return list_of_targets, new_targets
 
     def fetch_lens_model_parameters(self, years):
         """Method to retrieve the text file of the model parameters for fits by the OGLE survey"""
@@ -86,6 +86,7 @@ class OGLEBroker(GenericBroker):
         logger.info('OGLE harvester: ingesting events')
 
         list_of_targets = []
+        new_targets = []
 
         for event_name, event_params in ogle_events.items():
 
@@ -98,15 +99,16 @@ class OGLEBroker(GenericBroker):
                 if created:
                     target.save()
                     logger.info('OGLE harvester: added event '+event_name+' to MOP')
+                    new_targets.append(target)
             else:
                 logger.info('OGLE harvester: found ' + str(qs.count()) + ' targets with name ' + event_name)
                 target = qs[0]
 
             list_of_targets.append(target)
 
-        logger.info('OGLE harvester: completed ingest of events')
+        logger.info('OGLE harvester: completed ingest of events, including ' + str(len(new_targets)) + ' new targets')
 
-        return list_of_targets
+        return list_of_targets, new_targets
 
     def find_and_ingest_photometry(self, targets):
         current_year = str(int(Time.now().byear))
@@ -187,7 +189,7 @@ class OGLEBroker(GenericBroker):
         order = order[::-1]
         return (np.array(list_of_targets)[order]).tolist()
 
-    def select_random_targets(self, list_of_targets, ntargets=100):
+    def select_random_targets(self, list_of_targets, new_targets, ntargets=100):
 
         target_index = np.random.randint(0,len(list_of_targets)-1, size=ntargets)
 
@@ -203,7 +205,23 @@ class OGLEBroker(GenericBroker):
             if idx not in target_index:
                 target_index = np.append(target_index, idx)
 
-        return np.array(list_of_targets)[target_index]
+        random_targets = (np.array(list_of_targets)[target_index]).tolist()
+
+        # If a subset of events has been requested, priorities the new targets first, up to the maximum number allowed
+        event_list = []
+        i = 0
+        while (len(event_list) < ntargets) and (i < len(new_targets)):
+            event_list.append(new_targets[i])
+            i += 1
+
+        # If there is any space left, add existing events to the selection
+        i = 0
+        if len(event_list) < ntargets:
+            while (len(event_list) < ntargets) and (i < len(random_targets)):
+                event_list.append(random_targets[i])
+                i += 1
+
+        return np.array(event_list)
 
     def to_generic_alert(self, alert):
         pass
