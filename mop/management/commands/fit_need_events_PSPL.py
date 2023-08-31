@@ -71,7 +71,7 @@ def run_fit(target, cores):
                               'KS_test', 'AD_test', 'SW_test']
                 for key in store_keys:
                     extras[key] = model_params[key]
-                #logger.info('Fitted parameters for '+target.name+': '+repr(extras))
+                logger.info('Fitted parameters for '+target.name+': '+repr(extras))
 
                 target.save(extras = extras)
                 logger.info('FIT: Stored model parameters for event ' + target.name)
