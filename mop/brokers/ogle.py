@@ -102,9 +102,6 @@ class OGLEBroker(GenericBroker):
                 logger.info('OGLE harvester: found ' + str(qs.count()) + ' targets with name ' + event_name)
                 target = qs[0]
 
-            #except IntegrityError:
-            #    logger.warning('OGLE harvester IntegrityError: event ' + event_name + ' already known to MOP')
-
             list_of_targets.append(target)
 
         logger.info('OGLE harvester: completed ingest of events')

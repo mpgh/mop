@@ -27,9 +27,10 @@ class Command(BaseCommand):
         # that all targets should be updated quite often through more frequent runs of this harvester
         if str(options['events']).isnumeric():
             selected_targets = Ogle.select_random_targets(list_of_targets, ntargets=int(options['events']))
+            logger.info('Ingesting data from '+str(len(selected_targets))+' randomly-selected targets')
         else:
             selected_targets = Ogle.sort_target_list(list_of_targets)
-        logger.info('Ingesting data from '+str(len(selected_targets))+' randomly-selected targets')
+            logger.info('Ingesting data from '+str(len(selected_targets))+' selected targets')
 
         Ogle.find_and_ingest_photometry(selected_targets)
 
