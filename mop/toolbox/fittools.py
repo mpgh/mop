@@ -256,7 +256,8 @@ def store_model_parameters(target, model_params, event_alive):
 
     parameters = ['t0', 'u0', 'tE', 'piEN', 'piEE',
                   'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
-                  'Fit_covariance', 'chi2', 'red_chi2']
+                  'Fit_covariance', 'chi2', 'red_chi2',
+                  'KS_test', 'AD_test', 'SW_test']
     for key in parameters:
         if key == 'Fit_covariance':
             data = json.dumps(model_params['Fit_covariance'].tolist())
@@ -315,7 +316,7 @@ def gather_model_parameters(pevent, model_fit):
     ndata = 0
     for i,tel in enumerate(pevent.telescopes):
         ndata += len(tel.lightcurve_magnitude)
-    model_params['red_chi2'] = model_params['chi2'] / float(ndata - len(param_keys))
+    model_params['red_chi2'] = np.around(model_params['chi2'] / float(ndata - len(param_keys)),3)
 
     # Retrieve the flux parameters, converting from PyLIMA's key nomenculture to MOPs
     key_map = {
@@ -348,12 +349,15 @@ def gather_model_parameters(pevent, model_fit):
     # Calculate fit statistics
     try:
         res = model_fit.model_residuals(model_fit.fit_results['best_model'])
-        model_params['SW_test'] = stats.normal_Shapiro_Wilk(
+        sw_test = stats.normal_Shapiro_Wilk(
             (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
-        model_params['AD_test'] = stats.normal_Anderson_Darling(
+        model_params['SW_test'] = np.around(sw_test[0],3)
+        ad_test = stats.normal_Anderson_Darling(
             (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
-        model_params['KS_test'] = stats.normal_Kolmogorov_Smirnov(
+        model_params['AD_test'] = np.around(ad_test[0],3)
+        ks_test = stats.normal_Kolmogorov_Smirnov(
             (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+        model_params['KS_test'] = np.around(ks_test[0],3)
         model_params['chi2_dof'] = np.sum((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])) ** 2) / (
                 len(np.ravel(res[0]['photometry'])) - 5)
     except:

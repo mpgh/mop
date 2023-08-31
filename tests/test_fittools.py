@@ -131,6 +131,8 @@ class TestModelingTools(TestCase):
         (model_params, model_lightcurve) = fittools.fit_pspl_omega2(
                 self.params['target'].ra, self.params['target'].dec, datasets)
 
+        print(model_params)
+
         expected_keys = [
             't0', 'u0', 'tE', 'piEN', 'piEE',
             'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',

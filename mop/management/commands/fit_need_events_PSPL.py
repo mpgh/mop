@@ -67,7 +67,8 @@ def run_fit(target, cores):
                 extras = {'Alive':alive, 'Last_fit': last_fit}
                 store_keys = ['t0', 'u0', 'tE', 'piEN', 'piEE',
                               'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
-                              'Fit_covariance', 'chi2', 'red_chi2']
+                              'Fit_covariance', 'chi2', 'red_chi2',
+                              'KS_test', 'AD_test', 'SW_test']
                 for key in store_keys:
                     extras[key] = model_params[key]
                 #logger.info('Fitted parameters for '+target.name+': '+repr(extras))
