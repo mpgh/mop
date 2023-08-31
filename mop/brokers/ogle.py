@@ -89,7 +89,7 @@ class OGLEBroker(GenericBroker):
 
         for event_name, event_params in ogle_events.items():
 
-            qs = Target.object.filter(name=event_name)
+            qs = Target.objects.filter(name=event_name)
 
             if len(qs) == 0:
                 s = SkyCoord(event_params[0], event_params[1], unit=(unit.hourangle, unit.deg), frame='icrs')
@@ -101,7 +101,7 @@ class OGLEBroker(GenericBroker):
             else:
                 logger.info('OGLE harvester: found ' + str(qs.count()) + ' targets with name ' + event_name)
                 target = qs[0]
-                
+
             #except IntegrityError:
             #    logger.warning('OGLE harvester IntegrityError: event ' + event_name + ' already known to MOP')
 
