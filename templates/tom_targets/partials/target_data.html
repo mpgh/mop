@@ -5,6 +5,12 @@
   {% else %}
     <h5 style="color: #016603">{{ target.tags.Sky_location }}</h5>
   {% endif %}
+{% elif 'Sky_location' in target.extra_fields.keys %}
+  {% if target.tags.Sky_location == 'In HCZ' %}
+    <h5 style="color: #ffffff; background-color: #690a00">{{ target.tags.Sky_location }}</h5>
+  {% else %}
+    <h5 style="color: #016603">{{ target.tags.Sky_location }}</h5>
+  {% endif %}
 {% endif %}
 <a href="{% url 'tom_targets:update' pk=target.id %}" title="Update Target parameters manually" class="btn  btn-primary">Update Target</a>
 <a href="{% url 'tom_targets:delete' pk=target.id %}" title="Delete Target" class="btn  btn-warning">Delete Target</a>
