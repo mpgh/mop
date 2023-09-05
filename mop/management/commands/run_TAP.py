@@ -118,6 +118,10 @@ class Command(BaseCommand):
                     # Exclude events that are within the High Cadence Zone
                     # event_in_the_Bulge = TAP.event_in_the_Bulge(event.ra, event.dec)
                     event_not_in_OMEGA_II = TAP.event_not_in_OMEGA_II(event.ra, event.dec, KMTNet_fields)
+                    if event_not_in_OMEGA_II:
+                        sky_location = 'In HCZ'
+                    else:
+                        sky_location = 'Outside HCZ'
                     if verbose:
                         print('Event NOT in OMEGA: ', event_not_in_OMEGA_II)
                         print('Event alive? ',event.extra_fields['Alive'])
@@ -125,13 +129,13 @@ class Command(BaseCommand):
                     # If the event is in the HCZ, set the MOP flag to not observe it
                     if (event_not_in_OMEGA_II):# (event_in_the_Bulge or)  & (event.extra_fields['Baseline_magnitude']>17):
 
-                        extras = {'Observing_mode':'No'}
+                        extras = {'Observing_mode':'No', 'Sky_location': sky_location}
                         event.save(extras = extras)
                         if verbose: print('Event not in OMEGA-II')
 
                     # If the event is flagged as not alive, then it is over, and should also not be observed
                     elif not event.extra_fields['Alive']:
-                        extras = {'Observing_mode': 'No'}
+                        extras = {'Observing_mode': 'No', 'Sky_location': sky_location}
                         event.save(extras=extras)
                         if verbose: print('Event not Alive')
 
@@ -155,7 +159,7 @@ class Command(BaseCommand):
                             else:
                                 observing_mode = None
                             if verbose: print('Observing mode: ',event.name, observing_mode)
-                            extras = {'Observing_mode': observing_mode}
+                            extras = {'Observing_mode': observing_mode, 'Sky_location': sky_location}
                             event.save(extras=extras)
 
                             if observing_mode in ['priority_stellar_event', 'priority_long_event', 'regular_long_event']:
@@ -184,6 +188,9 @@ class Command(BaseCommand):
 
                         else:
                             if verbose: print('Target '+event.name+' not currently visible')
+                            observing_mode = None
+                            extras = {'Observing_mode': observing_mode, 'Sky_location': sky_location}
+                            event.save(extras=extras)
 
                     ### Spectroscopy
                     observe_spectro = False

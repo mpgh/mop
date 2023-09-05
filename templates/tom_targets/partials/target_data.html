@@ -1,4 +1,11 @@
 {% load static tom_common_extras targets_extras %}
+{% if 'Sky_location' in target.extra_fields.keys %}
+  {% if target.extra_fields.Sky_location == 'In HCZ' %}
+    <h5 style="color: #ffffff; background-color: #690a00">{{ target.extra_fields.Sky_location }}</h5>
+  {% else %}
+    <h5 style="color: #016603">{{ target.extra_fields.Sky_location }}</h5>
+  {% endif %}
+{% endif %}
 <a href="{% url 'tom_targets:update' pk=target.id %}" title="Update Target parameters manually" class="btn  btn-primary">Update Target</a>
 <a href="{% url 'tom_targets:delete' pk=target.id %}" title="Delete Target" class="btn  btn-warning">Delete Target</a>
 <br><br>
