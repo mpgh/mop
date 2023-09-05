@@ -20,34 +20,38 @@ class Command(BaseCommand):
         for target in Target.objects.all():
 
             # Determine whether the target falls within the HCZ or not
-            event_not_in_OMEGA_II = TAP.event_not_in_OMEGA_II(target.ra, target.dec, KMTNet_fields)
+            try:
+                event_not_in_OMEGA_II = TAP.event_not_in_OMEGA_II(target.ra, target.dec, KMTNet_fields)
 
-            if event_not_in_OMEGA_II:
-                try:
-                    if 'True' in target.extra_fields.alive:
+                if event_not_in_OMEGA_II:
+                    try:
+                        if 'True' in target.extra_fields.alive:
+                            alive = 'True'
+                        else:
+                            alive = 'False'
+                    except AttributeError:
+                        pass
+                    sky_location = 'In HCZ'
+                else:
+                    sky_location = 'Outsize HCZ'
+
+                    try:
+                        if 'True' in target.extra_fields.alive:
+                            alive = 'True'
+                        else:
+                            alive = 'False'
+                    except AttributeError:
                         alive = 'True'
-                    else:
-                        alive = 'False'
-                except AttributeError:
-                    pass
-                sky_location = 'In HCZ'
-            else:
-                sky_location = 'Outsize HCZ'
 
-                try:
-                    if 'True' in target.extra_fields.alive:
-                        alive = 'True'
-                    else:
-                        alive = 'False'
-                except AttributeError:
-                    alive = 'True'
+                    target_names.append(target.name)
+                    target_ra.append(target.ra)
+                    target_dec.append(target.dec)
+                    target_status.append(alive)
 
-                target_names.append(target.name)
-                target_ra.append(target.ra)
-                target_dec.append(target.dec)
-                target_status.append(alive)
+                target.save(extras ={'Sky_location': sky_location})
 
-            target.save(extras ={'Sky_location': sky_location})
+            except TypeError:
+                print('TypeError exception raised for event ' + target.name)
 
         # Output a table of the valid events
         target_list = Table([Column(name='Target', data=target_names),
