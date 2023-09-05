@@ -52,7 +52,7 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
     to_return : list of arrays containing fit parameters, model_telescope and cost function
     """
     # Fit configuration
-    use_boundaries = False
+    use_boundaries = True
 
     # Initialize the new event to be fitted:
     current_event = event.Event(ra=ra, dec=dec)
@@ -100,11 +100,11 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
                                     blend_flux_parameter='noblend')
         pspl2.define_model_parameters()
         fit_tap2 = TRF_fit.TRFfit(pspl2, loss_function='soft_l1')
-        fit_tap2.fit()
         if use_boundaries:
             fit_tap2.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
             fit_tap2.fit_parameters["tE"][1] = [1., 3000.]
             fit_tap2.fit_parameters["u0"][1] = [0., 2.0]
+        fit_tap2.fit()
         model2_params = gather_model_parameters(current_event, fit_tap2)
         # default null as in the former implementation
         model2_params['Blend_magnitude'] = np.nan
