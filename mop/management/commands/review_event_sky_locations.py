@@ -43,10 +43,11 @@ class Command(BaseCommand):
                     except AttributeError:
                         alive = 'True'
 
-                    target_names.append(target.name)
-                    target_ra.append(target.ra)
-                    target_dec.append(target.dec)
-                    target_status.append(alive)
+                    if '23' in target.name:
+                        target_names.append(target.name)
+                        target_ra.append(target.ra)
+                        target_dec.append(target.dec)
+                        target_status.append(alive)
 
                 target.save(extras ={'Sky_location': sky_location})
 
