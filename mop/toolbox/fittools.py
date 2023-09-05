@@ -53,16 +53,19 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
     """
     # Fit configuration
     use_boundaries = True
+    verbose = True
 
     # Initialize the new event to be fitted:
     current_event = event.Event(ra=ra, dec=dec)
     current_event.name = 'MOP_to_fit'
+    if verbose: logger.info('FITTOOLS: established event')
 
     # Using the lightcurves stored in the TOM for this target,
     # create a list of PyLIMA telescopes, and associate them with the event:
     tel_list = pylima_telescopes_from_datasets(datasets, emag_limit=emag_limit)
     for tel in tel_list:
         current_event.telescopes.append(tel)
+    if verbose: logger.info('FITTOOLS: appended ' + str(len(tel_list)) +' telescopes')
 
     # The above function imposes a priority order on the list of lightcurves to model,
     # so the reference dataset will always be the first one
@@ -73,6 +76,7 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
     pspl = PSPL_model.PSPLmodel(current_event, parallax=['None', 0.])
     pspl.define_model_parameters()
     fit_tap = TRF_fit.TRFfit(pspl, loss_function='soft_l1')
+    if verbose: logger.info('FITTOOLS: Set model 1, static PSPL')
     if use_boundaries:
         delta_t0 = 10.
         default_t0_lower = fit_tap.fit_parameters["t0"][1][0]
@@ -80,19 +84,26 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
         fit_tap.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
         fit_tap.fit_parameters["tE"][1] = [1., 3000.]
         fit_tap.fit_parameters["u0"][1] = [0., 2.0]
+        if verbose: logger.info('FITTOOLS: model 1 fit boundaries: t0: '
+                                + repr([default_t0_lower, default_t0_upper + delta_t0])
+                                + ' tE: ' + repr([1., 3000.])
+                                + ' u0: ' + repr([0., 2.0]))
     fit_tap.fit()
     model1_params = gather_model_parameters(current_event, fit_tap)
+    if verbose: logger.info('FITTOOLS: model 1 fitted parameters ' + repr(model1_params))
 
     # Evaluate the quality of the best-available model.
     # If the fitted values of key parameters are at the boundaries of then they are considered to
     # be unreliable, and the fit parameters are reset to nan
     model1_params = evaluate_model(model1_params)
+    if verbose: logger.info('FITTOOLS: model 1 evaluated parameters ' + repr(model1_params))
 
     # By default, we accept the results of this first model fit as our best model.
     # Then we test whether the initial PSPL fit results indicate a low degree of
     # blend flux.  If so, we attempt to refit the data without blending
     best_model = model1_params
     do_noblend_model = test_quality_of_model_fit(model1_params)
+    if verbose: logger.info('FITTOOLS: fit no-blend model? ' + repr(do_noblend_model))
 
     # MODEL 2: PSPL model without blending or parallax
     if do_noblend_model:
@@ -100,27 +111,37 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
                                     blend_flux_parameter='noblend')
         pspl2.define_model_parameters()
         fit_tap2 = TRF_fit.TRFfit(pspl2, loss_function='soft_l1')
+        if verbose: logger.info('FITTOOLS: Set model 2, static PSPL without blending')
         if use_boundaries:
             fit_tap2.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
             fit_tap2.fit_parameters["tE"][1] = [1., 3000.]
             fit_tap2.fit_parameters["u0"][1] = [0., 2.0]
+            if verbose: logger.info('FITTOOLS: model 2 fit boundaries: t0: '
+                                + repr([default_t0_lower, default_t0_upper + delta_t0])
+                                + ' tE: ' + repr([1., 3000.])
+                                + ' u0: ' + repr([0., 2.0]))
         fit_tap2.fit()
         model2_params = gather_model_parameters(current_event, fit_tap2)
         # default null as in the former implementation
         model2_params['Blend_magnitude'] = np.nan
+        if verbose: logger.info('FITTOOLS: model 2 fitted parameters ' + repr(model1_params))
 
         # Evaluate the quality of this model
         model2_params = evaluate_model(model2_params)
+        if verbose: logger.info('FITTOOLS: model 2 evaluated parameters ' + repr(model1_params))
 
         # Decide which fit to accept based on the fitted chi2 in each case:
         if model2_params['chi2'] <= model2_params['chi2']:
             best_model = model2_params
+            if verbose: logger.info('FITTOOLS: Using model 2 as best-fit model')
 
     # Generate the model lightcurve timeseries with the fitted parameters
     if not np.isnan(best_model['tE']):
         model_telescope = generate_model_lightcurve(current_event,best_model)
+        if verbose: logger.info('FITTOOLS: generated model lightcurve')
     else:
         model_telescope = None
+        if verbose: logger.info('FITTOOLS: cannot generate model lightcurve')
 
     return best_model, model_telescope
 
