@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.core.exceptions import FieldError
 from tom_targets.models import Target,TargetExtra
 from astropy.time import Time
 from mop.brokers import gaia as gaia_mop
@@ -11,6 +12,7 @@ import os
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
 
@@ -24,7 +26,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        logger.info('Fitting all events')
+        logger.info('Running fit_all_events')
 
         # Avoid (unlikely but possible) clashing processes hitting the DB at the same time
         with transaction.atomic():
@@ -35,14 +37,32 @@ class Command(BaseCommand):
             # Apply the configured selection of events
             all_events = options['events_to_fit']
 
+            # Fit all available events
             if all_events == 'all':
                 list_of_targets = qs.filter()
+
+            # Select all events close to their peaks
             if all_events == 'alive':
-                list_of_targets = qs.filter(targetextra__in=TargetExtra.objects.filter(key='Alive', value=True))
+                qs = qs.filter()
+
+                list_of_targets = []
+
+                for t in qs:
+                    if t.extra_fields['Alive']:
+                        list_of_targets.append(t)
+
+            # Select only those events with existing fits that are more than the
+            # threshold time span old, but this TargetExtra entry may not exist for all events,
+            # e.g. if they have not been fit recently
             if all_events == 'need':
 
+                qs = qs.filter()
                 four_hours_ago = Time(datetime.datetime.utcnow() - datetime.timedelta(hours=4)).jd
-                list_of_targets = qs.exclude(targetextra__in=TargetExtra.objects.filter(key='Last_Fit', value_lte=four_hours_ago))
+                list_of_targets = []
+
+                for t in qs:
+                    if t.extra_fields['Last_fit'] > four_hours_ago:
+                        list_of_targets.append(t)
 
             if all_events[0] == '[':
 
@@ -56,7 +76,8 @@ class Command(BaseCommand):
                     list_of_targets = list(list_of_targets)
                     random.shuffle(list_of_targets)
 
-                    logger.info('Found '+str(len(list_of_targets))+' targets to fit')
+
+            logger.info('Found '+str(len(list_of_targets))+' targets to fit')
 
             for target in list_of_targets:
                 # if the previous job has not been started by another worker yet, claim it
