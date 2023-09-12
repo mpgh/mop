@@ -6,6 +6,7 @@ gunicornWorkers: 2
 gunicornTimeout: 300
 
 # CronJob: Fit Alive Events
+# Fits a set of events; not intended to parallelize
 fitaliveevents:
   enabled: true
   schedule: "0 */4 * * *"
@@ -13,6 +14,7 @@ fitaliveevents:
 
 
 # CronJob: Fit Need Events
+# Selects the first available alive event to model; can parallelizes
 fitneedevents:
   enabled: true
   # Run every 4 hours
