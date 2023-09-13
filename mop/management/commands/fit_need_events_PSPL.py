@@ -39,7 +39,7 @@ def run_fit(target, cores):
             # Retrieve all available ReducedDatum entries for this target.  Note that this may include data
             # other than lightcurve photometry, so the data are then filtered and repackaged for later
             # convenience
-            red_data = ReducedDatum.objects.filter(target=target)
+            red_data = ReducedDatum.objects.filter(target=target).order_by("timestamp")
 
             (datasets, ndata) = fittools.repackage_lightcurves(red_data)
 
