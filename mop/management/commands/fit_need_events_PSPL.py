@@ -43,6 +43,13 @@ def run_fit(target, cores):
 
             (datasets, ndata) = fittools.repackage_lightcurves(red_data)
 
+            if target.name == 'OGLE-2023-BLG-1230':
+                logger.info('DATA ARRAYS: ')
+                for passband,data in datasets.items():
+                    logger.info(passband)
+                    for row in data:
+                        logger.info(row)
+
             logger.info('FIT: Found '+str(len(datasets))+' datasets and a total of '
                         +str(ndata)+' datapoints to model for event '+target.name)
 
