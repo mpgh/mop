@@ -407,7 +407,7 @@ def test_quality_of_model_fit(model_params):
 
     return fit_no_blend
 
-def evaluate_model(best_model, verbose=True):
+def evaluate_model(best_model, verbose=False):
     """Function to evaluate the overall quality of the fitted model.
     The numerical noise threshold implicitly modified the permitted minimum u0 to its value.
     """
@@ -427,6 +427,9 @@ def evaluate_model(best_model, verbose=True):
         logger.info('Test 3 value='+str(test3)+' criterion >'+str(epsilon_numerical_noise))
         logger.info('Test 4 value='+str(test3)+' criterion >'+str(epsilon_numerical_noise))
 
+    # The u0 constraints have been removed here after some experimentation because
+    # they were found to disallow valid fits for models with low u0 or apparent low u0
+    # for models pre-peak. 
     #if test1 < u0_epsilon or \
     #    test2 < u0_epsilon or \
     #    test3 < epsilon_numerical_noise or \
