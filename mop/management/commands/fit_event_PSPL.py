@@ -21,6 +21,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('target_name', help='name of the event to fit')
         parser.add_argument('--cores', help='Number of workers to use', default=os.cpu_count(), type=int)
+        parser.add_argument('--stout', help='Direction for standard output',)
 
 
     def handle(self, *args, **options):

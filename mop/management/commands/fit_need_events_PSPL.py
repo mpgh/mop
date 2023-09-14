@@ -18,7 +18,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def run_fit(target, cores):
+def run_fit(target, cores=0):
     logger.info('Fitting event: '+target.name)
 
     #try:
