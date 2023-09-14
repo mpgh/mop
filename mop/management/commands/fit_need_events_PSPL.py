@@ -21,67 +21,67 @@ logger = logging.getLogger(__name__)
 def run_fit(target, cores):
     logger.info('Fitting event: '+target.name)
 
-    try:
-        if 'Gaia' in target.name:
+    #try:
+    if 'Gaia' in target.name:
 
-            gaia_mop.update_gaia_errors(target)
+        gaia_mop.update_gaia_errors(target)
 
-        # Add photometry model
+    # Add photometry model
 
-        if 'Microlensing' not in target.extra_fields['Classification']:
-            alive = False
+    if 'Microlensing' not in target.extra_fields['Classification']:
+        alive = False
 
-            extras = {'Alive':alive}
+        extras = {'Alive':alive}
+        target.save(extras = extras)
+
+    else:
+
+        # Retrieve all available ReducedDatum entries for this target.  Note that this may include data
+        # other than lightcurve photometry, so the data are then filtered and repackaged for later
+        # convenience
+        red_data = ReducedDatum.objects.filter(target=target).order_by("timestamp")
+
+        (datasets, ndata) = fittools.repackage_lightcurves(red_data)
+
+        logger.info('FIT: Found '+str(len(datasets))+' datasets and a total of '
+                    +str(ndata)+' datapoints to model for event '+target.name)
+
+        if ndata > 10:
+            (model_params, model_telescope) = fittools.fit_pspl_omega2(target.ra, target.dec, datasets)
+            logger.info('FIT: completed modeling process for '+target.name)
+
+            # Store model lightcurve
+            if model_telescope:
+                fittools.store_model_lightcurve(target, model_telescope)
+                logger.info('FIT: Stored model lightcurve for event '+target.name)
+            else:
+                logger.warning('FIT: No valid model fit produced so not model lightcurve for event '+target.name)
+
+            # Determine whether or not an event is still active based on the
+            # current time relative to its t0 and tE
+            alive = fittools.check_event_alive(model_params['t0'], model_params['tE'])
+
+            # Store model parameters
+            last_fit = Time(datetime.datetime.utcnow()).jd
+
+            extras = {'Alive':alive, 'Last_fit': last_fit}
+            store_keys = ['t0', 'u0', 'tE', 'piEN', 'piEE',
+                          'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
+                          'Fit_covariance', 'chi2', 'red_chi2',
+                          'KS_test', 'AD_test', 'SW_test']
+            for key in store_keys:
+                extras[key] = model_params[key]
+            logger.info('Fitted parameters for '+target.name+': '+repr(extras))
+
             target.save(extras = extras)
+            logger.info('FIT: Stored model parameters for event ' + target.name)
 
         else:
+            logger.info('Insufficient lightcurve data available to model event '+target.name)
 
-            # Retrieve all available ReducedDatum entries for this target.  Note that this may include data
-            # other than lightcurve photometry, so the data are then filtered and repackaged for later
-            # convenience
-            red_data = ReducedDatum.objects.filter(target=target).order_by("timestamp")
-
-            (datasets, ndata) = fittools.repackage_lightcurves(red_data)
-
-            logger.info('FIT: Found '+str(len(datasets))+' datasets and a total of '
-                        +str(ndata)+' datapoints to model for event '+target.name)
-
-            if ndata > 10:
-                (model_params, model_telescope) = fittools.fit_pspl_omega2(target.ra, target.dec, datasets)
-                logger.info('FIT: completed modeling process for '+target.name)
-
-                # Store model lightcurve
-                if model_telescope:
-                    fittools.store_model_lightcurve(target, model_telescope)
-                    logger.info('FIT: Stored model lightcurve for event '+target.name)
-                else:
-                    logger.warning('FIT: No valid model fit produced so not model lightcurve for event '+target.name)
-
-                # Determine whether or not an event is still active based on the
-                # current time relative to its t0 and tE
-                alive = fittools.check_event_alive(model_params['t0'], model_params['tE'])
-                
-                # Store model parameters
-                last_fit = Time(datetime.datetime.utcnow()).jd
-
-                extras = {'Alive':alive, 'Last_fit': last_fit}
-                store_keys = ['t0', 'u0', 'tE', 'piEN', 'piEE',
-                              'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
-                              'Fit_covariance', 'chi2', 'red_chi2',
-                              'KS_test', 'AD_test', 'SW_test']
-                for key in store_keys:
-                    extras[key] = model_params[key]
-                logger.info('Fitted parameters for '+target.name+': '+repr(extras))
-
-                target.save(extras = extras)
-                logger.info('FIT: Stored model parameters for event ' + target.name)
-
-            else:
-                logger.info('Insufficient lightcurve data available to model event '+target.name)
-
-    except:
-        logger.error('Job failed: '+target.name)
-        return None
+    #except:
+    #    logger.error('Job failed: '+target.name)
+    #    return None
 
 class Command(BaseCommand):
     help = 'Fit events with PSPL and parallax, then ingest fit parameters in the db'
