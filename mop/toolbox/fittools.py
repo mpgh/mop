@@ -83,11 +83,11 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
         default_t0_upper = fit_tap.fit_parameters["t0"][1][1]
         fit_tap.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
         fit_tap.fit_parameters["tE"][1] = [1., 3000.]
-        fit_tap.fit_parameters["u0"][1] = [0., 2.0]
+        fit_tap.fit_parameters["u0"][1] = [0.0, 2.0]
         if verbose: logger.info('FITTOOLS: model 1 fit boundaries: t0: '
-                                + repr([default_t0_lower, default_t0_upper + delta_t0])
-                                + ' tE: ' + repr([1., 3000.])
-                                + ' u0: ' + repr([0., 2.0]))
+                                + repr(fit_tap.fit_parameters["t0"][1])
+                                + ' tE: ' + repr(fit_tap.fit_parameters["tE"][1])
+                                + ' u0: ' + repr(fit_tap.fit_parameters["u0"][1]))
     fit_tap.fit()
     model1_params = gather_model_parameters(current_event, fit_tap)
     if verbose: logger.info('FITTOOLS: model 1 fitted parameters ' + repr(model1_params))
@@ -115,11 +115,11 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
         if use_boundaries:
             fit_tap2.fit_parameters["t0"][1] = [default_t0_lower, default_t0_upper + delta_t0]
             fit_tap2.fit_parameters["tE"][1] = [1., 3000.]
-            fit_tap2.fit_parameters["u0"][1] = [0., 2.0]
+            fit_tap2.fit_parameters["u0"][1] = [0.0, 2.0]
             if verbose: logger.info('FITTOOLS: model 2 fit boundaries: t0: '
-                                + repr([default_t0_lower, default_t0_upper + delta_t0])
-                                + ' tE: ' + repr([1., 3000.])
-                                + ' u0: ' + repr([0., 2.0]))
+                                + repr(fit_tap2.fit_parameters["t0"][1])
+                                + ' tE: ' + repr(fit_tap2.fit_parameters["tE"][1])
+                                + ' u0: ' + repr(fit_tap2.fit_parameters["u0"][1]))
         fit_tap2.fit()
         model2_params = gather_model_parameters(current_event, fit_tap2)
         # default null as in the former implementation
@@ -191,11 +191,12 @@ def pylima_telescopes_from_datasets(datasets, emag_limit=None):
 
     dataset_order = []
     for name in priority_order:
-        if name in datasets.keys():
-            dataset_order.append(name)
+        for dataset_id in datasets.keys():
+            if name in dataset_id and dataset_id not in dataset_order:
+                dataset_order.append(dataset_id)
 
     for name in datasets.keys():
-        if name not in priority_order:
+        if name not in dataset_order:
             dataset_order.append(name)
 
     # Loop over all available datasets and create a telescope object for each one
@@ -406,24 +407,37 @@ def test_quality_of_model_fit(model_params):
 
     return fit_no_blend
 
-def evaluate_model(best_model):
+def evaluate_model(best_model, verbose=True):
     """Function to evaluate the overall quality of the fitted model.
     The numerical noise threshold implicitly modified the permitted minimum u0 to its value.
     """
 
     epsilon_numerical_noise = 1e-5
+    u0_epsilon = 1e-20
 
     test1 = np.abs(best_model['fit_parameters']["u0"][1][0] - best_model['u0'])
     test2 = np.abs(best_model['fit_parameters']["u0"][1][1] - best_model['u0'])
     test3 = np.abs(best_model['fit_parameters']["tE"][1][0] - best_model['tE'])
     test4 = np.abs(best_model['fit_parameters']["tE"][1][1] - best_model['tE'])
 
-    if test1 < epsilon_numerical_noise or \
-        test2 < epsilon_numerical_noise or \
-        test3 < epsilon_numerical_noise or \
+    if verbose:
+        logger.info('FITTOOLS Evaluating model fit:')
+        logger.info('Test 1 value='+str(test1)+' criterion >'+str(u0_epsilon))
+        logger.info('Test 2 value='+str(test2)+' criterion >'+str(u0_epsilon))
+        logger.info('Test 3 value='+str(test3)+' criterion >'+str(epsilon_numerical_noise))
+        logger.info('Test 4 value='+str(test3)+' criterion >'+str(epsilon_numerical_noise))
+
+    #if test1 < u0_epsilon or \
+    #    test2 < u0_epsilon or \
+    #    test3 < epsilon_numerical_noise or \
+    #    test4 < epsilon_numerical_noise:
+    if test3 < epsilon_numerical_noise or \
         test4 < epsilon_numerical_noise:
         for key in ['t0', 'u0', 'tE', 'chi2']:
             best_model[key] = np.nan
+
+        if verbose:
+            logger.info('FITTOOLS model failed evaluation')
 
     return best_model
 
