@@ -133,6 +133,8 @@ class OGLEBroker(GenericBroker):
                 else:
                     logger.info('OGLE harvester: most recent photometry for event '
                                 +target.name+' ('+str(photometry[-1][0])+') already ingested')
+                    extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
+                    target.save(extras=extras)
 
         logger.info('OGLE harvester: Completed ingest of photometry')
 
