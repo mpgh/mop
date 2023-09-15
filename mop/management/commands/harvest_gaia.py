@@ -28,7 +28,7 @@ class MOPGaia(gaia.GaiaBroker):
             except HTTPError:
                 raise Exception('Unable to retrieve alert information from broker')
 
-        if alert is not None:
+        if alert:
             alert_name = alert['name']
             alert_link = alert.get('per_alert', {})['link']
             lc_url = f'{BASE_BROKER_URL}/alerts/alert/{alert_name}/lightcurve.csv'
@@ -110,5 +110,5 @@ class Command(BaseCommand):
             except:
                   target, created = Target.objects.get_or_create(name=clean_alert.name)
 
-            Gaia.process_reduced_data(target)
+            Gaia.process_reduced_data(target, alert=alert)
             gaia_mop.update_gaia_errors(target)

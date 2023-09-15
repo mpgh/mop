@@ -5,7 +5,7 @@ from tom_dataproducts.models import ReducedDatum
 from tom_targets.models import Target
 from astropy import units as u
 from astropy.coordinates import Angle
-from astropy.time import Time
+from astropy.time import Time, TimezoneInfo
 import datetime
 import numpy as np
 from pyLIMA import event
