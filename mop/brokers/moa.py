@@ -14,6 +14,7 @@ import numpy as np
 from astropy.time import Time, TimezoneInfo
 import datetime
 from mop.toolbox import logs
+from mop.toolbox import TAP
 
 BROKER_URL = 'https://www.massey.ac.nz/~iabond/moa/'
 photometry = "https://www.massey.ac.nz/~iabond/moa/alert2019/fetchtxt.php?path=moa/ephot/"
@@ -145,6 +146,10 @@ class MOABroker(GenericBroker):
                         pass
                 except:
                         pass
+
+            (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
+            extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
+            target.save(extras=extras)
 
             print(target.name,'Ingest done!')
     def to_generic_alert(self, alert):

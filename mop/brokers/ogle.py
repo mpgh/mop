@@ -119,12 +119,7 @@ class OGLEBroker(GenericBroker):
             year = target.name.split('-')[1]
             event = target.name.split('-')[2]+'-'+target.name.split('-')[3]
 
-            latest_data = ReducedDatum.objects.filter(target=target, source_name='OGLE').order_by('timestamp')
             (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
-            if len(latest_data) > 0:
-                time_latest_data = Time(latest_data[0].timestamp, format='datetime')
-            else:
-                time_latest_data = Time('2023-01-01T00:00:00.0', format='isot')
 
             # Only harvest the photometry for the current year's events, since
             # it will not otherwise be updating.  Also check to see if the latest
@@ -180,8 +175,13 @@ class OGLEBroker(GenericBroker):
 
                 if created:
                     rd.save()
+
             except MultipleObjectsReturned:
                 logger.error('OGLE HARVESTER: Found duplicated data for event '+target.name)
+
+        (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
+        extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
+        target.save(extras=extras)
 
         return 'OK'
 

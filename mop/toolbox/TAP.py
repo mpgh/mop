@@ -405,7 +405,7 @@ def TAP_time_last_datapoint(target):
         time = [Time(i.timestamp, format='datetime').jd for i in datasets if i.data_type == 'photometry']
 
         last_jd = time[-1]
-        last_ts = Time(last_jd, format='jd').tt.datetime
+        last_ts = Time(last_jd, format='jd').to_datetime(timezone=TimezoneInfo())
 
     # If there is no photometry for this target, return a default timestamp a long time ago
     # so that any photometry that subsequently becomes available will be more recent and MOP will

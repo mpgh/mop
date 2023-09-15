@@ -57,6 +57,9 @@ class TestOgleBroker(TestCase):
         status = broker.ingest_ogle_photometry(test_target, self.params['photometry'])
         assert(status == 'OK')
 
+        assert(test_target.extra_fields['Latest_data_HJD'] > 0.0)
+        assert(test_target.extra_fields['Latest_data_UTC'] != None)
+
     def generate_test_target(self, target_name=None):
 
         test_target = SiderealTargetFactory.create()

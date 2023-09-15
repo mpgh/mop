@@ -12,6 +12,7 @@ from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_dataproducts.models import ReducedDatum
 
 from astropy.time import Time, TimezoneInfo
+from mop.toolbox import TAP
 
 
 BASE_BROKER_URL = gaia.BASE_BROKER_URL
@@ -72,6 +73,10 @@ class MOPGaia(gaia.GaiaBroker):
 
                     rd.save()
 
+        (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
+        extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
+        target.save(extras=extras)
+
         return
 
 
@@ -86,9 +91,10 @@ class Command(BaseCommand):
 
         Gaia = MOPGaia()
 
-        list_of_alerts = Gaia.fetch_alerts({'target_name':None,'cone':None})
+        (list_of_alerts, broker_feedback) = Gaia.fetch_alerts({'target_name':None,'cone':None})
 
         for alert in list_of_alerts:
+            print(alert)
 
             # As of Oct 2022, Gaia alerts will no longer be providing the
             # microlensing class as a comment in the alert.  We therefore
@@ -96,8 +102,8 @@ class Command(BaseCommand):
             # if 'microlensing' in alert['comment']:
 
             #Create or load
-
             clean_alert = Gaia.to_generic_alert(alert)
+            print(clean_alert)
             try:
                target, created = Target.objects.get_or_create(name=clean_alert.name,ra=clean_alert.ra,dec=clean_alert.dec,type='SIDEREAL',epoch=2000)
             #seems to bug with the ra,dec if exists
