@@ -6,6 +6,7 @@ from mop.toolbox import TAP
 from astropy.time import Time, TimeDelta
 from astropy import units as u
 import numpy as np
+from datetime import datetime
 
 class TestObservingMode(TestCase):
     def setUp(self):
@@ -109,10 +110,20 @@ class TestLightcurveData(TestCase):
         expected_t_last = ts.max()
 
         # Calculate the timestamp of the latest datapoint
-        t_last = TAP.TAP_time_last_datapoint(self.params['target'])
+        (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(self.params['target'])
 
-        # Expect a floating point number in Julian Date
-        assert(t_last > 2450000.0)
+        # Expect a floating point number in Julian Date, and a Time object
+        tnow = datetime.utcnow()
+        assert(t_last_jd > 2450000.0)
+        assert(type(t_last_date) == type(tnow))
 
         # Test the correct most-recent timestamp is returned
-        assert(t_last == expected_t_last)
+        assert(t_last_jd == expected_t_last)
+
+        # Now test to see what happens for a new target with no photometry
+        st2 = SiderealTargetFactory.create()
+        (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(st2)
+
+        # This should still return a floating point JD and datetime, but for a much earlier date
+        assert (t_last_jd > 2440000.0)
+        assert (type(t_last_date) == type(tnow))

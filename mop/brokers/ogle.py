@@ -15,6 +15,7 @@ import numpy as np
 import requests
 from astropy.time import Time, TimezoneInfo
 import logging
+from mop.toolbox import TAP
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,8 @@ class OGLEBroker(GenericBroker):
             year = target.name.split('-')[1]
             event = target.name.split('-')[2]+'-'+target.name.split('-')[3]
 
-            latest_data = ReducedDatum.objects.filter(target=target, source_name='OGLE').order_by('-timestamp')
+            latest_data = ReducedDatum.objects.filter(target=target, source_name='OGLE').order_by('timestamp')
+            (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
             if len(latest_data) > 0:
                 time_latest_data = Time(latest_data[0].timestamp, format='datetime')
             else:
@@ -130,7 +132,7 @@ class OGLEBroker(GenericBroker):
             # runtime.
             if year == current_year:
                 photometry = self.read_ogle_lightcurve(target)
-                if photometry[-1][0] > time_latest_data.jd:
+                if photometry[-1][0] > t_last_jd:
                     status = self.ingest_ogle_photometry(target, photometry)
                     logger.info('OGLE harvester: read and ingested photometry for event '+target.name)
                 else:

@@ -393,15 +393,29 @@ def TAP_long_event_priority_error(t_E, covariance):
     return err_psi
 
 def TAP_time_last_datapoint(target):
-     """
-     Returns time of the latest datapoint in the lightcurve.
-     """
-     datasets = ReducedDatum.objects.filter(target=target)
-     time = [Time(i.timestamp, format='datetime').jd for i in datasets if i.data_type == 'photometry']
-     sorted_time = np.sort(np.array(time))
-     t_last = sorted_time[-1]
+    """
+    Returns time of the latest datapoint in the lightcurve.  If no photometry for this target is available,
+    this function returns a default timestamp for 1995-01-01.  This is done to indicate that any subsequent
+    photometry should be considered to be more recent and therefore ingested.
+    """
+    datasets = ReducedDatum.objects.filter(target=target).order_by('timestamp')
 
-     return t_last
+    # If there is existing photometry for this object, identify the most recent datapoint
+    if datasets.count() > 0:
+        time = [Time(i.timestamp, format='datetime').jd for i in datasets if i.data_type == 'photometry']
+
+        last_jd = time[-1]
+        last_ts = Time(last_jd, format='jd').tt.datetime
+
+    # If there is no photometry for this target, return a default timestamp a long time ago
+    # so that any photometry that subsequently becomes available will be more recent and MOP will
+    # therefore know it should be ingested
+    else:
+        default_t = Time('1995-01-01T00:00:00.0', format='isot')
+        last_jd = default_t.jd
+        last_ts = default_t.tt.datetime
+
+    return last_jd, last_ts
 
 def categorize_event_timescale(target, threshold=75.0):
     """
