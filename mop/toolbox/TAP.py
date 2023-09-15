@@ -397,8 +397,8 @@ def TAP_time_last_datapoint(target):
      Returns time of the latest datapoint in the lightcurve.
      """
      datasets = ReducedDatum.objects.filter(target=target)
-     time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
-     sorted_time = np.sort(time)
+     time = [Time(i.timestamp, format='datetime').jd for i in datasets if i.data_type == 'photometry']
+     sorted_time = np.sort(np.array(time))
      t_last = sorted_time[-1]
 
      return t_last

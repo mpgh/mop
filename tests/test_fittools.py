@@ -34,7 +34,7 @@ class TestModelingTools(TestCase):
                   Time('2023-08-01T00:00:00.0', format='isot'),
                   TimeDelta(1.0*u.day)]
         }
-        photometry = self.generate_test_ReducedDatums(st1)
+        photometry = generate_test_ReducedDatums(st1, self.tel_configs)
         model = self.generate_test_pylima_model(pevent)
         model_params = {
             't0': 2560000.5,
@@ -80,34 +80,6 @@ class TestModelingTools(TestCase):
         datasets['I'] = np.array(photometry)
 
         return datasets
-
-    def generate_test_ReducedDatums(self, target):
-        """Method generates a set of ReducedDatums for different telescopes, as is held in the TOM for a
-        single target"""
-
-        data = []
-        for tel_label, config in self.tel_configs.items():
-            mags = np.random.normal(loc=config[1], scale=config[2], size=config[0])
-            mag_errs = np.random.normal(loc=config[2], scale=config[2], size=config[0])
-            for i in range(0,config[0],1):
-                ts = config[3] + i*config[4]
-                datum = {'magnitude': mags[i],
-                         'filter': tel_label,
-                         'error': mag_errs[i]
-                         }
-                rd, created = ReducedDatum.objects.get_or_create(
-                    timestamp=ts.to_datetime(timezone=TimezoneInfo()),
-                    value=datum,
-                    source_name='OGLE',
-                    source_location=target.name,
-                    data_type='photometry',
-                    target=target)
-
-                if created:
-                    rd.save()
-                    data.append(rd)
-
-        return data
 
     def generate_test_pylima_event(self, target):
         pevent = event.Event(ra=target.ra, dec=target.dec)
@@ -277,3 +249,33 @@ class TestModelingTools(TestCase):
 
         assert(len(model_tel.lightcurve_magnitude) > 0)
         assert(model_tel.lightcurve_magnitude.colnames == ['time', 'mag', 'err_mag'])
+
+
+def generate_test_ReducedDatums(target, tel_configs):
+    """Method generates a set of ReducedDatums for different telescopes, as is held in the TOM for a
+    single target"""
+
+    data = []
+    for tel_label, config in tel_configs.items():
+        mags = np.random.normal(loc=config[1], scale=config[2], size=config[0])
+        mag_errs = np.random.normal(loc=config[2], scale=config[2], size=config[0])
+        for i in range(0,config[0],1):
+            ts = config[3] + i*config[4]
+            datum = {
+                    'magnitude': mags[i],
+                    'filter': tel_label,
+                    'error': mag_errs[i]
+                    }
+            rd, created = ReducedDatum.objects.get_or_create(
+                timestamp=ts.to_datetime(timezone=TimezoneInfo()),
+                value=datum,
+                source_name='OGLE',
+                source_location=target.name,
+                data_type='photometry',
+                target=target)
+
+            if created:
+                rd.save()
+                data.append(rd)
+
+    return data
