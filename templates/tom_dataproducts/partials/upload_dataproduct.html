@@ -1,7 +1,7 @@
 {% load bootstrap4 static %}
 <h4>Upload a data product</h4>
 <p>
-  For example CSVs, see the <a href="https://github.com/LCOGT/mop/blob/master/data/sample_photometry.csv">photometry</a> and <a href="https://github.com/LCOGT/mop/blob/master/data/spectrum_sample.csv">spectroscopy</a> sample files. FITS is supported for spectra.
+  For example CSVs, see the <a href="https://github.com/LCOGT/mop/blob/master/data/sample_photometry.csv">photometry</a> and <a href="https://github.com/LCOGT/mop/blob/master/data/sample_spectrum.csv">spectroscopy</a> sample files. FITS is supported for spectra.
 </p>
 <form method="POST" action="{% url 'tom_dataproducts:upload' %}" enctype="multipart/form-data">
   {% csrf_token %}
