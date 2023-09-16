@@ -12,4 +12,4 @@ helm-chart/charts/*.tgz
 local_settings*
 
 # Any local datafiles
-data/*csv
+data/star*csv
