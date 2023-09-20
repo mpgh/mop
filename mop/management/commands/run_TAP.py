@@ -56,7 +56,7 @@ class Command(BaseCommand):
                     u0_pspl = event.extra_fields['u0']
                     tE_pspl = event.extra_fields['tE']
 
-                    covariance = np.array(json.loads(event.extra_fields['Fit_covariance']))
+                    covariance = load_covar_matrix(event.extra_fields['Fit_covariance'])
 
                     # Categorize the event based on event timescale
                     category = TAP.categorize_event_timescale(event)
@@ -200,3 +200,15 @@ class Command(BaseCommand):
 
                 except:
                     print('Can not perform TAP for this target')
+
+def load_covar_matrix(raw_covar_data):
+
+    payload = str(raw_covar_data).replace('[[','').replace(']]','').replace('\n','').lstrip()
+    array_list = payload.split('] [')
+
+    data = []
+    for entry in array_list:
+        data.append([float(x) for x in entry.split()])
+
+    return np.array(data)
+
