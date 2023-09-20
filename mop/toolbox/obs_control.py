@@ -23,6 +23,7 @@ def check_pending_observations(name,status):
     token  = os.getenv('LCO_API_KEY')
     username =  os.getenv('LCO_USERNAME')
     headers = {'Authorization': 'Token ' + token}
+    print(name, status, username)
     url = os.path.join("https://observe.lco.global/api/requestgroups/?state="+status+"&user="+username+"&name="+name)
 
     response = requests.get(url, headers=headers, timeout=20).json()
@@ -45,7 +46,7 @@ def filter_duplicated_observations(configs):
     been submitted and is still active.  If this is the case, the superfluous configuration
     is removed from the list; otherwise the list is returned unchanged.
     """
-
+    print(configs)
     new_configs = []
     for conf in configs:
         need_to_submit = check_pending_observations(conf['group_id'], 'PENDING')
