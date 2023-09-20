@@ -369,19 +369,22 @@ def gather_model_parameters(pevent, model_fit):
     model_params['fit_parameters'] = model_fit.fit_parameters
 
     # Calculate fit statistics
+    # The model_fit.model_residuals returns photometric and astrometric residuals as a dictionary
+    # while the photometric residuals provides a list of arrays consisting of the
+    # photometric residuals, photometric errors, and error_flux
     try:
         res = model_fit.model_residuals(model_fit.fit_results['best_model'])
         sw_test = stats.normal_Shapiro_Wilk(
-            (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+            (np.ravel(res[0]['photometry'][0]) / np.ravel(res[1]['photometry'][0])))
         model_params['SW_test'] = np.around(sw_test[0],3)
         ad_test = stats.normal_Anderson_Darling(
-            (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+            (np.ravel(res[0]['photometry'][0]) / np.ravel(res[1]['photometry'][0])))
         model_params['AD_test'] = np.around(ad_test[0],3)
         ks_test = stats.normal_Kolmogorov_Smirnov(
-            (np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])))
+            (np.ravel(res[0]['photometry'][0]) / np.ravel(res[1]['photometry'][0])))
         model_params['KS_test'] = np.around(ks_test[0],3)
-        model_params['chi2_dof'] = np.sum((np.ravel(res[0]['photometry']) / np.ravel(res[1]['photometry'])) ** 2) / (
-                len(np.ravel(res[0]['photometry'])) - 5)
+        model_params['chi2_dof'] = np.sum((np.ravel(res[0]['photometry'][0]) / np.ravel(res[1]['photometry'][0])) ** 2) / (
+                len(np.ravel(res[0]['photometry'][0])) - 5)
     except:
         model_params['SW_test'] = np.nan
         model_params['AD_test'] = np.nan
