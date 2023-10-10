@@ -327,7 +327,9 @@ def gather_model_parameters(pevent, model_fit):
             ndp = 5
         model_params[key] = np.around(model_fit.fit_results["best_model"][i], ndp)
 
-    model_params['chi2'] = np.around(model_fit.fit_results["best_model"][-1], 3)
+    # model_params['chi2'] = np.around(model_fit.fit_results["best_model"][-1], 3)
+    # Reporting actual chi2 instead value of the loss function
+    model_params['chi2'] = np.around(model_fit.fit_results["best_model"])[0], 3)
 
     # If the model did not include parallax, zero those parameters
     if 'piEN' not in param_keys:
