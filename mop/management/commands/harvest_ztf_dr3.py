@@ -69,9 +69,7 @@ class Command(BaseCommand):
 
             try:
                 url = 'https://irsa.ipac.caltech.edu/cgi-bin/ZTF/nph_light_curves?POS=CIRCLE '+str(ra)+' '+str(dec)+' '+str(radius)+'&FORMAT=CSV'
-                print(url)
                 response = requests.get(url,  timeout=20,auth=(username,password))
-                print(dir(response))
                 logger.info('ZTF HARVESTER: ZTF returned response for '+str(target.name)+': '+str(response.status_code))
 
                 content = list(csv.reader(response.content.decode('utf-8').splitlines(), delimiter=','))
@@ -114,7 +112,7 @@ class Command(BaseCommand):
                             pass
 
                     logger.info('ZTF HARVESTER: Ingested ZTF data for ' + str(target.name))
-                    
+
             except:
                 print('Can not connect to IRSA')
                 pass
