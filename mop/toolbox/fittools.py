@@ -131,7 +131,7 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
         if verbose: logger.info('FITTOOLS: model 2 evaluated parameters ' + repr(model1_params))
 
         # Decide which fit to accept based on the fitted chi2 in each case:
-        if model2_params['chi2'] <= model2_params['chi2']:
+        if model2_params['chi2'] <= model1_params['chi2']:
             best_model = model2_params
             if verbose: logger.info('FITTOOLS: Using model 2 as best-fit model')
 
