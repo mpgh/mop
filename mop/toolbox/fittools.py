@@ -131,7 +131,7 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
         if verbose: logger.info('FITTOOLS: model 2 evaluated parameters ' + repr(model1_params))
 
         # Decide which fit to accept based on the fitted chi2 in each case:
-        if model2_params['chi2'] <= model2_params['chi2']:
+        if model2_params['chi2'] <= model1_params['chi2']:
             best_model = model2_params
             if verbose: logger.info('FITTOOLS: Using model 2 as best-fit model')
 
@@ -327,7 +327,9 @@ def gather_model_parameters(pevent, model_fit):
             ndp = 5
         model_params[key] = np.around(model_fit.fit_results["best_model"][i], ndp)
 
-    model_params['chi2'] = np.around(model_fit.fit_results["best_model"][-1], 3)
+    # model_params['chi2'] = np.around(model_fit.fit_results["best_model"][-1], 3)
+    # Reporting actual chi2 instead value of the loss function
+    model_params['chi2'] = np.around(model_fit.fit_results["best_model"])[0], 3)
 
     # If the model did not include parallax, zero those parameters
     if 'piEN' not in param_keys:
