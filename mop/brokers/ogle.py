@@ -99,6 +99,7 @@ class OGLEBroker(GenericBroker):
                                                            type='SIDEREAL', epoch=2000)
                 if created:
                     target.save()
+                    TAP.set_target_sky_location(target)
                     logger.info('OGLE harvester: added event '+event_name+' to MOP')
                     new_targets.append(target)
             else:

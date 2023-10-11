@@ -83,8 +83,11 @@ def calculate_exptime_omega_sdss_i(magin):
 
 def event_in_the_Bulge(ra,dec):
 
-    Bulge_limits = [[255,275],[-36,-22]]
+    # Ensure the RA and Dec passed are floats
+    ra = float(ra)
+    dec = float(dec)
 
+    Bulge_limits = [[255,275],[-36,-22]]
     if (ra>Bulge_limits[0][0]) & (ra<Bulge_limits[0][1]) & (dec>Bulge_limits[1][0]) & (dec<Bulge_limits[1][1]):
         in_the_Bulge = True
     else:
@@ -92,6 +95,15 @@ def event_in_the_Bulge(ra,dec):
         in_the_Bulge = False
 
     return in_the_Bulge
+
+def set_target_sky_location(target):
+    """Function to determine whether or not a given target lies within the High Cadence Zone of the Galactic Bulge"""
+    event_not_in_OMEGA_II = event_in_the_Bulge(target.ra, target.dec)
+    if event_not_in_OMEGA_II:
+        sky_location = 'In HCZ'
+    else:
+        sky_location = 'Outside HCZ'
+    target.save(extras={'Sky_location': sky_location})
 
 def psi_derivatives_squared(t,te,u0,t0):
     """if you prefer to have the derivatives for a simple

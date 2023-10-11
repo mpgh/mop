@@ -70,6 +70,7 @@ class MOABroker(GenericBroker):
                    if created:
 
                        target.save()
+                       TAP.set_target_sky_location(target)
 
                    list_of_targets.append(target)
 

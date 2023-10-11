@@ -94,7 +94,6 @@ class Command(BaseCommand):
         (list_of_alerts, broker_feedback) = Gaia.fetch_alerts({'target_name':None,'cone':None})
 
         for alert in list_of_alerts:
-            print(alert)
 
             # As of Oct 2022, Gaia alerts will no longer be providing the
             # microlensing class as a comment in the alert.  We therefore
@@ -103,12 +102,12 @@ class Command(BaseCommand):
 
             #Create or load
             clean_alert = Gaia.to_generic_alert(alert)
-            print(clean_alert)
             try:
                target, created = Target.objects.get_or_create(name=clean_alert.name,ra=clean_alert.ra,dec=clean_alert.dec,type='SIDEREAL',epoch=2000)
             #seems to bug with the ra,dec if exists
             except:
                   target, created = Target.objects.get_or_create(name=clean_alert.name)
 
+            TAP.set_target_sky_location(target)
             Gaia.process_reduced_data(target, alert=alert)
             gaia_mop.update_gaia_errors(target)
