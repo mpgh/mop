@@ -27,6 +27,11 @@ def flux_to_mag(flux):
     magnitude = ZP_pyLIMA - 2.5 * np.log10(flux)
     return magnitude
 
+def fluxerror_to_magerror(flux, flux_error):
+
+    mag_err = (2.5 / np.log(10.0)) * flux_error / flux
+    return mag_err
+
 def mag_to_flux(mag):
 
     ZP_pyLIMA = 27.4
@@ -124,14 +129,14 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
         model2_params = gather_model_parameters(current_event, fit_tap2)
         # default null as in the former implementation
         model2_params['Blend_magnitude'] = np.nan
-        if verbose: logger.info('FITTOOLS: model 2 fitted parameters ' + repr(model1_params))
+        if verbose: logger.info('FITTOOLS: model 2 fitted parameters ' + repr(model2_params))
 
         # Evaluate the quality of this model
         model2_params = evaluate_model(model2_params)
-        if verbose: logger.info('FITTOOLS: model 2 evaluated parameters ' + repr(model1_params))
+        if verbose: logger.info('FITTOOLS: model 2 evaluated parameters ' + repr(model2_params))
 
         # Decide which fit to accept based on the fitted chi2 in each case:
-        if model2_params['chi2'] <= model2_params['chi2']:
+        if model2_params['chi2'] <= model1_params['chi2']:
             best_model = model2_params
             if verbose: logger.info('FITTOOLS: Using model 2 as best-fit model')
 
@@ -276,8 +281,11 @@ def store_model_parameters(target, model_params, event_alive):
 
     extras = {'Alive': event_alive, 'Last_fit': last_fit}
 
-    parameters = ['t0', 'u0', 'tE', 'piEN', 'piEE',
-                  'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
+    parameters = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error',
+                  'piEN', 'piEN_error', 'piEE', 'piEE_error',
+                  'Source_magnitude', 'Source_mag_error',
+                  'Blend_magnitude', 'Blend_mag_error',
+                  'Baseline_magnitude', 'Baseline_mag_error',
                   'Fit_covariance', 'chi2', 'red_chi2',
                   'KS_test', 'AD_test', 'SW_test']
     for key in parameters:
@@ -326,15 +334,19 @@ def gather_model_parameters(pevent, model_fit):
         else:
             ndp = 5
         model_params[key] = np.around(model_fit.fit_results["best_model"][i], ndp)
+        model_params[key+'_error'] = np.around(np.sqrt(model_fit.fit_results["covariance_matrix"][i,i]), ndp)
 
     # model_params['chi2'] = np.around(model_fit.fit_results["best_model"][-1], 3)
     # Reporting actual chi2 instead value of the loss function
-    model_params['chi2'] = np.around(model_fit.fit_results["best_model"][0], 3)
+    (chi2, pyLIMA_parameters) = model_fit.model_chi2(model_fit.fit_results["best_model"])
+    model_params['chi2'] = np.around(chi2, 3)
 
     # If the model did not include parallax, zero those parameters
     if 'piEN' not in param_keys:
         model_params['piEN'] = 0.0
+        model_params['piEN_error'] = 0.0
         model_params['piEE'] = 0.0
+        model_params['piEE_error'] = 0.0
 
     # Calculate the reduced chi2
     ndata = 0
@@ -342,7 +354,7 @@ def gather_model_parameters(pevent, model_fit):
         ndata += len(tel.lightcurve_magnitude)
     model_params['red_chi2'] = np.around(model_params['chi2'] / float(ndata - len(param_keys)),3)
 
-    # Retrieve the flux parameters, converting from PyLIMA's key nomenculture to MOPs
+    # Retrieve the flux parameters, converting from PyLIMA's key nomenclature to MOPs
     key_map = {
         'fsource_Tel_0': 'Source_magnitude',
         'fblend_Tel_0': 'Blend_magnitude'
@@ -357,15 +369,35 @@ def gather_model_parameters(pevent, model_fit):
         except ValueError:
             model_params[mop_key] = np.nan
 
+    # Retrieve the flux uncertainties and convert to magnitudes
+    model_params['Source_mag_error'] = np.around(
+                                                fluxerror_to_magerror(model_params['fsource_Tel_0'],
+                                                             model_params['fsource_Tel_0_error']),
+                                                3)
+    if 'fblend_Tel_0' in model_params.keys():
+        model_params['Blend_mag_error'] = np.around(
+                                                fluxerror_to_magerror(model_params['fblend_Tel_0'],
+                                                             model_params['fblend_Tel_0_error']),
+                                                3)
+    else:
+        model_params['Blend_mag_error'] = np.nan
+
     # If the model fitted contains valid entries for both source and blend flux,
     # use these to calculate the baseline magnitude.  Otherwise, use the source magnitude
     if not np.isnan(model_params['Source_magnitude']) \
            and not np.isnan(model_params['Blend_magnitude']):
         unlensed_flux = model_fit.fit_results["best_model"][flux_index[0]] \
                             + model_fit.fit_results["best_model"][flux_index[1]]
+        unlensed_flux_error = np.sqrt(
+                                (model_params['fsource_Tel_0_error']**2 + model_params['fblend_Tel_0_error']**2)
+                                + (model_params['fsource_Tel_0_error']*model_params['fblend_Tel_0_error'])
+                            )
         model_params['Baseline_magnitude'] = np.around(flux_to_mag(unlensed_flux), 3)
+        model_params['Baseline_mag_error'] = np.around(fluxerror_to_magerror(unlensed_flux,unlensed_flux_error), 3)
     else:
         model_params['Baseline_magnitude'] = model_params['Source_magnitude']
+        model_params['Baseline_mag_error'] = model_params['Source_mag_error']
+
     model_params['Fit_covariance'] = model_fit.fit_results["covariance_matrix"]
 
     model_params['fit_parameters'] = model_fit.fit_parameters
