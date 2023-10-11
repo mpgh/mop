@@ -205,8 +205,11 @@ class TestModelingTools(TestCase):
         model_params = fittools.gather_model_parameters(pevent, model_fit)
 
         expected_keys = [
-            't0', 'u0', 'tE', 'piEN', 'piEE',
-            'Source_magnitude', 'Blend_magnitude', 'Baseline_magnitude',
+            't0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error',
+            'piEN', 'piEN_error', 'piEE', 'piEE_error',
+            'Source_magnitude', 'Source_mag_error',
+            'Blend_magnitude', 'Blend_mag_error',
+            'Baseline_magnitude', 'Baseline_mag_error',
             'Fit_covariance', 'chi2', 'red_chi2'
         ]
         for key in expected_keys:
