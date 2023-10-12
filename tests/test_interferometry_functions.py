@@ -7,14 +7,14 @@ from mop.brokers import gaia
 from astropy.coordinates import Angle
 from astroquery.utils.commons import TableList
 
-class TestInterferometryFunctions(TestCase):
+class TestInterferomeinterferometry_predictiontryFunctions(TestCase):
     def setUp(self):
         self.st = SiderealTargetFactory.create()
         self.st.ra = 274.2974
         self.st.dec = -22.3452
         extra_params = {'u0': 0.08858,
-                        #EU0 = 0.0003,
-                        'baseline_magnitude': 17.989,
+                        'u0_error': 0.0003,
+                        'Baseline_magnitude': 17.989,
                         }
         self.st.save(extras=extra_params)
         neighbours = gaia.query_gaia_dr3(self.st, radius=Angle(5.0/3600.0, "deg"))
@@ -77,3 +77,6 @@ class TestInterferometryFunctions(TestCase):
                                                                            self.params['test_star2']['Kneighbours1'])
         assert (mode2 == 'Single Field')
         assert (guide2 == 0)
+
+    def test_evaluate_target_for_interferometry(self):
+        interferometry_prediction.evaluate_target_for_interferometry(self.params['test_event'])

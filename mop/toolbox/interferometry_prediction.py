@@ -1,12 +1,28 @@
-import astropy.units as u
+from tom_dataproducts.models import ReducedDatum
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from astroquery.gaia import Gaia
+from mop.brokers import gaia
+from mop.toolbox import utilities
 import numpy as np
 import matplotlib.pyplot as plt
 from astroquery.vizier import Vizier
 from astropy.coordinates import Angle
 from astropy.table import Table, Column
+from astropy.time import Time, TimezoneInfo
+import logging
+from mop import settings
+
+logger = logging.getLogger(__name__)
+
+def unmask_column(mColumn):
+    """Gaia catalog searches can return MaskedColumns, which cannot easily be converted. This function
+    extracts the data"""
+
+    data = np.zeros(len(mColumn))
+    mask = np.where(mColumn.mask == False)
+    data[mask] = mColumn.data[mask]
+
+    return data
 
 def find_companion_stars(target, star_catalog):
     """Function to identify stars nearby to the target that have JHK brightneses high enough
@@ -26,12 +42,30 @@ def find_companion_stars(target, star_catalog):
     # Sort into order of ascending distance from the target:
     index = np.argsort(separations)
 
+    # Estimate photometric uncertainties on Gaia photometry
+    BPmag_error = unmask_column(star_catalog[0][mask]['e_BPmag'][index])
+    RPmag_error = unmask_column(star_catalog[0][mask]['e_RPmag'][index])
+    BPRP_error = np.sqrt( BPmag_error*BPmag_error + RPmag_error*RPmag_error )
+
     # Returns lists of the star subset's photometry in order of ascending distance from
     # the target
     column_list = [
-        Column(name='Source', data=star_catalog[0][mask]['Source'][index]),
-        Column(name='Gmag', data=star_catalog[0][mask]['Gmag'][index]),
-        Column(name='BP-RP', data=star_catalog[0][mask]['BP-RP'][index]),
+        Column(name='Gaia_Source_ID', data=star_catalog[0][mask]['Source'][index]),
+        Column(name='Gmag', data=unmask_column(star_catalog[0][mask]['Gmag'][index])),
+        Column(name='Gmag_error', data=unmask_column(star_catalog[0][mask]['e_Gmag'][index])),
+        Column(name='BPmag', data=unmask_column(star_catalog[0][mask]['BPmag'][index])),
+        Column(name='BPmag_error', data=BPmag_error),
+        Column(name='RPmag', data=unmask_column(star_catalog[0][mask]['RPmag'][index])),
+        Column(name='RPmag_error', data=RPmag_error),
+        Column(name='BP-RP', data=unmask_column(star_catalog[0][mask]['BP-RP'][index])),
+        Column(name='BP-RP_error', data=BPRP_error),
+        Column(name='Reddening(BP-RP)', data=unmask_column(star_catalog[0][mask]['E_BP-RP_'][index])),
+        Column(name='Extinction_G', data=unmask_column(star_catalog[0][mask]['AG'][index])),
+        Column(name='Distance', data=unmask_column(star_catalog[0][mask]['Dist'][index])),
+        Column(name='Teff', data=unmask_column(star_catalog[0][mask]['Teff'][index])),
+        Column(name='logg', data=unmask_column(star_catalog[0][mask]['logg'][index])),
+        Column(name='[Fe/H]', data=unmask_column(star_catalog[0][mask]['__Fe_H_'][index])),
+        Column(name='RUWE', data=unmask_column(star_catalog[0][mask]['RUWE'][index])),
         Column(name='Separation', data=separations[index])
     ]
 
@@ -46,6 +80,12 @@ def convert_Gmag_to_JHK(Gmag,BpRp):
     H = Gmag - (-0.1048 + 2.011 * BpRp - 0.1758 * BpRp ** 2)
     K = Gmag - (-0.0981 + 2.089 * BpRp - 0.1579 * BpRp ** 2)
 
+    # If the input magnitudes are Table arrays, ensure the output
+    # tables column names are accurately renamed
+    if type(Gmag) == type(Column()):
+        J = Column(name='Jmag', data=J.data)
+        H = Column(name='Hmag', data=H.data)
+        K = Column(name='Kmag', data=K.data)
     return J, H, K
 
 def estimate_target_Gaia_phot_uncertainties(Gmag, u0, u0_error):
@@ -200,3 +240,105 @@ def interfero_plot():
     mode,guide = interferometry_decision(K,np.array(KK))
 
     print(mode,guide)
+
+def evaluate_target_for_interferometry(target):
+    """Function to calculate the necessary parameters in order to determine whether this target
+    is suitable for interferometry"""
+    logger.info('INTERFERO: Evaluating event ' + target.name)
+
+    # Extract the necessary target parameters and sanity check.  For reasons I don't understand,
+    # u0_error is sometimes stored as a tag rather than an extra parameter during testing.
+    u0 = utilities.fetch_extra_param(target, 'u0')
+    u0_error = utilities.fetch_extra_param(target, 'u0_error')
+    if u0 == None or u0_error == None:
+        logger.info('INTERFERO: Insufficient u0 info to evaluate target')
+        return
+
+    # Query the Gaia DR3 catalog for the target object and near neighbours within 14.4 arcsec
+    # Search radius is set by the interferometry requirement to have bright neighbouring stars
+    #         # that are accessible to the GRAVITY instrument
+    neighbour_radius = Angle(20.0/3600.0, "deg")
+    star_catalog = gaia.query_gaia_dr3(target, radius=neighbour_radius)
+    neighbours = find_companion_stars(target, star_catalog)
+    logger.info('INTERFERO: Identified ' + str(len(neighbours)) + ' stars in the neighbourhood of '+target.name)
+
+    # The neighbours table is order in ascending separation from the target coordinates,
+    # so the target should be the first entry.  Extract the target's Gaia photometry and estimate
+    # the uncertainties
+    G_lens = neighbours['Gmag'][0]
+    BPRP_lens = neighbours['BP-RP'][0]
+    G_lens_error = estimate_target_Gaia_phot_uncertainties(G_lens, u0, u0_error)
+    logger.info('INTERFERO: Calculated uncertainties Gmag=' + str(G_lens)
+                + '+/-' + str(G_lens_error) + 'mag')
+
+    # Predict the NIR photometry of all stars in the region
+    (J, H, K) = convert_Gmag_to_JHK(neighbours['Gmag'], neighbours['BP-RP'])
+    logger.info('INTERFERO: Computed JHK photometry for neighbouring stars')
+
+    # Evaluate whether this target is suitable for inteferometry
+    (mode, guide) = interferometry_decision(G_lens, BPRP_lens, np.array(K.data)[1:])
+    logger.info('INTERFERO: Evaluation for interferometry for ' + target.name + ': ' + str(mode) + ' guide=' + str(guide))
+
+    # Store the results
+    extras = {
+            'Gaia_Source_ID': neighbours['Gaia_Source_ID'][0],
+            'Gmag': G_lens, 'Gmag_error': G_lens_error,
+            'RPmag': neighbours['RPmag'][0], 'RPmag_error': neighbours['RPmag_error'][0],
+            'BPmag': neighbours['BPmag'][0], 'BPmag_error': neighbours['BPmag_error'][0],
+            'BP-RP': BPRP_lens, 'BP-RP_error': neighbours['BP-RP_error'][0],
+            'Reddening(BP-RP)': neighbours['Reddening(BP-RP)'][0],
+            'Extinction_G': neighbours['Extinction_G'][0],
+            'Distance': neighbours['Distance'][0],
+            'Teff': neighbours['Teff'][0],
+            'logg': neighbours['logg'][0],
+            '[Fe/H]': neighbours['[Fe/H]'][0],
+            'RUWE': neighbours['RUWE'][0],
+            'Interferometry_mode': mode,
+            'Interferometry_guide_star': guide,
+            'Mag_peak_J': J[0],
+            'Mag_peak_H': H[0],
+            'Mag_peak_K': K[0],
+              }
+    target.save(extras=extras)
+
+    # Repackage data into a convenient form for storage
+    datum = {
+        'Gaia_Source_ID': [str(x) for x in neighbours['Gaia_Source_ID']],
+        'Gmag': [x for x in neighbours['Gmag']],
+        'Gmag_error': [x for x in neighbours['Gmag_error']],
+        'BPmag' : [x for x in neighbours['BPmag']],
+        'BPmag_error' : [x for x in neighbours['BPmag_error']],
+        'RPmag' : [x for x in neighbours['RPmag']],
+        'RPmag_error' : [x for x in neighbours['RPmag_error']],
+        'BP-RP': [x for x in neighbours['BP-RP']],
+        'BP-RP_error': [x for x in neighbours['BP-RP_error']],
+        'Jmag': [x for x in J],
+        'Hmag': [x for x in H],
+        'Kmag': [x for x in K],
+        'Reddening(BP-RP)': [x for x in neighbours['Reddening(BP-RP)']],
+        'Extinction_G': [x for x in neighbours['Extinction_G']],
+        'Distance': [x for x in neighbours['Distance']],
+        'Teff': [x for x in neighbours['Teff']],
+        'logg': [x for x in neighbours['logg']],
+        '[Fe/H]': [x for x in neighbours['[Fe/H]']],
+        'RUWE': [x for x in neighbours['RUWE']],
+        'Separation': [x for x in neighbours['Separation']],
+    }
+
+    # To avoid accumulating entries, search for any existing tabular
+    # data for this object and remove it from the DB:
+    qs = ReducedDatum.objects.filter(target=target)
+    for rd in qs:
+        if rd.data_type == 'tabular' and rd.source_name == 'Interferometry_predictor':
+            rd.delete()
+
+    # Now store the tabular results
+    tnow = Time.now()
+    rd, created = ReducedDatum.objects.get_or_create(
+        timestamp=tnow.to_datetime(timezone=TimezoneInfo()),
+        value=datum,
+        source_name='Interferometry_predictor',
+        source_location=target.name,
+        data_type='tabular',
+        target=target)
+    logger.info('INTERFERO: Stored neighbouring star data in MOP')

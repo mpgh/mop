@@ -1,0 +1,130 @@
+<div class="row">
+    <div class="col-md-8">
+        <h4>Interferometry</h4>
+    </div>
+</div>
+
+<div class="row"">
+    <table class="table">
+        <tr>
+            <td><b>Observation mode</b></td><td>{{Interferometry_mode}}</td>
+            <td><b>Guide star</b></td><td>{{Interferometry_guide_star}}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="row" style="margin-top: 20px; margin-bottom: 20px; border:1px solid black;">
+    <div class="col-md-8">
+        <h5>Target Data</h5>
+    </div>
+    <br>
+    <p>
+    Gaia Source ID: {{Gaia_Source_ID}}
+    </p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Distance [pc]</th>
+                <th>Teff [K]</th>
+                <th>log(g)</th>
+                <th>[Fe/H]</th>
+                <th>RUWE</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{Distance}}</td>
+                <td>{{Teff}}</td>
+                <td>{{logg}}</td>
+                <td>{{Fe_H}}</td>
+                <td>{{RUWE}}</td>
+            </tr>
+        </tbody>
+    </table>
+     <table class="table">
+         <thead>
+         <tr>
+             <th>G [mag]</th>
+             <th>BP [mag]</th>
+             <th>RP [mag]</th>
+             <th>BP-RP [mag]</th>
+             <th>J [mag]</th>
+             <th>H [mag]</th>
+             <th>K [mag]</th>
+             <th>Reddening (BP-RP) [mag]</th>
+             <th>Extinction (G) [mag]</th>
+         </tr>
+         </thead>
+         <tbody>
+         <tr>
+             <td>{{Gmag}}&#8723;{{Gmag_error}}</td>
+             <td>{{BPmag}}&#8723;{{BPmag_error}}</td>
+             <td>{{RPmag}}&#8723;{{RPmag_error}}</td>
+             <td>{{BP_RP}}&#8723;{{BP_RP_error}}</td>
+             <td>{{Mag_peak_J}}</td>
+             <td>{{Mag_peak_H}}</td>
+             <td>{{Mag_peak_K}}</td>
+             <td>{{Reddening_BP_RP_}}</td>
+             <td>{{Extinction_G}}</td>
+             <td></td>
+         </tr>
+         </tbody>
+     </table>
+</div>
+
+<div class="row" style="border:1px solid black; overflow: scroll ">
+    <div class="col-md-8">
+        <h5>Neighbouring stars</h5>
+    </div>
+     <table class="table table-striped">
+         <thead>
+         <tr>
+             <th>Gaia_Source_ID</th>
+             <th>G [mag]</th>
+             <th>BP [mag]</th>
+             <th>RP [mag]</th>
+             <th>BP-RP [mag]</th>
+             <th>J [mag]</th>
+             <th>H [mag]</th>
+             <th>K [mag]</th>
+             <th>Reddening (BP-RP) [mag]</th>
+             <th>Extinction (G) [mag]</th>
+             <th>Distance [pc]</th>
+             <th>Teff [K]</th>
+             <th>log(g)</th>
+             <th>[Fe/H]</th>
+             <th>RUWE</th>
+             <th>Separation [arcsec]</th>
+         </tr>
+         </thead>
+         <tbody>
+         {% for star in neighbours %}
+         <tr>
+             <td>{{star.Gaia_Source_ID}}</td>
+             <td>{{star.Gmag}}&#8723;{{star.Gmag_error}}</td>
+             <td>{{star.BPmag}}&#8723;{{star.BPmag_error}}</td>
+             <td>{{star.RPmag}}&#8723;{{star.RPmag_error}}</td>
+             <td>{{star.BP_RP}}&#8723;{{star.BP_RP_error}}</td>
+             <td>{{star.Jmag}}</td>
+             <td>{{star.Hmag}}</td>
+             <td>{{star.Kmag}}</td>
+             <td>{{star.Reddening_BP_RP}}</td>
+             <td>{{star.Extinction_G}}</td>
+             <td>{{star.Distance}}</td>
+             <td>{{star.Teff}}</td>
+             <td>{{star.logg}}</td>
+             <td>{{star.Fe_H}}</td>
+             <td>{{star.RUWE}}</td>
+             <td>{{star.Separation}}</td>
+         </tr>
+         {% empty %}
+            <tr>
+          <td colspan="15">
+            No nearby stars identified
+          </td>
+        </tr>
+         {% endfor %}
+         </tbody>
+     </table>
+
+</div>

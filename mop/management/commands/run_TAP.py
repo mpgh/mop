@@ -5,6 +5,7 @@ from astropy.time import Time, TimeDelta
 from mop.toolbox import TAP
 from mop.toolbox import obs_control
 from mop.toolbox import omegaII_strategy
+from mop.toolbox import interferometry_prediction
 import datetime
 import json
 import numpy as np
@@ -197,6 +198,9 @@ class Command(BaseCommand):
                     if observe_spectro:
                         if (event.extra_fields['Spectras']<1) & (event.extra_fields['Observing_mode'] != 'No'):
                             obs_control.build_and_submit_regular_spectro(event)
+
+                    ### Inteferometry
+                    evaluate_target_for_interferometry(event)
 
                 except:
                     print('Can not perform TAP for this target')
