@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import MultipleObjectsReturned
 from tom_alerts.alerts import GenericBroker, GenericQueryForm
 from django import forms
 from django.db.utils import IntegrityError
@@ -14,6 +15,7 @@ import numpy as np
 import requests
 from astropy.time import Time, TimezoneInfo
 import logging
+from mop.toolbox import TAP
 
 logger = logging.getLogger(__name__)
 
@@ -38,20 +40,27 @@ class OGLEBroker(GenericBroker):
     name = 'OGLE'
     form = OGLEQueryForm
 
-    def fetch_alerts(self, years = []):
+    def fetch_alerts(self, years = [], events='all'):
         """Fetch data on microlensing events discovered by OGLE"""
 
         # Read the lists of events for the given years
         ogle_events = self.fetch_lens_model_parameters(years)
 
-        #ingest the TOM db
-        list_of_targets = self.ingest_events(ogle_events)
+        # Apply selection of events, if any
+        if str(events).lower() != 'all' and not str(events).isnumeric():
+            event_selection = {}
+            event_selection[events] = ogle_events[events]
+        else:
+            event_selection = ogle_events
 
-        return list_of_targets
+        #ingest the TOM db
+        (list_of_targets, new_targets) = self.ingest_events(event_selection)
+
+        return list_of_targets, new_targets
 
     def fetch_lens_model_parameters(self, years):
         """Method to retrieve the text file of the model parameters for fits by the OGLE survey"""
-        logger.info('OGLE harvester: Fetching event model parameters')
+        logger.info('OGLE harvester: Fetching event model parameters for years '+repr(years))
 
         events = {}
         for year in years:
@@ -78,26 +87,30 @@ class OGLEBroker(GenericBroker):
         logger.info('OGLE harvester: ingesting events')
 
         list_of_targets = []
+        new_targets = []
 
         for event_name, event_params in ogle_events.items():
-            s = SkyCoord(event_params[0], event_params[1], unit=(unit.hourangle, unit.deg), frame='icrs')
-            try:
+
+            qs = Target.objects.filter(name=event_name)
+
+            if len(qs) == 0:
+                s = SkyCoord(event_params[0], event_params[1], unit=(unit.hourangle, unit.deg), frame='icrs')
                 target, created = Target.objects.get_or_create(name=event_name, ra=s.ra.deg, dec=s.dec.deg,
                                                            type='SIDEREAL', epoch=2000)
                 if created:
                     target.save()
+                    TAP.set_target_sky_location(target)
                     logger.info('OGLE harvester: added event '+event_name+' to MOP')
-                else:
-                    logger.info('OGLE harvester: event ' + event_name + ' already known to MOP')
+                    new_targets.append(target)
+            else:
+                logger.info('OGLE harvester: found ' + str(qs.count()) + ' targets with name ' + event_name)
+                target = qs[0]
 
-            except IntegrityError:
-                logger.info('OGLE harvester: event ' + event_name + ' already known to MOP')
-                
             list_of_targets.append(target)
 
-        logger.info('OGLE harvester: completed ingest of events')
+        logger.info('OGLE harvester: completed ingest of events, including ' + str(len(new_targets)) + ' new targets')
 
-        return list_of_targets
+        return list_of_targets, new_targets
 
     def find_and_ingest_photometry(self, targets):
         current_year = str(int(Time.now().byear))
@@ -107,12 +120,22 @@ class OGLEBroker(GenericBroker):
             year = target.name.split('-')[1]
             event = target.name.split('-')[2]+'-'+target.name.split('-')[3]
 
+            (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
+
             # Only harvest the photometry for the current year's events, since
-            # it will not otherwise be updating
+            # it will not otherwise be updating.  Also check to see if the latest
+            # datapoint is more recent than those data already ingested, to minimize
+            # runtime.
             if year == current_year:
                 photometry = self.read_ogle_lightcurve(target)
-                status = self.ingest_ogle_photometry(target, photometry)
-                logger.info('OGLE harvester: read and ingested photometry for event '+target.name)
+                if photometry[-1][0] > t_last_jd:
+                    status = self.ingest_ogle_photometry(target, photometry)
+                    logger.info('OGLE harvester: read and ingested photometry for event '+target.name)
+                else:
+                    logger.info('OGLE harvester: most recent photometry for event '
+                                +target.name+' ('+str(photometry[-1][0])+') already ingested')
+                    extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
+                    target.save(extras=extras)
 
         logger.info('OGLE harvester: Completed ingest of photometry')
 
@@ -144,19 +167,66 @@ class OGLEBroker(GenericBroker):
                     'filter': 'OGLE_I',
                     'error': photometry[i][2]
                     }
+            try:
+                rd, created = ReducedDatum.objects.get_or_create(
+                    timestamp=jd.to_datetime(timezone=TimezoneInfo()),
+                    value=datum,
+                    source_name='OGLE',
+                    source_location=target.name,
+                    data_type='photometry',
+                    target=target)
 
-            rd, created = ReducedDatum.objects.get_or_create(
-                timestamp=jd.to_datetime(timezone=TimezoneInfo()),
-                value=datum,
-                source_name='OGLE',
-                source_location=target.name,
-                data_type='photometry',
-                target=target)
+                if created:
+                    rd.save()
 
-            if created:
-                rd.save()
+            except MultipleObjectsReturned:
+                logger.error('OGLE HARVESTER: Found duplicated data for event '+target.name)
+
+        (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
+        extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
+        target.save(extras=extras)
 
         return 'OK'
+
+    def sort_target_list(self, list_of_targets):
+        name_list = np.array([x.name for x in list_of_targets])
+        order = np.argsort(name_list)
+        order = order[::-1]
+        return (np.array(list_of_targets)[order]).tolist()
+
+    def select_random_targets(self, list_of_targets, new_targets, ntargets=100):
+
+        target_index = np.random.randint(0,len(list_of_targets)-1, size=ntargets)
+
+        # Numpy's random routines don't provide a sample with no unique entries,
+        # so filter for that and fill in the gaps.
+        target_index = np.unique(target_index)
+
+        max_iter = 10
+        i = 0
+        while(len(target_index) < ntargets) and (i <= max_iter):
+            i += 1
+            idx = np.random.randint(0,len(list_of_targets), size=1)[0]
+            if idx not in target_index:
+                target_index = np.append(target_index, idx)
+
+        random_targets = (np.array(list_of_targets)[target_index]).tolist()
+
+        # If a subset of events has been requested, priorities the new targets first, up to the maximum number allowed
+        event_list = []
+        i = 0
+        while (len(event_list) < ntargets) and (i < len(new_targets)):
+            event_list.append(new_targets[i])
+            i += 1
+
+        # If there is any space left, add existing events to the selection
+        i = 0
+        if len(event_list) < ntargets:
+            while (len(event_list) < ntargets) and (i < len(random_targets)):
+                event_list.append(random_targets[i])
+                i += 1
+
+        return np.array(event_list)
 
     def to_generic_alert(self, alert):
         pass

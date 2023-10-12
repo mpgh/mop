@@ -45,10 +45,9 @@ def filter_duplicated_observations(configs):
     been submitted and is still active.  If this is the case, the superfluous configuration
     is removed from the list; otherwise the list is returned unchanged.
     """
-
     new_configs = []
     for conf in configs:
-        need_to_submit = check_pending_observations(conf['group_id'], 'PENDING')
+        need_to_submit = check_pending_observations(conf['group_id'][0], 'PENDING')
         if need_to_submit:
             new_configs.append(conf)
 

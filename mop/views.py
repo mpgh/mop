@@ -4,11 +4,15 @@ from django.core.management import call_command
 from io import StringIO
 from tom_targets.views import TargetDetailView
 from tom_targets.models import Target, TargetExtra
-
+from mop.toolbox.TAP import set_target_sky_location
 
 class MOPTargetDetailView(TargetDetailView):
 
     def get(self, request, *args, **kwargs):
+        # Ensure that the target's location flag is set
+        target = self.get_object()
+        set_target_sky_location(target)
+
         fit_event = request.GET.get('fit_event', False)
         if fit_event:
             target_id = self.get_object().id

@@ -1,6 +1,12 @@
 from django.test import TestCase
-
+from tom_targets.tests.factories import SiderealTargetFactory
+from tom_dataproducts.models import ReducedDatum
+from .test_fittools import generate_test_ReducedDatums
 from mop.toolbox import TAP
+from astropy.time import Time, TimeDelta
+from astropy import units as u
+import numpy as np
+from datetime import datetime
 
 class TestObservingMode(TestCase):
     def setUp(self):
@@ -70,3 +76,54 @@ class TestEventLocation(TestCase):
         for config in self.params:
             status = TAP.event_not_in_OMEGA_II(config['test'][0], config['test'][1], self.kmtnet_fields)
             assert (status == config['expect'])
+
+class TestLightcurveData(TestCase):
+    def setUp(self):
+        st1 = SiderealTargetFactory.create()
+        tel_configs = {
+            'I': [2000, 18.0, 0.01,
+                  Time('2023-08-01T00:00:00.0', format='isot'),
+                  TimeDelta(0.25*u.day)],
+            'G': [100, 17.5, 0.005,
+                  Time('2023-08-01T00:00:00.0', format='isot'),
+                  TimeDelta(1.0*u.day)]
+        }
+
+        self.params = {
+            'target': st1,
+            'tel_configs': tel_configs
+        }
+
+        # Use this configuration to generate some photometry datapoints for testing
+        photometry = generate_test_ReducedDatums(self.params['target'], self.params['tel_configs'])
+
+    def test_TAP_time_last_datapoint(self):
+        # Retrieve the photometry for the test target.  Note that we retrieve it here rather than
+        # pass the photometry array into the test because the DB applies a TimeZone correction
+        # which adjusts the datapoints.  So the timestamps of the ReducedDatums are slightly different.
+        photometry = ReducedDatum.objects.filter(target=self.params['target'])
+
+        # Review timestamps of generated data
+        ts = [Time(rd.timestamp, format='datetime').jd for rd in photometry if rd.data_type == 'photometry']
+        ts = np.array(ts)
+        idx = np.argsort(ts)
+        expected_t_last = ts.max()
+
+        # Calculate the timestamp of the latest datapoint
+        (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(self.params['target'])
+
+        # Expect a floating point number in Julian Date, and a Time object
+        tnow = datetime.utcnow()
+        assert(t_last_jd > 2450000.0)
+        assert(type(t_last_date) == type(tnow))
+
+        # Test the correct most-recent timestamp is returned
+        assert(t_last_jd == expected_t_last)
+
+        # Now test to see what happens for a new target with no photometry
+        st2 = SiderealTargetFactory.create()
+        (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(st2)
+
+        # This should still return a floating point JD and datetime, but for a much earlier date
+        assert (t_last_jd > 2440000.0)
+        assert (type(t_last_date) == type(tnow))

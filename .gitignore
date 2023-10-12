@@ -10,3 +10,7 @@ helm-chart/charts/*.tgz
 
 # Django files
 local_settings*
+
+# Any local datafiles
+data/star*csv
+data/*ogle*

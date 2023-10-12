@@ -8,6 +8,7 @@ from astropy.time import Time, TimezoneInfo
 
 from tom_dataproducts.data_processor import DataProcessor
 from tom_dataproducts.exceptions import InvalidFileFormatException
+from mop.toolbox import TAP
 
 # This is a custom processor made for AWS S3 bucket compliance
 

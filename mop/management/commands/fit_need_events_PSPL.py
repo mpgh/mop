@@ -8,125 +8,82 @@ from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
 from django.db.models import Q
 import numpy as np
-from mop.toolbox import logs
 import traceback
 import datetime
 import random
 import json
 import sys
 import os
+import logging
 
+logger = logging.getLogger(__name__)
 
-def run_fit(target, cores):
-    print(f'Working on {target.name}')
-
-    # Start logging process:
-    log = logs.start_log()
-    log.info('Fitting needed event: '+target.name)
+def run_fit(target, cores=0):
+    logger.info('Fitting event: '+target.name)
 
     try:
-       if 'Gaia' in target.name:
+        if 'Gaia' in target.name:
 
-           gaia_mop.update_gaia_errors(target)
+            gaia_mop.update_gaia_errors(target)
 
-       # Add photometry model
+        # Add photometry model
 
-       if 'Microlensing' not in target.extra_fields['Classification']:
-           alive = False
+        if 'Microlensing' not in target.extra_fields['Classification']:
+            alive = False
 
-           extras = {'Alive':alive}
-           target.save(extras = extras)
+            extras = {'Alive':alive}
+            target.save(extras = extras)
 
-       else:
+        else:
 
+            # Retrieve all available ReducedDatum entries for this target.  Note that this may include data
+            # other than lightcurve photometry, so the data are then filtered and repackaged for later
+            # convenience
+            red_data = ReducedDatum.objects.filter(target=target).order_by("timestamp")
 
-           datasets = ReducedDatum.objects.filter(target=target)
-           time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
+            (datasets, ndata) = fittools.repackage_lightcurves(red_data)
 
-           phot = []
-           for data in datasets:
-               if data.data_type == 'photometry':
-                  try:
-                       phot.append([data.value['magnitude'],data.value['error'],data.value['filter']])
+            logger.info('FIT: Found '+str(len(datasets))+' datasets and a total of '
+                        +str(ndata)+' datapoints to model for event '+target.name)
 
-                  except:
-                       # Weights == 1
-                       phot.append([data.value['magnitude'],1,data.value['filter']])
+            if ndata > 10:
+                (model_params, model_telescope) = fittools.fit_pspl_omega2(target.ra, target.dec, datasets)
+                logger.info('FIT: completed modeling process for '+target.name)
 
+                # Store model lightcurve
+                if model_telescope:
+                    fittools.store_model_lightcurve(target, model_telescope)
+                    logger.info('FIT: Stored model lightcurve for event '+target.name)
+                else:
+                    logger.warning('FIT: No valid model fit produced so not model lightcurve for event '+target.name)
 
-           photometry = np.c_[time,phot]
+                # Determine whether or not an event is still active based on the
+                # current time relative to its t0 and tE
+                alive = fittools.check_event_alive(model_params['t0'], model_params['tE'])
 
-           t0_fit, u0_fit, tE_fit, piEN_fit, piEE_fit, mag_source_fit, mag_blend_fit, mag_baseline_fit, cov, model, chi2_fit, red_chi2, sw_test, ad_test, ks_test = fittools.fit_pspl_omega2(target.ra, target.dec, photometry)
+                # Store model parameters
+                last_fit = Time(datetime.datetime.utcnow()).jd
 
-           # Add photometry model
+                extras = {'Alive':alive, 'Last_fit': last_fit}
+                store_keys = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error',
+                              'piEN', 'piEN_error', 'piEE', 'piEE_error',
+                              'Source_magnitude', 'Source_mag_error',
+                              'Blend_magnitude', 'Blend_mag_error',
+                              'Baseline_magnitude', 'Baseline_mag_error',
+                              'Fit_covariance', 'chi2', 'red_chi2',
+                              'KS_test', 'AD_test', 'SW_test']
+                for key in store_keys:
+                    extras[key] = model_params[key]
+                logger.info('Fitted parameters for '+target.name+': '+repr(extras))
 
-           model_time = datetime.datetime.strptime('2018-06-29 08:15:27.243860', '%Y-%m-%d %H:%M:%S.%f')
-           data = {'lc_model_time': model.lightcurve_magnitude[:,0].tolist(),
-           'lc_model_magnitude': model.lightcurve_magnitude[:,1].tolist()
-                   }
-           existing_model =   ReducedDatum.objects.filter(source_name='MOP',data_type='lc_model',
-                                                         timestamp=model_time,source_location=target.name)
+                target.save(extras = extras)
+                logger.info('FIT: Stored model parameters for event ' + target.name)
 
-
-           if existing_model.count() == 0:
-               rd, created = ReducedDatum.objects.get_or_create(
-                                                                   timestamp=model_time,
-                                                                   value=data,
-                                                                   source_name='MOP',
-                                                                   source_location=target.name,
-                                                                   data_type='lc_model',
-                                                                   target=target)
-
-               rd.save()
-
-           else:
-               rd, created = ReducedDatum.objects.update_or_create(
-                                                                   timestamp=existing_model[0].timestamp,
-                                                                   value=existing_model[0].value,
-                                                                   source_name='MOP',
-                                                                   source_location=target.name,
-                                                                   data_type='lc_model',
-                                                                   target=target,
-                                                                   defaults={'value':data})
-
-               rd.save()
-
-
-           time_now = Time(datetime.datetime.now()).jd
-           how_many_tE = (time_now-t0_fit)/tE_fit
-
-
-           if how_many_tE>2:
-
-              alive = False
-
-           else:
-
-              alive = True
-
-           last_fit = Time(datetime.datetime.utcnow()).jd
-
-
-           extras = {'Alive':alive, 't0':t0_fit,'u0':u0_fit,'tE':tE_fit,
-                         'piEN':piEN_fit,'piEE':piEE_fit,
-                         'Source_magnitude':mag_source_fit,
-                         'Blend_magnitude':mag_blend_fit,
-                         'Baseline_magnitude':mag_baseline_fit,
-                         'Fit_covariance':json.dumps(cov.tolist()),
-                         'chi2':chi2_fit,
-                         'red_chi2': red_chi2,
-                         'Last_Fit':last_fit}
-           log.info('Fitted parameters for '+target.name+': '+repr(extras))
-
-           target.save(extras = extras)
-
-       logs.stop_log(log)
+            else:
+                logger.info('Insufficient lightcurve data available to model event '+target.name)
 
     except:
-        print(f'Job failed: {target.name}')
-        logs.info(f'ERROR: Job failed: {target.name}')
-        traceback.print_exc()
-        logs.stop_log(log)
+        logger.error('Job failed: '+target.name)
         return None
 
 class Command(BaseCommand):
@@ -181,7 +138,7 @@ class Command(BaseCommand):
                 queryset = queryset.filter(targetextra__in=TargetExtra.objects.filter(key='Alive', value=True))
 
                 # Inform the user how much work is left in the queue
-                print('Target(s) remaining in processing queue:', queryset.count())
+                logger.info('Target(s) remaining in processing queue: '+str(queryset.count()))
 
                 # Retrieve the first element which meets the condition
                 element = queryset.first()
@@ -214,7 +171,7 @@ class Command(BaseCommand):
             # If there are no more objects left to process, then the job is finished.
             # Inform Kubernetes of this fact by exiting successfully.
             if element is None:
-                print('Job is finished, no more objects left to process! Goodbye!')
+                logger.info('Job is finished, no more objects left to process! Goodbye!')
                 sys.exit(0)
 
             # Now we know for sure we have an element to process, and we haven't locked

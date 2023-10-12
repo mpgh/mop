@@ -6,7 +6,7 @@ from datetime import datetime
 from astropy import units
 from astropy.io import fits
 from astropy.io import ascii 
-from astropy.time import Time
+from astropy.time import Time, TimezoneInfo
 from astropy.wcs import WCS
 from specutils import Spectrum1D
 
@@ -34,15 +34,15 @@ class SpectroscopyProcessor(DataProcessor):
 
         mimetype = mimetypes.guess_type(data_product.data.name)[0]
         if mimetype in self.FITS_MIMETYPES:
-            spectrum, obs_date = self._process_spectrum_from_fits(data_product)
+            spectrum, obs_date, facility_name = self._process_spectrum_from_fits(data_product)
         elif mimetype in self.PLAINTEXT_MIMETYPES:
-            spectrum, obs_date = self._process_spectrum_from_plaintext(data_product)
+            spectrum, obs_date, facility_name = self._process_spectrum_from_plaintext(data_product)
         else:
             raise InvalidFileFormatException('Unsupported file type')
 
         serialized_spectrum = SpectrumSerializer().serialize(spectrum)
 
-        return [(obs_date, serialized_spectrum)]
+        return [(obs_date, serialized_spectrum, facility_name)]
         
     def _process_spectrum_from_fits(self, data_product):
         """
@@ -67,10 +67,12 @@ class SpectroscopyProcessor(DataProcessor):
             if facility.is_fits_facility(header):
                 flux_constant = facility.get_flux_constant()
                 date_obs = facility.get_date_obs(header)
+                facility_name = facility.name
                 break
         else:
             flux_constant = self.DEFAULT_FLUX_CONSTANT
             date_obs = datetime.now()
+            facility_name = 'Default_facility'
 
         dim = len(flux.shape)
         if dim == 3:
@@ -84,7 +86,7 @@ class SpectroscopyProcessor(DataProcessor):
 
         spectrum = Spectrum1D(flux=flux, wcs=wcs)
 
-        return spectrum, Time(date_obs).to_datetime()
+        return spectrum, Time(date_obs).to_datetime(timezone=TimezoneInfo()), facility_name
 
     def _process_spectrum_from_plaintext(self, data_product):
         """
@@ -111,7 +113,7 @@ class SpectroscopyProcessor(DataProcessor):
         data_aws = default_storage.open(data_product.data.name, 'r')
 
         data = ascii.read(data_aws.read(),names=['wavelength','flux'])
-        
+
         if len(data) < 1:
             raise InvalidFileFormatException('Empty table or invalid file type')
         facility_name = None
@@ -132,4 +134,4 @@ class SpectroscopyProcessor(DataProcessor):
         flux = np.array(data['flux']) * flux_constant
         spectrum = Spectrum1D(flux=flux, spectral_axis=spectral_axis)
 
-        return spectrum, Time(date_obs).to_datetime()
+        return spectrum, Time(date_obs).to_datetime(timezone=TimezoneInfo()), facility_name

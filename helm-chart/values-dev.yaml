@@ -51,6 +51,7 @@ ingress:
         - "/"
 
 # CronJob: Fit Alive Events
+# WARNING: This process doesn't parallelize
 fitaliveevents:
   enabled: true
   cores: 3

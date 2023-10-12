@@ -5,7 +5,7 @@ from tom_dataproducts.models import ReducedDatum
 from tom_targets.models import Target
 from astropy import units as u
 from astropy.coordinates import Angle
-from astropy.time import Time
+from astropy.time import Time, TimezoneInfo
 import datetime
 import numpy as np
 from pyLIMA import event
@@ -83,8 +83,11 @@ def calculate_exptime_omega_sdss_i(magin):
 
 def event_in_the_Bulge(ra,dec):
 
-    Bulge_limits = [[255,275],[-36,-22]]
+    # Ensure the RA and Dec passed are floats
+    ra = float(ra)
+    dec = float(dec)
 
+    Bulge_limits = [[255,275],[-36,-22]]
     if (ra>Bulge_limits[0][0]) & (ra<Bulge_limits[0][1]) & (dec>Bulge_limits[1][0]) & (dec<Bulge_limits[1][1]):
         in_the_Bulge = True
     else:
@@ -92,6 +95,15 @@ def event_in_the_Bulge(ra,dec):
         in_the_Bulge = False
 
     return in_the_Bulge
+
+def set_target_sky_location(target):
+    """Function to determine whether or not a given target lies within the High Cadence Zone of the Galactic Bulge"""
+    event_not_in_OMEGA_II = event_in_the_Bulge(target.ra, target.dec)
+    if event_not_in_OMEGA_II:
+        sky_location = 'In HCZ'
+    else:
+        sky_location = 'Outside HCZ'
+    target.save(extras={'Sky_location': sky_location})
 
 def psi_derivatives_squared(t,te,u0,t0):
     """if you prefer to have the derivatives for a simple
@@ -393,15 +405,29 @@ def TAP_long_event_priority_error(t_E, covariance):
     return err_psi
 
 def TAP_time_last_datapoint(target):
-     """
-     Returns time of the latest datapoint in the lightcurve.
-     """
-     datasets = ReducedDatum.objects.filter(target=target)
-     time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
-     sorted_time = np.sort(time)
-     t_last = sorted_time[-1]
+    """
+    Returns time of the latest datapoint in the lightcurve.  If no photometry for this target is available,
+    this function returns a default timestamp for 1995-01-01.  This is done to indicate that any subsequent
+    photometry should be considered to be more recent and therefore ingested.
+    """
+    datasets = ReducedDatum.objects.filter(target=target).order_by('timestamp')
 
-     return t_last
+    # If there is existing photometry for this object, identify the most recent datapoint
+    if datasets.count() > 0:
+        time = [Time(i.timestamp, format='datetime').jd for i in datasets if i.data_type == 'photometry']
+
+        last_jd = time[-1]
+        last_ts = Time(last_jd, format='jd').to_datetime(timezone=TimezoneInfo())
+
+    # If there is no photometry for this target, return a default timestamp a long time ago
+    # so that any photometry that subsequently becomes available will be more recent and MOP will
+    # therefore know it should be ingested
+    else:
+        default_t = Time('1995-01-01T00:00:00.0', format='isot')
+        last_jd = default_t.jd
+        last_ts = default_t.tt.datetime
+
+    return last_jd, last_ts
 
 def categorize_event_timescale(target, threshold=75.0):
     """
