@@ -98,8 +98,12 @@ def event_in_the_Bulge(ra,dec):
 
 def set_target_sky_location(target):
     """Function to determine whether or not a given target lies within the High Cadence Zone of the Galactic Bulge"""
-    event_not_in_OMEGA_II = event_in_the_Bulge(target.ra, target.dec)
-    if event_not_in_OMEGA_II:
+
+    KMTNet_fields = load_KMTNet_fields()
+
+    event_status = event_not_in_OMEGA_II(target.ra, target.dec, KMTNet_fields)
+
+    if event_status:
         sky_location = 'In HCZ'
     else:
         sky_location = 'Outside HCZ'
