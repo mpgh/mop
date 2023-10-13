@@ -29,46 +29,67 @@ def find_companion_stars(target, star_catalog):
     for inteferometry.  """
 
     # Identifies stars with valid photometry in all passbands
-    mask = ~star_catalog[0]['Gmag'].data.mask & ~star_catalog[0]['BP-RP'].data.mask
+    try:
+        mask = ~star_catalog[0]['Gmag'].data.mask & ~star_catalog[0]['BP-RP'].data.mask
 
-    # For this subset of stars, calculates the angular separation between each star and the target
-    # Note: this is the wrong formula
-    star = SkyCoord(target.ra, target.dec, frame='icrs', unit=(u.deg, u.deg))
-    neighbours = SkyCoord(star_catalog[0][mask]['RA_ICRS'].data.data,
-                          star_catalog[0][mask]['DE_ICRS'].data.data,
-                          frame='icrs', unit=(u.deg, u.deg))
-    separations = star.separation(neighbours)
+        # For this subset of stars, calculates the angular separation between each star and the target
+        # Note: this is the wrong formula
+        star = SkyCoord(target.ra, target.dec, frame='icrs', unit=(u.deg, u.deg))
+        neighbours = SkyCoord(star_catalog[0][mask]['RA_ICRS'].data.data,
+                              star_catalog[0][mask]['DE_ICRS'].data.data,
+                              frame='icrs', unit=(u.deg, u.deg))
+        separations = star.separation(neighbours)
 
-    # Sort into order of ascending distance from the target:
-    index = np.argsort(separations)
+        # Sort into order of ascending distance from the target:
+        index = np.argsort(separations)
 
-    # Estimate photometric uncertainties on Gaia photometry
-    BPmag_error = unmask_column(star_catalog[0][mask]['e_BPmag'][index])
-    RPmag_error = unmask_column(star_catalog[0][mask]['e_RPmag'][index])
-    BPRP_error = np.sqrt( BPmag_error*BPmag_error + RPmag_error*RPmag_error )
+        # Estimate photometric uncertainties on Gaia photometry
+        BPmag_error = unmask_column(star_catalog[0][mask]['e_BPmag'][index])
+        RPmag_error = unmask_column(star_catalog[0][mask]['e_RPmag'][index])
+        BPRP_error = np.sqrt( BPmag_error*BPmag_error + RPmag_error*RPmag_error )
 
-    # Returns lists of the star subset's photometry in order of ascending distance from
-    # the target
-    column_list = [
-        Column(name='Gaia_Source_ID', data=star_catalog[0][mask]['Source'][index]),
-        Column(name='Gmag', data=unmask_column(star_catalog[0][mask]['Gmag'][index])),
-        Column(name='Gmag_error', data=unmask_column(star_catalog[0][mask]['e_Gmag'][index])),
-        Column(name='BPmag', data=unmask_column(star_catalog[0][mask]['BPmag'][index])),
-        Column(name='BPmag_error', data=BPmag_error),
-        Column(name='RPmag', data=unmask_column(star_catalog[0][mask]['RPmag'][index])),
-        Column(name='RPmag_error', data=RPmag_error),
-        Column(name='BP-RP', data=unmask_column(star_catalog[0][mask]['BP-RP'][index])),
-        Column(name='BP-RP_error', data=BPRP_error),
-        Column(name='Reddening(BP-RP)', data=unmask_column(star_catalog[0][mask]['E_BP-RP_'][index])),
-        Column(name='Extinction_G', data=unmask_column(star_catalog[0][mask]['AG'][index])),
-        Column(name='Distance', data=unmask_column(star_catalog[0][mask]['Dist'][index])),
-        Column(name='Teff', data=unmask_column(star_catalog[0][mask]['Teff'][index])),
-        Column(name='logg', data=unmask_column(star_catalog[0][mask]['logg'][index])),
-        Column(name='[Fe/H]', data=unmask_column(star_catalog[0][mask]['__Fe_H_'][index])),
-        Column(name='RUWE', data=unmask_column(star_catalog[0][mask]['RUWE'][index])),
-        Column(name='Separation', data=separations[index])
-    ]
-
+        # Returns lists of the star subset's photometry in order of ascending distance from
+        # the target
+        column_list = [
+            Column(name='Gaia_Source_ID', data=star_catalog[0][mask]['Source'][index]),
+            Column(name='Gmag', data=unmask_column(star_catalog[0][mask]['Gmag'][index])),
+            Column(name='Gmag_error', data=unmask_column(star_catalog[0][mask]['e_Gmag'][index])),
+            Column(name='BPmag', data=unmask_column(star_catalog[0][mask]['BPmag'][index])),
+            Column(name='BPmag_error', data=BPmag_error),
+            Column(name='RPmag', data=unmask_column(star_catalog[0][mask]['RPmag'][index])),
+            Column(name='RPmag_error', data=RPmag_error),
+            Column(name='BP-RP', data=unmask_column(star_catalog[0][mask]['BP-RP'][index])),
+            Column(name='BP-RP_error', data=BPRP_error),
+            Column(name='Reddening(BP-RP)', data=unmask_column(star_catalog[0][mask]['E_BP-RP_'][index])),
+            Column(name='Extinction_G', data=unmask_column(star_catalog[0][mask]['AG'][index])),
+            Column(name='Distance', data=unmask_column(star_catalog[0][mask]['Dist'][index])),
+            Column(name='Teff', data=unmask_column(star_catalog[0][mask]['Teff'][index])),
+            Column(name='logg', data=unmask_column(star_catalog[0][mask]['logg'][index])),
+            Column(name='[Fe/H]', data=unmask_column(star_catalog[0][mask]['__Fe_H_'][index])),
+            Column(name='RUWE', data=unmask_column(star_catalog[0][mask]['RUWE'][index])),
+            Column(name='Separation', data=separations[index])
+        ]
+    except IndexError:
+        column_list = [
+            Column(name='Gaia_Source_ID', data=np.array([])),
+            Column(name='Gmag', data=np.array([])),
+            Column(name='Gmag_error', data=unp.array([])),
+            Column(name='BPmag', data=np.array([])),
+            Column(name='BPmag_error', data=np.array([])),
+            Column(name='RPmag', data=np.array([])),
+            Column(name='RPmag_error', data=np.array([])),
+            Column(name='BP-RP', data=np.array([])),
+            Column(name='BP-RP_error', data=np.array([])),
+            Column(name='Reddening(BP-RP)', data=np.array([])),
+            Column(name='Extinction_G', data=np.array([])),
+            Column(name='Distance', data=np.array([])),
+            Column(name='Teff', data=np.array([])),
+            Column(name='logg', data=np.array([])),
+            Column(name='[Fe/H]', data=np.array([])),
+            Column(name='RUWE', data=np.array([])),
+            Column(name='Separation', data=np.array([]))
+        ]
+        
     return Table(column_list)
 
 def convert_Gmag_to_JHK(Gmag,BpRp):
