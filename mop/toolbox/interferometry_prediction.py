@@ -73,7 +73,7 @@ def find_companion_stars(target, star_catalog):
         column_list = [
             Column(name='Gaia_Source_ID', data=np.array([])),
             Column(name='Gmag', data=np.array([])),
-            Column(name='Gmag_error', data=unp.array([])),
+            Column(name='Gmag_error', data=np.array([])),
             Column(name='BPmag', data=np.array([])),
             Column(name='BPmag_error', data=np.array([])),
             Column(name='RPmag', data=np.array([])),
@@ -89,7 +89,7 @@ def find_companion_stars(target, star_catalog):
             Column(name='RUWE', data=np.array([])),
             Column(name='Separation', data=np.array([]))
         ]
-        
+
     return Table(column_list)
 
 def convert_Gmag_to_JHK(Gmag,BpRp):
