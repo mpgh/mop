@@ -287,80 +287,89 @@ def evaluate_target_for_interferometry(target):
     # The neighbours table is order in ascending separation from the target coordinates,
     # so the target should be the first entry.  Extract the target's Gaia photometry and estimate
     # the uncertainties
-    G_lens = neighbours['Gmag'][0]
-    BPRP_lens = neighbours['BP-RP'][0]
-    G_lens_error = estimate_target_Gaia_phot_uncertainties(G_lens, u0, u0_error)
-    logger.info('INTERFERO: Calculated uncertainties Gmag=' + str(G_lens)
-                + '+/-' + str(G_lens_error) + 'mag')
+    if len(neighbours) > 0:
+        G_lens = neighbours['Gmag'][0]
+        BPRP_lens = neighbours['BP-RP'][0]
+        G_lens_error = estimate_target_Gaia_phot_uncertainties(G_lens, u0, u0_error)
+        logger.info('INTERFERO: Calculated uncertainties Gmag=' + str(G_lens)
+                    + '+/-' + str(G_lens_error) + 'mag')
 
-    # Predict the NIR photometry of all stars in the region
-    (J, H, K) = convert_Gmag_to_JHK(neighbours['Gmag'], neighbours['BP-RP'])
-    logger.info('INTERFERO: Computed JHK photometry for neighbouring stars')
+        # Predict the NIR photometry of all stars in the region
+        (J, H, K) = convert_Gmag_to_JHK(neighbours['Gmag'], neighbours['BP-RP'])
+        logger.info('INTERFERO: Computed JHK photometry for neighbouring stars')
 
-    # Evaluate whether this target is suitable for inteferometry
-    (mode, guide) = interferometry_decision(G_lens, BPRP_lens, np.array(K.data)[1:])
-    logger.info('INTERFERO: Evaluation for interferometry for ' + target.name + ': ' + str(mode) + ' guide=' + str(guide))
+        # Evaluate whether this target is suitable for inteferometry
+        (mode, guide) = interferometry_decision(G_lens, BPRP_lens, np.array(K.data)[1:])
+        logger.info('INTERFERO: Evaluation for interferometry for ' + target.name + ': ' + str(mode) + ' guide=' + str(guide))
 
-    # Store the results
-    extras = {
-            'Gaia_Source_ID': neighbours['Gaia_Source_ID'][0],
-            'Gmag': G_lens, 'Gmag_error': G_lens_error,
-            'RPmag': neighbours['RPmag'][0], 'RPmag_error': neighbours['RPmag_error'][0],
-            'BPmag': neighbours['BPmag'][0], 'BPmag_error': neighbours['BPmag_error'][0],
-            'BP-RP': BPRP_lens, 'BP-RP_error': neighbours['BP-RP_error'][0],
-            'Reddening(BP-RP)': neighbours['Reddening(BP-RP)'][0],
-            'Extinction_G': neighbours['Extinction_G'][0],
-            'Distance': neighbours['Distance'][0],
-            'Teff': neighbours['Teff'][0],
-            'logg': neighbours['logg'][0],
-            '[Fe/H]': neighbours['[Fe/H]'][0],
-            'RUWE': neighbours['RUWE'][0],
-            'Interferometry_mode': mode,
-            'Interferometry_guide_star': guide,
-            'Mag_peak_J': J[0],
-            'Mag_peak_H': H[0],
-            'Mag_peak_K': K[0],
-              }
-    target.save(extras=extras)
+        # Store the results
+        extras = {
+                'Gaia_Source_ID': neighbours['Gaia_Source_ID'][0],
+                'Gmag': G_lens, 'Gmag_error': G_lens_error,
+                'RPmag': neighbours['RPmag'][0], 'RPmag_error': neighbours['RPmag_error'][0],
+                'BPmag': neighbours['BPmag'][0], 'BPmag_error': neighbours['BPmag_error'][0],
+                'BP-RP': BPRP_lens, 'BP-RP_error': neighbours['BP-RP_error'][0],
+                'Reddening(BP-RP)': neighbours['Reddening(BP-RP)'][0],
+                'Extinction_G': neighbours['Extinction_G'][0],
+                'Distance': neighbours['Distance'][0],
+                'Teff': neighbours['Teff'][0],
+                'logg': neighbours['logg'][0],
+                '[Fe/H]': neighbours['[Fe/H]'][0],
+                'RUWE': neighbours['RUWE'][0],
+                'Interferometry_mode': mode,
+                'Interferometry_guide_star': guide,
+                'Mag_peak_J': J[0],
+                'Mag_peak_H': H[0],
+                'Mag_peak_K': K[0],
+                  }
+        target.save(extras=extras)
 
-    # Repackage data into a convenient form for storage
-    datum = {
-        'Gaia_Source_ID': [str(x) for x in neighbours['Gaia_Source_ID']],
-        'Gmag': [x for x in neighbours['Gmag']],
-        'Gmag_error': [x for x in neighbours['Gmag_error']],
-        'BPmag' : [x for x in neighbours['BPmag']],
-        'BPmag_error' : [x for x in neighbours['BPmag_error']],
-        'RPmag' : [x for x in neighbours['RPmag']],
-        'RPmag_error' : [x for x in neighbours['RPmag_error']],
-        'BP-RP': [x for x in neighbours['BP-RP']],
-        'BP-RP_error': [x for x in neighbours['BP-RP_error']],
-        'Jmag': [x for x in J],
-        'Hmag': [x for x in H],
-        'Kmag': [x for x in K],
-        'Reddening(BP-RP)': [x for x in neighbours['Reddening(BP-RP)']],
-        'Extinction_G': [x for x in neighbours['Extinction_G']],
-        'Distance': [x for x in neighbours['Distance']],
-        'Teff': [x for x in neighbours['Teff']],
-        'logg': [x for x in neighbours['logg']],
-        '[Fe/H]': [x for x in neighbours['[Fe/H]']],
-        'RUWE': [x for x in neighbours['RUWE']],
-        'Separation': [x for x in neighbours['Separation']],
-    }
+        # Repackage data into a convenient form for storage
+        datum = {
+            'Gaia_Source_ID': [str(x) for x in neighbours['Gaia_Source_ID']],
+            'Gmag': [x for x in neighbours['Gmag']],
+            'Gmag_error': [x for x in neighbours['Gmag_error']],
+            'BPmag' : [x for x in neighbours['BPmag']],
+            'BPmag_error' : [x for x in neighbours['BPmag_error']],
+            'RPmag' : [x for x in neighbours['RPmag']],
+            'RPmag_error' : [x for x in neighbours['RPmag_error']],
+            'BP-RP': [x for x in neighbours['BP-RP']],
+            'BP-RP_error': [x for x in neighbours['BP-RP_error']],
+            'Jmag': [x for x in J],
+            'Hmag': [x for x in H],
+            'Kmag': [x for x in K],
+            'Reddening(BP-RP)': [x for x in neighbours['Reddening(BP-RP)']],
+            'Extinction_G': [x for x in neighbours['Extinction_G']],
+            'Distance': [x for x in neighbours['Distance']],
+            'Teff': [x for x in neighbours['Teff']],
+            'logg': [x for x in neighbours['logg']],
+            '[Fe/H]': [x for x in neighbours['[Fe/H]']],
+            'RUWE': [x for x in neighbours['RUWE']],
+            'Separation': [x for x in neighbours['Separation']],
+        }
 
-    # To avoid accumulating entries, search for any existing tabular
-    # data for this object and remove it from the DB:
-    qs = ReducedDatum.objects.filter(target=target)
-    for rd in qs:
-        if rd.data_type == 'tabular' and rd.source_name == 'Interferometry_predictor':
-            rd.delete()
+        # To avoid accumulating entries, search for any existing tabular
+        # data for this object and remove it from the DB:
+        qs = ReducedDatum.objects.filter(target=target)
+        for rd in qs:
+            if rd.data_type == 'tabular' and rd.source_name == 'Interferometry_predictor':
+                rd.delete()
 
-    # Now store the tabular results
-    tnow = Time.now()
-    rd, created = ReducedDatum.objects.get_or_create(
-        timestamp=tnow.to_datetime(timezone=TimezoneInfo()),
-        value=datum,
-        source_name='Interferometry_predictor',
-        source_location=target.name,
-        data_type='tabular',
-        target=target)
-    logger.info('INTERFERO: Stored neighbouring star data in MOP')
+        # Now store the tabular results
+        tnow = Time.now()
+        rd, created = ReducedDatum.objects.get_or_create(
+            timestamp=tnow.to_datetime(timezone=TimezoneInfo()),
+            value=datum,
+            source_name='Interferometry_predictor',
+            source_location=target.name,
+            data_type='tabular',
+            target=target)
+        logger.info('INTERFERO: Stored neighbouring star data in MOP')
+
+    else:
+        extras = {
+                'Interferometry_mode': 'No',
+                'Interferometry_guide_star': 0,
+        }
+        target.save(extras=extras)
+        logger.info('INTERFERO: No interferometry possible without neighbouring stars')
