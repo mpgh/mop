@@ -280,7 +280,7 @@ def evaluate_target_for_interferometry(target):
     # Search radius is set by the interferometry requirement to have bright neighbouring stars
     #         # that are accessible to the GRAVITY instrument
     neighbour_radius = Angle(20.0/3600.0, "deg")
-    star_catalog = gaia.query_gaia_dr3(target, radius=neighbour_radius)
+    star_catalog = gaia.query_gaia_dr3(target, radius=neighbour_radius, row_limit=100)
     neighbours = find_companion_stars(target, star_catalog)
     logger.info('INTERFERO: Identified ' + str(len(neighbours)) + ' stars in the neighbourhood of '+target.name)
 
