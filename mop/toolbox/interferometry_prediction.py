@@ -111,23 +111,24 @@ def interferometry_decision(G_lens, BPRP_lens, K_neighbours):
     mode = 'No'
     guide = 0
 
-    g = np.random.normal(G_lens, 0.1, 10000)
-    bprp = np.random.normal(BPRP_lens, 0.1, 10000)
-    (J_lens, K_lens, H_lens) = convert_Gmag_to_JHK(g, bprp)
+    if len(K_neighbours) > 0:
+        g = np.random.normal(G_lens, 0.1, 10000)
+        bprp = np.random.normal(BPRP_lens, 0.1, 10000)
+        (J_lens, K_lens, H_lens) = convert_Gmag_to_JHK(g, bprp)
 
-    percentiles = np.percentile(K_lens,[16,50,84])
-    median = percentiles[1]
-    std = (percentiles[2]-percentiles[0])/2
-    if (median+2*std<10) & (std<1):
+        percentiles = np.percentile(K_lens,[16,50,84])
+        median = percentiles[1]
+        std = (percentiles[2]-percentiles[0])/2
+        if (median+2*std<10) & (std<1):
 
-        mode = 'Single Field'
+            mode = 'Single Field'
 
-    else:
-    
-        if np.min(K_neighbours)<11:
-        
-            mode = 'Dual Field Wide'
-            guide = np.argmin(K_neighbours)
+        else:
+
+            if np.min(K_neighbours)<11:
+
+                mode = 'Dual Field Wide'
+                guide = np.argmin(K_neighbours)
     return mode,guide        
         
             
