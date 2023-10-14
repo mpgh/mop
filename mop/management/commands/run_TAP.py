@@ -3,6 +3,7 @@ from tom_dataproducts.models import ReducedDatum
 from tom_targets.models import Target,TargetExtra,TargetList
 from astropy.time import Time, TimeDelta
 from mop.toolbox import TAP
+from mop.toolbox import TAP_priority
 from mop.toolbox import obs_control
 from mop.toolbox import omegaII_strategy
 from mop.toolbox import interferometry_prediction
@@ -56,6 +57,8 @@ class Command(BaseCommand):
                     t0_pspl = event.extra_fields['t0']
                     u0_pspl = event.extra_fields['u0']
                     tE_pspl = event.extra_fields['tE']
+                    t0_pspl_error = event.extra_fields['t0_error']
+                    tE_pspl_error = event.extra_fields['tE_error']
 
                     covariance = load_covar_matrix(event.extra_fields['Fit_covariance'])
 
@@ -63,8 +66,8 @@ class Command(BaseCommand):
                     category = TAP.categorize_event_timescale(event)
 
                     # Calculate the priority of this event for different science goals
-                    planet_priority = TAP.TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl)
-                    planet_priority_error = TAP.TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance)
+                    planet_priority = TAP_priority.TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl)
+                    planet_priority_error = TAP_priority.TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance)
                     if verbose: print('Planet priority: ',planet_priority, planet_priority_error)
 
                     # ACTION RAS: Need to calculate this if not already available.
@@ -75,8 +78,8 @@ class Command(BaseCommand):
                         t_last = Time.now(jd) - TimeDelta(days=30.0)
                     if verbose: print('Last datapoint: ',t_last)
 
-                    long_priority = TAP.TAP_long_event_priority(time_now, t_last, tE_pspl)
-                    long_priority_error = TAP.TAP_long_event_priority_error(tE_pspl, covariance)
+                    long_priority = TAP_priority.TAP_long_event_priority(time_now, t_last, tE_pspl)
+                    long_priority_error = TAP_priority.TAP_long_event_priority_error(tE_pspl, covariance)
                     if verbose: print('Long tE priority: ',long_priority, long_priority_error)
 
                     # Storing both types of priority as extra_params and also as ReducedDatums so
@@ -156,6 +159,7 @@ class Command(BaseCommand):
                                 if verbose: print('mag_baseline: ', mag_baseline)
                                 observing_mode = TAP.TAP_observing_mode(planet_priority, planet_priority_error,
                                                                     long_priority, long_priority_error,
+                                                                    tE_pspl, tE_pspl_error, t0_pspl, t0_pspl_error,
                                                                     mag_now, mag_baseline)
                             else:
                                 observing_mode = None
