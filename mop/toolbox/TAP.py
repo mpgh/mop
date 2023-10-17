@@ -24,18 +24,17 @@ def TAP_anomaly():
 
 def TAP_observing_mode(planet_priority, planet_priority_error,
                        long_priority, long_priority_error,
-                       t_E, t_E_error, t_0, t_0_error,
-                       mag_now, mag_baseline):
+                       t_E, t_E_error, mag_now, mag_baseline):
 
     if (TAP_priority.check_planet_priority(planet_priority, planet_priority_error, mag_baseline, mag_now)):
         return 'priority_stellar_event'
 
     elif (TAP_priority.check_long_priority(long_priority, long_priority_error,
-                        t_E, t_E_error, t_0, t_0_error, t_now,mag_baselin) == 'priority'):
+                        t_E, t_E_error, mag_baseline) == 'priority'):
         return 'priority_long_event'
 
     elif (TAP_priority.check_long_priority(long_priority, long_priority_error,
-                        t_E, t_E_error, t_0, t_0_error, t_now,mag_baselin) == 'regular')
+                        t_E, t_E_error, mag_baseline) == 'regular')
         return 'regular_long_event'
 
     else:
