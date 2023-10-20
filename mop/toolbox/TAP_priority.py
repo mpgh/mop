@@ -121,10 +121,11 @@ def TAP_long_event_priority(t_now, t_last, t_E, t_E_base = 75.):
         x = (delta_t / t_obs_gap) - t_obs_gap
         psi *= 10. / (1. + np.exp(-x))
 
+        # KK: Boosting turned off, short timescale events were promoted.
         # The event priority should be boosted if it was not
         # observed for more than 10 days and it is a long event.
-        if (delta_t > 10.):
-            psi *= 10.
+        # if (delta_t > 10.):
+        #     psi *= 10.
 
     return psi
 
