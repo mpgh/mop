@@ -1,7 +1,7 @@
 from tom_dataproducts.models import ReducedDatum
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from mop.brokers import gaia
+from mop.brokers import gaia, gsc
 from mop.toolbox import utilities
 import numpy as np
 import matplotlib.pyplot as plt
@@ -262,6 +262,28 @@ def interfero_plot():
     mode,guide = interferometry_decision(K,np.array(KK))
 
     print(mode,guide)
+
+def search_gsc_catalog(target):
+    """
+    Function to search the Guide Star Catalog for suitable stars for Adaptive Optics guides and Fringe Tracking
+    """
+
+    # Perform Vizier catalog search of the GSC
+    gsc_table = gsc.query_gsc(target)
+
+    # If any stars are missing Ks-band magnitudes, attempt to estimate them using calibrations
+    # based on other photometric bands
+    gsc_table = gsc.verify_Ksmag_data(gsc_table)
+
+    # Identify suitable stars to use for AO and FT
+    gsc_table = gsc.select_AO_stars(gsc_table)
+    gsc_table = gsc.select_FT_stars(gsc_table)
+
+    # Create comparative grid of AO-FT star matrix
+    AOFT_table = gsc.create_AOFT_table(gsc_table)
+    AOFT_table = gsc.populate_AOFT_table(gsc_table, AOFT_table)
+
+    return gsc_table, AOFT_table
 
 def evaluate_target_for_interferometry(target):
     """Function to calculate the necessary parameters in order to determine whether this target
