@@ -17,7 +17,7 @@ def query_vizier(target, catalog, column_list, radius=Angle(0.0083, "deg"), row_
         Vizier table
     """
 
-    v = Vizier(columns=columns_list)
+    v = Vizier(columns=column_list)
     v.ROW_LIMIT = row_limit
     coord = SkyCoord(ra=target.ra, dec=target.dec, unit=(u.deg, u.deg), frame='icrs')
     result = v.query_region(coord, radius=radius, catalog=catalog)
