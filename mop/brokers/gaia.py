@@ -40,7 +40,7 @@ def update_gaia_errors(target):
             
             i.save()
 
-def query_gaia_dr3(target, radius=Angle(0.004, "deg"), row_limit=-1):
+def query_gaia_dr3(target, radius=Angle(0.004, "deg"), row_limit=-1, Gmag_max=24.0):
     """Function to query the Gaia DR3 catalog for information on a target and stars nearby"""
 
     gaia_columns_list = ['Source', 'RA_ICRS', 'DE_ICRS',
@@ -52,7 +52,7 @@ def query_gaia_dr3(target, radius=Angle(0.004, "deg"), row_limit=-1):
     v = Vizier(columns=gaia_columns_list)
     v.ROW_LIMIT = row_limit
     coord = SkyCoord(ra=target.ra, dec=target.dec, unit=(u.deg, u.deg), frame='icrs')
-    result = v.query_region(coord, radius=radius, catalog='I/355/gaiadr3')
+    result = v.query_region(coord, radius=radius, catalog='I/355/gaiadr3', column_filters={'Gmag': '<'+str(Gmag_max)})
 
     return result
 
