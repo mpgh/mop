@@ -419,20 +419,22 @@ def store_gsc_search_results(target, gsc_table, AOFT_table):
     # Repackage the table of neighbouring GSC stars
     # Since this is a masked Astropy Table, and JSON serialization doesn't handle masked entries,
     # we need to convert to standard numpy flex values
+    idx = np.where(gsc_table['FTstar'] == 1.0)[0]
+
     datum = {
-        'GSC2': [str(x) for x in gsc_table['GSC2']],
-        'Separation': [(x*3600.0) for x in gsc_table['_r']],    # Convert to arcsec
-        'Jmag': [um(x) for x in gsc_table['Jmag']],
-        'Hmag': [um(x) for x in gsc_table['Hmag']],
-        'Ksmag': [um(x) for x in gsc_table['Ksmag']],
-        'W1mag': [um(x) for x in gsc_table['W1mag']],
-        'RA': [np.float64(x) for x in gsc_table['RA_ICRS']],
-        'Dec': [np.float64(x) for x in gsc_table['DE_ICRS']],
-        'plx': [um(x) for x in gsc_table['plx']],
-        'pmRA': [um(x) for x in gsc_table['pmRA']],
-        'pmDE': [um(x) for x in gsc_table['pmDE']],
-        'AO': [str(bool(x)) for x in gsc_table['AOstar']],       # Convert to boolean
-        'FT': [str(bool(x)) for x in gsc_table['FTstar']],       # Convert to boolean
+        'GSC2': [str(x) for x in gsc_table['GSC2'][idx]],
+        'Separation': [(x*3600.0) for x in gsc_table['_r'][idx]],    # Convert to arcsec
+        'Jmag': [um(x) for x in gsc_table['Jmag'][idx]],
+        'Hmag': [um(x) for x in gsc_table['Hmag'][idx]],
+        'Ksmag': [um(x) for x in gsc_table['Ksmag'][idx]],
+        'W1mag': [um(x) for x in gsc_table['W1mag'][idx]],
+        'RA': [np.float64(x) for x in gsc_table['RA_ICRS'][idx]],
+        'Dec': [np.float64(x) for x in gsc_table['DE_ICRS'][idx]],
+        'plx': [um(x) for x in gsc_table['plx'][idx]],
+        'pmRA': [um(x) for x in gsc_table['pmRA'][idx]],
+        'pmDE': [um(x) for x in gsc_table['pmDE'][idx]],
+        'AOstar': [str(bool(x)) for x in gsc_table['AOstar'][idx]],       # Convert to boolean
+        'FTstar': [str(bool(x)) for x in gsc_table['FTstar'][idx]],       # Convert to boolean
     }
 
     # To avoid accumulating entries, search for any existing tabular
@@ -457,7 +459,7 @@ def store_gsc_search_results(target, gsc_table, AOFT_table):
     datum = {
         'FTstar': [str(x) for x in AOFT_table['FTstar']],
         'SC_separation': [(x*3600.0) for x in AOFT_table['SC_separation']],     # Convert to arcsec
-        'Ksmag': [x for x in AOFT_table['SC_separation']],
+        'Ksmag': [x for x in AOFT_table['Ksmag']],
         'SC_Vloss': [x for x in AOFT_table['SC_Vloss']],
     }
     AOidx = np.where(gsc_table['AOstar'] == 1.0)[0]
@@ -466,7 +468,10 @@ def store_gsc_search_results(target, gsc_table, AOFT_table):
         AOname = str(gsc_table['GSC2'][j])
         for suffix in col_suffices:
             col = AOname+suffix
-            datum[col] = [x for x in AOFT_table[col]]
+            if '_separation' in col:
+                datum[col] = [(x*3600.0) for x in AOFT_table[col]]
+            else:
+                datum[col] = [x for x in AOFT_table[col]]
 
     # Removed from the DB any previous AOFT table data for this target
     qs = ReducedDatum.objects.filter(target=target)

@@ -170,4 +170,214 @@ def interferometry_data(target):
             )
     context['neighbours'] = neighbours
 
+    # Retrieve and unpacked the ReducedData for the nearby GSC stars
+    qs = ReducedDatum.objects.filter(target=target, data_type='tabular', source_name='GSC_query_results')
+    gsc_table = []
+    if len(qs) > 0:
+        rd = qs[0]
+        nstars = len(rd.value['GSC2'])
+        for i in range(0, nstars, 1):
+            gsc_table.append(
+                {'GSC2': rd.value['GSC2'][i],
+                 'Separation': np.around(rd.value['Separation'][i], 3),
+                 'Jmag': np.around(rd.value['Jmag'][i], 3),
+                 'Hmag': np.around(rd.value['Hmag'][i], 3),
+                 'Ksmag': np.around(rd.value['Ksmag'][i], 3),
+                 'W1mag': np.around(rd.value['W1mag'][i], 3),
+                 'RA': np.around(rd.value['RA'][i], 6),
+                 'Dec': np.around(rd.value['Dec'][i], 6),
+                 'plx': np.around(rd.value['plx'][i], 4),
+                 'pmRA': np.around(rd.value['pmRA'][i], 3),
+                 'pmDE': np.around(rd.value['pmDE'][i], 3),
+                 'AOstar': rd.value['AOstar'][i],
+                 'FTstar': rd.value['FTstar'][i]}
+            )
+        context['gsc_table'] = gsc_table
+    else:
+        context['gsc_table'] = []
+
+    # Retrieve and unpack the ReducedData for the AOFT table
+    maxStrehl = 40
+    qs = ReducedDatum.objects.filter(target=target, data_type='tabular', source_name='AOFT_table')
+    AOFT_table = []
+    FTstar_columns = ['FTstar', 'SC_separation', 'Ksmag', 'SC_Vloss']
+    AOstar_columns = ['_FTstrehl', '_Ksmag', '_FT_separation']
+    AOstars = []
+    if len(qs) > 0:
+        rd = qs[0]
+        context['naostars'] = len(rd.value.keys()) - 4
+
+        # Review the dictionary keys(=column names) to identify the AOstar names
+        AOstars = []
+        for col in rd.value.keys():
+            if '_SCstrehl' in col:
+                AOstars.append({'name': col.split('_')[0]})
+
+        # Review the datum entries and extract the AO star parameters into columnar data
+        suffices = ['_SCstrehl', '_Gmag', '_SC_separation']
+        for star in AOstars:
+            for suffix in suffices:
+                try:
+                    star[suffix[1:]] = np.around(rd.value[star['name']+suffix][0], 3)
+
+                    if 'SCstrehl' in suffix:
+                        star['scstrehl_colour'] = colour_percent(star[suffix[1:]], norm=maxStrehl)
+                except KeyError:
+                    star[suffix[1:]] = 0.0
+
+        AOFT_table = []
+        nrows = len(rd.value['FTstar'])
+        context['nftstars'] = nrows
+        col_names = rd.value.keys()
+        for i in range(0, nrows, 1):
+            row = {'aostars': []}
+            for col in FTstar_columns:
+                # Extract the parameters relating directly to each FT star
+                if col in ['FTstar']:
+                    row[col] = rd.value[col][i]
+                elif col in ['SC_Vloss', 'SC_separation']:
+                    row[col] = np.around(rd.value[col][i], 3)
+                    row[str(col).replace('_', '').lower() + '_colour'] = colour_percent(rd.value[col][i])
+                elif col in ['Ksmag']:
+                    row[col] = np.around(rd.value[col][i], 3)
+                    row[str(col).replace('_', '').lower() + '_colour'] = brightness_shader(rd.value[col][i])
+
+            # Extract the parameters stored for each AO star, per FT star
+            for aostar in AOstars:
+                params = {'name': aostar['name']}
+                for suffix in AOstar_columns:
+                    col_name = aostar['name']+suffix
+                    if col_name in rd.value.keys():
+                        if '_FTstrehl' in suffix:
+                            params['FTstrehl'] = (np.around(rd.value[col_name][i], 3),
+                                                    colour_percent(rd.value[col_name][i], norm=maxStrehl))
+                        elif '_Ksmag' in suffix:
+                            params['Ksmag'] = (np.around(rd.value[col_name][i], 3),
+                                                    brightness_shader(rd.value[col_name][i]))
+                        elif '_FT_separation' in suffix:
+                            params['FT_separation'] = (np.around(rd.value[col_name][i], 3),
+                                                        distance_shader(rd.value[col_name][i]))
+                    else:
+                        params['FTstrehl'] = (0.0, '#fcfafa')
+                        parmas['Ksmag'] = (0.0, '#fcfafa')
+                        params['FT_separation'] = (0.0, '#fcfafa')
+                row['aostars'].append(params)
+            AOFT_table.append(row)
+
+        context['AOFT_table'] = AOFT_table
+        context['naostars'] = len(rd.value.keys()) - 4
+        context['nftstars'] = nrows
+        context['AOstars'] = AOstars
+    else:
+        context['AOFT_table'] = []
+        context['naostars'] = 0
+        context['nftstars'] = 0
+        context['AOstars'] = []
+
+    return context
+
+def colour_percent(value, thresholds=None, norm=100):
+    """
+    Function to perform a look-up of table cell background colour, based on the value of that cell,
+    for values in the form of percentages.  Adapted from code by Antoine Merand.
+    """
+    # Colours: Magenta, red, yellow, green, cyan, blue
+    ascii_cols = ['\033[45m', '\033[41m', '\033[43m', '\033[42m', '\033[46m', '\033[44m']
+    hex_cols = ['#7105a3', '#f70a0e', '#e8db23', '#23e851', '#23e8db', '#235ee8']
+
+    if thresholds is None:
+        thresholds = norm * np.linspace(0, 1, len(hex_cols) + 1)[1:]
+
+    for i, v in enumerate(thresholds):
+        if value <= v:
+            return hex_cols[i]
+
+    return hex_cols[-1]
+
+def brightness_shader(Ksmag, kmax=10.5):
+    # Default is white
+    col = '#fcfafa'
+
+    if Ksmag < kmax - 2:
+        #col = '\033[44m'
+        col = '#235ee8'
+    elif Ksmag < kmax - 1:
+        #col = '\033[46m'
+        col = '#23e8db'
+    elif Ksmag < kmax:
+        #col = '\033[42m'
+        col = '#23e851'
+    elif Ksmag < kmax + 1:
+        #col = '\033[43m'
+        col = '#e8db23'
+    else:
+        #col = '\033[41m'
+        col = '#f70a0e'
+
+    return col
+
+def distance_shader(dist, distmax=30):
+    """
+    Function returns the table cell background colour based on the angular separation in arcsec.
+    """
+    # Default is purple
+    col = '#7105a3'
+
+    if dist == 0:
+        #cold.append('\033[44m')
+        col = '#235ee8'
+    elif dist < distmax / 4:
+        #cold.append('\033[46m')
+        col = '#23e8db'
+    elif dist < distmax / 2:
+        #cold.append('\033[42m')
+        col = '#23e851'
+    elif dist < 3 * distmax / 4:
+        #cold.append('\033[43m')
+        col = '#e8db23'
+    elif dist <= distmax:
+        #cold.append('\033[41m')
+        col = '#f70a0e'
+
+    return col
+
+
+
+
+@register.inclusion_tag('tom_dataproducts/partials/gaia_neighbours_data.html')
+def gaia_neighbours_data(target):
+    context = {}
+
+    # Gather the ReducedData for the neighbouring stars
+    # Unpack the QuerySet returned into a more convenient format for display
+    qs = ReducedDatum.objects.filter(target=target, data_type='tabular', source_name='Interferometry_predictor')
+    neighbours = []
+    if len(qs) > 0:
+        rd = qs[0]
+        nstars = len(rd.value['Gaia_Source_ID'])
+        for i in range(0,nstars,1):
+            neighbours.append(
+                        {'Gaia_Source_ID': rd.value['Gaia_Source_ID'][i],
+                         'Gmag': np.around(rd.value['Gmag'][i],3),
+                         'Gmag_error': np.around(rd.value['Gmag_error'][i],3),
+                         'BPmag': np.around(rd.value['BPmag'][i],3),
+                         'BPmag_error': np.around(rd.value['BPmag_error'][i],3),
+                         'RPmag': np.around(rd.value['RPmag'][i],3),
+                         'RPmag_error': np.around(rd.value['RPmag_error'][i],3),
+                         'BP_RP': np.around(rd.value['BP-RP'][i],3),
+                         'BP_RP_error': np.around(rd.value['BP-RP_error'][i],3),
+                         'Jmag': np.around(rd.value['Jmag'][i],3),
+                         'Hmag': np.around(rd.value['Hmag'][i],3),
+                         'Kmag': np.around(rd.value['Kmag'][i],3),
+                         'Reddening_BP_RP': np.around(rd.value['Reddening(BP-RP)'][i],3),
+                         'Extinction_G': np.around(rd.value['Extinction_G'][i],3),
+                         'Distance': rd.value['Distance'][i],
+                         'Teff': rd.value['Teff'][i],
+                         'logg': rd.value['logg'][i],
+                         'Fe_H': rd.value['[Fe/H]'][i],
+                         'RUWE': np.around(rd.value['RUWE'][i],3),
+                         'Separation': np.around((rd.value['Separation'][i]*3600.0),3)}
+            )
+    context['neighbours'] = neighbours
+
     return context
