@@ -198,14 +198,14 @@ def calc_mutual_separations(gsc_table, AOFT_table):
                      dec=gsc_table['DE_ICRS'][FTidx].data,
                      frame='icrs', unit=(u.deg, u.deg))
 
-    for j in AOidx:
+    for j,itable in enumerate(AOidx):
         if len(AOcat) > 1:
             s = AOcat[j]
         else:
             s = AOcat
         separations = s.separation(FTcat)
 
-        AOFT_table[gsc_table['GSC2'][j]+'_FT_separation'] = separations
+        AOFT_table[gsc_table['GSC2'][itable]+'_FT_separation'] = separations
 
     return AOFT_table
 

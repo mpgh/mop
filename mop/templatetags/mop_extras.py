@@ -205,13 +205,14 @@ def interferometry_data(target):
     AOstars = []
     if len(qs) > 0:
         rd = qs[0]
-        context['naostars'] = len(rd.value.keys()) - 4
 
         # Review the dictionary keys(=column names) to identify the AOstar names
         AOstars = []
         for col in rd.value.keys():
             if '_SCstrehl' in col:
-                AOstars.append({'name': col.split('_')[0]})
+                if len(rd.value[col]) > 0:
+                    AOstars.append({'name': col.split('_')[0]})
+        context['naostars'] = len(AOstars)
 
         # Review the datum entries and extract the AO star parameters into columnar data
         suffices = ['_SCstrehl', '_Gmag', '_SC_separation']
