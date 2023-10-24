@@ -7,6 +7,8 @@ import numpy as np
 def query_gsc(target, radius=Angle(0.0083, "deg"), row_limit=-1):
     """Function to perform a Vizier search of the Guide Star Catalogue, I/353"""
 
+    # Note that +_r in the radius column name returns search results ordered in
+    # ascending radius from the target
     column_list = ['GSC2', 'RA_ICRS', 'DE_ICRS',
                          'Gmag', 'e_Gmag',
                          'Bmag', 'e_Bmag',

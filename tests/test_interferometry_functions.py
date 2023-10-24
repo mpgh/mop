@@ -80,3 +80,11 @@ class TestInterferomeinterferometry_predictiontryFunctions(TestCase):
 
     def test_evaluate_target_for_interferometry(self):
         interferometry_prediction.evaluate_target_for_interferometry(self.params['test_event'])
+
+    def test_search_gsc_catalog(self):
+        (gsc_table, AOFT_table) = interferometry_prediction.search_gsc_catalog(self.params['test_event'])
+        print(gsc_table)
+        print(AOFT_table)
+        
+        assert(type(gsc_table) == type(Table([])))
+        assert(type(AOFT_table) == type(Table([])))

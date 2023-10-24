@@ -148,3 +148,5 @@ class TestGSC(TestCase):
             else:
                 for row in range(0,len(self.aoft_table),1):
                     assert(round(self.aoft_table[col][row], 3) == round(AOFT_table[col][row],3))
+
+        AOFT_table.pprint_all()

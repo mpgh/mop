@@ -1,4 +1,5 @@
 from tom_dataproducts.models import ReducedDatum
+from django.conf import settings
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from mop.brokers import gaia, gsc
@@ -267,6 +268,7 @@ def search_gsc_catalog(target):
     """
     Function to search the Guide Star Catalog for suitable stars for Adaptive Optics guides and Fringe Tracking
     """
+    logger.info('INTERFERO: Querying GSC catalog around event ' + target.name)
 
     # Perform Vizier catalog search of the GSC
     gsc_table = gsc.query_gsc(target)
@@ -282,6 +284,7 @@ def search_gsc_catalog(target):
     # Create comparative grid of AO-FT star matrix
     AOFT_table = gsc.create_AOFT_table(gsc_table)
     AOFT_table = gsc.populate_AOFT_table(gsc_table, AOFT_table)
+    logger.info('INTERFERO: Compose matrix of AO and FT stars for ' + target.name)
 
     return gsc_table, AOFT_table
 
@@ -325,68 +328,7 @@ def evaluate_target_for_interferometry(target):
         logger.info('INTERFERO: Evaluation for interferometry for ' + target.name + ': ' + str(mode) + ' guide=' + str(guide))
 
         # Store the results
-        extras = {
-                'Gaia_Source_ID': neighbours['Gaia_Source_ID'][0],
-                'Gmag': G_lens, 'Gmag_error': G_lens_error,
-                'RPmag': neighbours['RPmag'][0], 'RPmag_error': neighbours['RPmag_error'][0],
-                'BPmag': neighbours['BPmag'][0], 'BPmag_error': neighbours['BPmag_error'][0],
-                'BP-RP': BPRP_lens, 'BP-RP_error': neighbours['BP-RP_error'][0],
-                'Reddening(BP-RP)': neighbours['Reddening(BP-RP)'][0],
-                'Extinction_G': neighbours['Extinction_G'][0],
-                'Distance': neighbours['Distance'][0],
-                'Teff': neighbours['Teff'][0],
-                'logg': neighbours['logg'][0],
-                '[Fe/H]': neighbours['[Fe/H]'][0],
-                'RUWE': neighbours['RUWE'][0],
-                'Interferometry_mode': mode,
-                'Interferometry_guide_star': guide,
-                'Mag_peak_J': J[0],
-                'Mag_peak_H': H[0],
-                'Mag_peak_K': K[0],
-                  }
-        target.save(extras=extras)
-
-        # Repackage data into a convenient form for storage
-        datum = {
-            'Gaia_Source_ID': [str(x) for x in neighbours['Gaia_Source_ID']],
-            'Gmag': [x for x in neighbours['Gmag']],
-            'Gmag_error': [x for x in neighbours['Gmag_error']],
-            'BPmag' : [x for x in neighbours['BPmag']],
-            'BPmag_error' : [x for x in neighbours['BPmag_error']],
-            'RPmag' : [x for x in neighbours['RPmag']],
-            'RPmag_error' : [x for x in neighbours['RPmag_error']],
-            'BP-RP': [x for x in neighbours['BP-RP']],
-            'BP-RP_error': [x for x in neighbours['BP-RP_error']],
-            'Jmag': [x for x in J],
-            'Hmag': [x for x in H],
-            'Kmag': [x for x in K],
-            'Reddening(BP-RP)': [x for x in neighbours['Reddening(BP-RP)']],
-            'Extinction_G': [x for x in neighbours['Extinction_G']],
-            'Distance': [x for x in neighbours['Distance']],
-            'Teff': [x for x in neighbours['Teff']],
-            'logg': [x for x in neighbours['logg']],
-            '[Fe/H]': [x for x in neighbours['[Fe/H]']],
-            'RUWE': [x for x in neighbours['RUWE']],
-            'Separation': [x for x in neighbours['Separation']],
-        }
-
-        # To avoid accumulating entries, search for any existing tabular
-        # data for this object and remove it from the DB:
-        qs = ReducedDatum.objects.filter(target=target)
-        for rd in qs:
-            if rd.data_type == 'tabular' and rd.source_name == 'Interferometry_predictor':
-                rd.delete()
-
-        # Now store the tabular results
-        tnow = Time.now()
-        rd, created = ReducedDatum.objects.get_or_create(
-            timestamp=tnow.to_datetime(timezone=TimezoneInfo()),
-            value=datum,
-            source_name='Interferometry_predictor',
-            source_location=target.name,
-            data_type='tabular',
-            target=target)
-        logger.info('INTERFERO: Stored neighbouring star data in MOP')
+        store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K)
 
     else:
         extras = {
@@ -395,3 +337,150 @@ def evaluate_target_for_interferometry(target):
         }
         target.save(extras=extras)
         logger.info('INTERFERO: No interferometry possible without neighbouring stars')
+
+    # Query the Guide Star Catalog for candidate AO and FT stars
+    (gsc_table, AOFT_table) = search_gsc_catalog(target)
+
+    # Store the results from the GSC
+    store_gsc_search_results(target, gsc_table, AOFT_table)
+
+def store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K):
+    extras = {
+        'Gaia_Source_ID': neighbours['Gaia_Source_ID'][0],
+        'Gmag': G_lens, 'Gmag_error': G_lens_error,
+        'RPmag': neighbours['RPmag'][0], 'RPmag_error': neighbours['RPmag_error'][0],
+        'BPmag': neighbours['BPmag'][0], 'BPmag_error': neighbours['BPmag_error'][0],
+        'BP-RP': BPRP_lens, 'BP-RP_error': neighbours['BP-RP_error'][0],
+        'Reddening(BP-RP)': neighbours['Reddening(BP-RP)'][0],
+        'Extinction_G': neighbours['Extinction_G'][0],
+        'Distance': neighbours['Distance'][0],
+        'Teff': neighbours['Teff'][0],
+        'logg': neighbours['logg'][0],
+        '[Fe/H]': neighbours['[Fe/H]'][0],
+        'RUWE': neighbours['RUWE'][0],
+        'Interferometry_mode': mode,
+        'Interferometry_guide_star': guide,
+        'Mag_peak_J': J[0],
+        'Mag_peak_H': H[0],
+        'Mag_peak_K': K[0],
+    }
+    target.save(extras=extras)
+
+    # Repackage data into a convenient form for storage
+    datum = {
+        'Gaia_Source_ID': [str(x) for x in neighbours['Gaia_Source_ID']],
+        'Gmag': [x for x in neighbours['Gmag']],
+        'Gmag_error': [x for x in neighbours['Gmag_error']],
+        'BPmag': [x for x in neighbours['BPmag']],
+        'BPmag_error': [x for x in neighbours['BPmag_error']],
+        'RPmag': [x for x in neighbours['RPmag']],
+        'RPmag_error': [x for x in neighbours['RPmag_error']],
+        'BP-RP': [x for x in neighbours['BP-RP']],
+        'BP-RP_error': [x for x in neighbours['BP-RP_error']],
+        'Jmag': [x for x in J],
+        'Hmag': [x for x in H],
+        'Kmag': [x for x in K],
+        'Reddening(BP-RP)': [x for x in neighbours['Reddening(BP-RP)']],
+        'Extinction_G': [x for x in neighbours['Extinction_G']],
+        'Distance': [x for x in neighbours['Distance']],
+        'Teff': [x for x in neighbours['Teff']],
+        'logg': [x for x in neighbours['logg']],
+        '[Fe/H]': [x for x in neighbours['[Fe/H]']],
+        'RUWE': [x for x in neighbours['RUWE']],
+        'Separation': [x for x in neighbours['Separation']],
+    }
+
+    # To avoid accumulating entries, search for any existing tabular
+    # data for this object and remove it from the DB:
+    qs = ReducedDatum.objects.filter(target=target)
+    for rd in qs:
+        if rd.data_type == 'tabular' and rd.source_name == 'Interferometry_predictor':
+            rd.delete()
+
+    # Now store the tabular results
+    tnow = Time.now()
+    rd, created = ReducedDatum.objects.get_or_create(
+        timestamp=tnow.to_datetime(timezone=TimezoneInfo()),
+        value=datum,
+        source_name='Interferometry_predictor',
+        source_location=target.name,
+        data_type='tabular',
+        target=target)
+    logger.info('INTERFERO: Stored neighbouring star data in MOP')
+
+def um(mask_value):
+
+    if type(mask_value) == np.ma.core.MaskedConstant:
+        return 0.0
+    else:
+        return np.float64(mask_value)
+def store_gsc_search_results(target, gsc_table, AOFT_table):
+
+    # Repackage the table of neighbouring GSC stars
+    # Since this is a masked Astropy Table, and JSON serialization doesn't handle masked entries,
+    # we need to convert to standard numpy flex values
+    datum = {
+        'GSC2': [str(x) for x in gsc_table['GSC2']],
+        'Separation': [(x*3600.0) for x in gsc_table['_r']],    # Convert to arcsec
+        'Jmag': [um(x) for x in gsc_table['Jmag']],
+        'Hmag': [um(x) for x in gsc_table['Hmag']],
+        'Ksmag': [um(x) for x in gsc_table['Ksmag']],
+        'W1mag': [um(x) for x in gsc_table['W1mag']],
+        'RA': [np.float64(x) for x in gsc_table['RA_ICRS']],
+        'Dec': [np.float64(x) for x in gsc_table['DE_ICRS']],
+        'plx': [um(x) for x in gsc_table['plx']],
+        'pmRA': [um(x) for x in gsc_table['pmRA']],
+        'pmDE': [um(x) for x in gsc_table['pmDE']],
+        'AO': [str(bool(x)) for x in gsc_table['AOstar']],       # Convert to boolean
+        'FT': [str(bool(x)) for x in gsc_table['FTstar']],       # Convert to boolean
+    }
+
+    # To avoid accumulating entries, search for any existing tabular
+    # data for this object and remove it from the DB:
+    qs = ReducedDatum.objects.filter(target=target)
+    for rd in qs:
+        if rd.data_type == 'tabular' and rd.source_name == 'GSC_query_results':
+            rd.delete()
+
+    # Now store the tabular results
+    tnow = Time.now()
+    rd, created = ReducedDatum.objects.get_or_create(
+        timestamp=tnow.to_datetime(timezone=TimezoneInfo()),
+        value=datum,
+        source_name='GSC_query_results',
+        source_location=target.name,
+        data_type='tabular',
+        target=target)
+    logger.info('INTERFERO: Stored GSC search results in MOP')
+
+    # Repackage the AOFT_table for storage
+    datum = {
+        'FTstar': [str(x) for x in AOFT_table['FTstar']],
+        'SC_separation': [(x*3600.0) for x in AOFT_table['SC_separation']],     # Convert to arcsec
+        'Ksmag': [x for x in AOFT_table['SC_separation']],
+        'SC_Vloss': [x for x in AOFT_table['SC_Vloss']],
+    }
+    AOidx = np.where(gsc_table['AOstar'] == 1.0)[0]
+    col_suffices = ['_SCstrehl', '_FTstrehl', '_Gmag', '_SC_separation', '_Ksmag', '_FT_separation']
+    for j in AOidx:
+        AOname = str(gsc_table['GSC2'][j])
+        for suffix in col_suffices:
+            col = AOname+suffix
+            datum[col] = [x for x in AOFT_table[col]]
+
+    # Removed from the DB any previous AOFT table data for this target
+    qs = ReducedDatum.objects.filter(target=target)
+    for rd in qs:
+        if rd.data_type == 'tabular' and rd.source_name == 'AOFT_table':
+            rd.delete()
+
+    # Store the new data
+    tnow = Time.now()
+    rd, created = ReducedDatum.objects.get_or_create(
+        timestamp=tnow.to_datetime(timezone=TimezoneInfo()),
+        value=datum,
+        source_name='AOFT_table',
+        source_location=target.name,
+        data_type='tabular',
+        target=target)
+    logger.info('INTERFERO: Stored AOFT matrix in MOP')

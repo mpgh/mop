@@ -10,6 +10,8 @@ def fetch_extra_param(target, key):
                 value = float(target.extra_fields[key])
             except ValueError:
                 value = None
+            except TypeError:
+                value = None
     elif key in target.tags.keys():
         if key in string_keys:
             value = target.extra_fields[key]
@@ -17,6 +19,8 @@ def fetch_extra_param(target, key):
             try:
                 value = float(target.tags[key])
             except ValueError:
+                value = None
+            except TypeError:
                 value = None
     else:
         value = None
