@@ -10,6 +10,9 @@ from mop.toolbox import interferometry_prediction
 import datetime
 import json
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
 
@@ -23,6 +26,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         verbose = False
 
+        logger.info("runTAP: Started with options "+repr(options))
+
         ### Create or load TAP list
         try:
 
@@ -34,25 +39,28 @@ class Command(BaseCommand):
             tap_list.save()
 
         if options['target_name'] == 'all':
-
-
             list_of_events_alive = Target.objects.filter(targetextra__in=TargetExtra.objects.filter(key='Alive', value=True))
-        else:
+            logger.info('runTAP: Loaded all '+str(len(list_of_events_alive))+' events')
 
+        else:
             target, created = Target.objects.get_or_create(name= options['target_name'])
             list_of_events_alive = [target]
+            logger.info('runTAP: Loaded event ' + target.name)
         
         KMTNet_fields = TAP.load_KMTNet_fields()
 
         for event in list_of_events_alive[:]:
-            if verbose: print('TAP analyzing event '+event.name)
+            logger.info('runTAP: analyzing event '+event.name)
 
             if 'Microlensing' not in event.extra_fields['Classification']:
                pass
 
             else:
-                try:
+                #try:
 
+                # Gather the necessary information from the model fit to this event.  Sanity check: if this information
+                # isn't available, skip the event
+                try:
                     time_now = Time(datetime.datetime.now()).jd
                     t0_pspl = event.extra_fields['t0']
                     u0_pspl = event.extra_fields['u0']
@@ -62,13 +70,21 @@ class Command(BaseCommand):
 
                     covariance = load_covar_matrix(event.extra_fields['Fit_covariance'])
 
+                    sane = TAP.sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl,
+                                                             tE_pspl, tE_pspl_error, covariance)
+
+                except KeyError:
+                    logger.warning('runTAP: Insufficent model parameters available for ' + event.name + ', skipping')
+                    sane = False
+
+                if sane:
                     # Categorize the event based on event timescale
                     category = TAP.categorize_event_timescale(event)
 
                     # Calculate the priority of this event for different science goals
                     planet_priority = TAP_priority.TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl)
                     planet_priority_error = TAP_priority.TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance)
-                    if verbose: print('Planet priority: ',planet_priority, planet_priority_error)
+                    logger.info('runTAP: Planet priority: ' + str(planet_priority) + ', ' + str(planet_priority_error))
 
                     # ACTION RAS: Need to calculate this if not already available.
                     # If not available, assume a default 30d period to encourage observations
@@ -76,18 +92,17 @@ class Command(BaseCommand):
                         t_last = event.extra_fields['Latest_data_HJD']
                     else:
                         t_last = Time.now(jd) - TimeDelta(days=30.0)
-                    if verbose: print('Last datapoint: ',t_last)
+                    logger.info('runTAP: Last datapoint: ' + str(t_last))
 
                     long_priority = TAP_priority.TAP_long_event_priority(time_now, t_last, tE_pspl)
                     long_priority_error = TAP_priority.TAP_long_event_priority_error(tE_pspl, covariance)
-                    if verbose: print('Long tE priority: ',long_priority, long_priority_error)
+                    logger.info('runTAP: Long tE priority: ' + str(long_priority) + ' ' + str(long_priority_error))
 
                     # Storing both types of priority as extra_params and also as ReducedDatums so
                     # that we can track the evolution of the priority as a function of time
                     extras = {'TAP_priority':np.around(planet_priority,5),
                               'TAP_priority_longtE': np.around(long_priority, 5)}
                     event.save(extras = extras)
-                    if verbose: print('Starting reduced datum ingest')
 
                     data = {'tap_planet': planet_priority,
                             'tap_planet_error': planet_priority_error,
@@ -104,7 +119,6 @@ class Command(BaseCommand):
                               target=event)
                     if created:
                         rd.save()
-                    if verbose: print('Post first rd create')
 
                     rd, created = ReducedDatum.objects.get_or_create(
                         timestamp=datetime.datetime.utcnow(),
@@ -126,44 +140,43 @@ class Command(BaseCommand):
                         sky_location = 'In HCZ'
                     else:
                         sky_location = 'Outside HCZ'
-                    if verbose:
-                        print('Event NOT in OMEGA: ', event_not_in_OMEGA_II)
-                        print('Event alive? ',event.extra_fields['Alive'])
+                    logger.info('runTAP: Event NOT in OMEGA: ' + str(event_not_in_OMEGA_II))
+                    logger.info('runTAP: Event alive? ' + repr(event.extra_fields['Alive']))
 
                     # If the event is in the HCZ, set the MOP flag to not observe it
                     if (event_not_in_OMEGA_II):# (event_in_the_Bulge or)  & (event.extra_fields['Baseline_magnitude']>17):
 
                         extras = {'Observing_mode':'No', 'Sky_location': sky_location}
                         event.save(extras = extras)
-                        if verbose: print('Event not in OMEGA-II')
+                        logger.info('runTAP: Event not in OMEGA-II')
 
                     # If the event is flagged as not alive, then it is over, and should also not be observed
                     elif not event.extra_fields['Alive']:
                         extras = {'Observing_mode': 'No', 'Sky_location': sky_location}
                         event.save(extras=extras)
-                        if verbose: print('Event not Alive')
+                        logger.info('runTAP: Event not Alive')
 
                     # For Alive events outside the HCZ, the strategy depends on whether it is classified as a
                     # stellar/planetary event, or a long-timescale black hole candidate
                     else:
-                        if verbose: print('Event should be observed')
+                        logger.info('runTAP: Event should be observed')
                         # Check target for visibility
                         visible = obs_control.check_visibility(event, Time.now().decimalyear, verbose=False)
-                        if verbose: print('Event visible?  ',visible)
+                        logger.info('runTAP: Event visible?  ' + repr(visible))
 
                         if visible:
                             mag_now = TAP.TAP_mag_now(event)
-                            if verbose: print('Mag now = ',mag_now)
+                            logger.info('runTAP: Mag now = ' + str(mag_now))
                             if mag_now:
                                 mag_baseline = event.extra_fields['Baseline_magnitude']
-                                if verbose: print('mag_baseline: ', mag_baseline)
+                                logger.info('runTAP: mag_baseline: ' + str(mag_baseline))
                                 observing_mode = TAP.TAP_observing_mode(planet_priority, planet_priority_error,
                                                                     long_priority, long_priority_error,
-                                                                    tE_pspl, tE_pspl_error, t0_pspl, t0_pspl_error,
-                                                                    mag_now, mag_baseline)
+                                                                    tE_pspl, tE_pspl_error, mag_now, mag_baseline)
+
                             else:
                                 observing_mode = None
-                            if verbose: print('Observing mode: ',event.name, observing_mode)
+                            logger.info('runTAP: Observing mode: ' + event.name + ' ' + str(observing_mode))
                             extras = {'Observing_mode': observing_mode, 'Sky_location': sky_location}
                             event.save(extras=extras)
 
@@ -173,26 +186,26 @@ class Command(BaseCommand):
                                 # Get the observational configurations for the event, based on the OMEGA-II strategy:
                                 obs_configs = omegaII_strategy.determine_obs_config(event, observing_mode,
                                                                                     mag_now, time_now, t0_pspl, tE_pspl)
-                                if verbose: print('Determined observation configurations: ',obs_configs)
+                                logger.info('runTAP: Determined observation configurations: ' + repr(obs_configs))
 
                                 # Filter this list of hypothetical observations, removing any for which a similar
                                 # request has already been submitted and has status 'PENDING'
                                 obs_configs = obs_control.filter_duplicated_observations(obs_configs)
-                                if verbose: print('Filtered out duplicates: ', obs_configs)
+                                logger.info('runTAP: Filtered out duplicates: ' + repr(obs_configs))
 
                                 # Build the corresponding observation requests in LCO format:
                                 obs_requests = obs_control.build_lco_imaging_request(obs_configs)
-                                if verbose: print('Build observation requests: ',obs_requests)
+                                logger.info('runTAP: Build observation requests: ' + repr(obs_requests))
 
                                 # Submit the set of observation requests:
                                 if 'live_obs' in options['observe']:
                                     obs_control.submit_lco_obs_request(obs_requests, event)
-                                    if verbose: print('SUBMITTING OBSERVATIONS')
+                                    logger.info('runTAP: SUBMITTING OBSERVATIONS')
                                 else:
-                                    print('TAP WARNING: OBSERVATIONS SWITCHED OFF')
+                                    logger.warning('runTAP: WARNING: OBSERVATIONS SWITCHED OFF')
 
                         else:
-                            if verbose: print('Target '+event.name+' not currently visible')
+                            logger.info('runTAP: Target ' + event.name + ' not currently visible')
                             observing_mode = None
                             extras = {'Observing_mode': observing_mode, 'Sky_location': sky_location}
                             event.save(extras=extras)
@@ -202,12 +215,15 @@ class Command(BaseCommand):
                     if observe_spectro:
                         if (event.extra_fields['Spectras']<1) & (event.extra_fields['Observing_mode'] != 'No'):
                             obs_control.build_and_submit_regular_spectro(event)
+                            logger.info('runTAP: Submitted spectroscopic observations for ' + event.name)
 
                     ### Inteferometry
-                    evaluate_target_for_interferometry(event)
+                    interferometry_prediction.evaluate_target_for_interferometry(event)
+                    logger.info('runTAP: Evaluated ' + event.name + ' for interferometry')
 
-                except:
-                    print('Can not perform TAP for this target')
+                #except:
+                #    logger.warning('runTAP: Cannot perform TAP for target ' + event.name)
+
 
 def load_covar_matrix(raw_covar_data):
 

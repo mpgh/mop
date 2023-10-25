@@ -15,6 +15,9 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
 from mop.toolbox import TAP_priority
+import logging
+
+logger = logging.getLogger(__name__)
 
 ZP = 27.4 #pyLIMA convention
 
@@ -306,3 +309,23 @@ def categorize_event_timescale(target, threshold=75.0):
     target.save(extras=extras)
 
     return category
+
+def sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_pspl_error, covariance):
+    """
+    Function to review the model parameters to verify that valid calulations can be made with them.
+    """
+    sane = True
+    params = [t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_pspl_error]
+
+    # Check t0, tE and u0 values are non-zero, not NaNs and floating point variables
+    for value in params:
+        if value == 0.0 or np.isnan(value) or type(value) != type(1.0):
+            sane = False
+
+    # Check the covariance array is an array of non-zero length:
+    if type(covariance) != type(np.zeros(1)) or len(covariance) == 0:
+        sane = False
+
+    logger.info('TAP model parameters sanity check returned ' + repr(sane))
+
+    return sane
