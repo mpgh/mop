@@ -36,7 +36,7 @@ spec:
                 - python
                 - manage.py
                 - run_TAP
-              args: ["all", "false"]
+              args: ["all", "live_obs"]
               env:
                 {{- include "mop.backendEnv" . | nindent 16 }}
               resources:
