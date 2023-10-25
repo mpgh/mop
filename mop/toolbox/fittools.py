@@ -1,4 +1,5 @@
 import numpy as np
+from os import path
 from pyLIMA import event
 from pyLIMA import telescopes
 from pyLIMA import toolbox
@@ -173,6 +174,7 @@ def repackage_lightcurves(qs):
                 lc.append([Time(rd.timestamp).jd, rd.value['magnitude'], rd.value['error']])
             except:
                 lc.append([Time(rd.timestamp).jd, rd.value['magnitude'], 1.0])
+
             datasets[passband] = lc
 
     # Count the total number of datapoints available, and convert the
