@@ -162,7 +162,7 @@ def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, 
         return False
 
 def check_long_priority(long_priority, long_priority_error,
-                        t_E, t_E_error, mag_baseline):
+                        t_E, t_E_error, mag_baseline, red_chi2):
     '''
     This function checks if the event status should be changed to priority stellar event.
 

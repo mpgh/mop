@@ -67,11 +67,12 @@ class Command(BaseCommand):
                     tE_pspl = event.extra_fields['tE']
                     t0_pspl_error = event.extra_fields['t0_error']
                     tE_pspl_error = event.extra_fields['tE_error']
+                    red_chi2 = event.extra_fields['red_chi2']
 
                     covariance = load_covar_matrix(event.extra_fields['Fit_covariance'])
 
                     sane = TAP.sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl,
-                                                             tE_pspl, tE_pspl_error, covariance)
+                                                             tE_pspl, tE_pspl_error, red_chi2, covariance)
 
                 except KeyError:
                     logger.warning('runTAP: Insufficent model parameters available for ' + event.name + ', skipping')
@@ -172,7 +173,8 @@ class Command(BaseCommand):
                                 logger.info('runTAP: mag_baseline: ' + str(mag_baseline))
                                 observing_mode = TAP.TAP_observing_mode(planet_priority, planet_priority_error,
                                                                     long_priority, long_priority_error,
-                                                                    tE_pspl, tE_pspl_error, mag_now, mag_baseline)
+                                                                    tE_pspl, tE_pspl_error, mag_now,
+                                                                    mag_baseline, red_chi2)
 
                             else:
                                 observing_mode = None

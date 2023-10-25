@@ -27,17 +27,17 @@ def TAP_anomaly():
 
 def TAP_observing_mode(planet_priority, planet_priority_error,
                        long_priority, long_priority_error,
-                       t_E, t_E_error, mag_now, mag_baseline):
+                       t_E, t_E_error, mag_now, mag_baseline, red_chi2):
 
     if (TAP_priority.check_planet_priority(planet_priority, planet_priority_error, mag_baseline, mag_now)):
         return 'priority_stellar_event'
 
     elif (TAP_priority.check_long_priority(long_priority, long_priority_error,
-                        t_E, t_E_error, mag_baseline) == 'priority'):
+                        t_E, t_E_error, mag_baseline, red_chi2) == 'priority'):
         return 'priority_long_event'
 
     elif (TAP_priority.check_long_priority(long_priority, long_priority_error,
-                        t_E, t_E_error, mag_baseline) == 'regular'):
+                        t_E, t_E_error, mag_baseline, red_chi2) == 'regular'):
         return 'regular_long_event'
 
     else:
@@ -310,16 +310,16 @@ def categorize_event_timescale(target, threshold=75.0):
 
     return category
 
-def sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_pspl_error, covariance):
+def sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_pspl_error, red_chi2, covariance):
     """
     Function to review the model parameters to verify that valid calulations can be made with them.
     """
     sane = True
-    params = [t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_pspl_error]
+    params = [t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_pspl_error, red_chi2]
 
     # Check t0, tE and u0 values are non-zero, not NaNs and floating point variables
     for value in params:
-        if value == 0.0 or np.isnan(value) or type(value) != type(1.0):
+        if value == 0.0 or np.isnan(value) or type(value) != type(1.0) or value == None:
             sane = False
 
     # Check the covariance array is an array of non-zero length:
