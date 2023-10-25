@@ -81,7 +81,7 @@ fitneedevents:
 
 # CronJob: Run TAP
 runtap:
-  enabled: false
+  enabled: true
   resources:
     requests:
       cpu: 10m
