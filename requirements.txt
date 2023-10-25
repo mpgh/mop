@@ -3,7 +3,7 @@ psycopg2===2.8.4
 gunicorn[gevent]==20.0.4
 factory_boy==2.12.0
 whitenoise==5.0.1
-pyLIMA==1.9
+pyLIMA==1.9.2
 VBBinaryLensing==3.6.2
 django-storages==1.11.1
 boto3==1.16.61
