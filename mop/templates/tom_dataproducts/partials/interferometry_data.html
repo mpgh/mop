@@ -4,193 +4,198 @@
     </div>
 </div>
 
-<div class="row"">
-    <table class="table">
-        <tr>
-            <td><b>Observation mode</b></td><td>{{Interferometry_mode}}</td>
-            <td><b>Guide star</b></td><td>{{Interferometry_guide_star}}</td>
-        </tr>
-    </table>
-</div>
-
-<div class="row" style="margin-top: 20px; margin-bottom: 20px; border:1px solid black; overflow: scroll">
-    <div class="col-md-8">
-        <h5>Target Data</h5>
-    </div>
-    <br>
-    <p>
-    Gaia Source ID: {{Gaia_Source_ID}}
-    </p>
-    <table class="table">
-        <thead>
+{% if model_valid %}
+    <div class="row"">
+        <table class="table">
             <tr>
-                <th>Distance [pc]</th>
-                <th>Teff [K]</th>
-                <th>log(g)</th>
-                <th>[Fe/H]</th>
-                <th>RUWE</th>
+                <td><b>Observation mode</b></td><td>{{Interferometry_mode}}</td>
+                <td><b>Guide star</b></td><td>{{Interferometry_guide_star}}</td>
             </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>{{Distance}}</td>
-                <td>{{Teff}}</td>
-                <td>{{logg}}</td>
-                <td>{{Fe_H}}</td>
-                <td>{{RUWE}}</td>
-            </tr>
-        </tbody>
-    </table>
-     <table class="table">
-         <thead>
-         <tr>
-             <th>G [mag]</th>
-             <th>BP [mag]</th>
-             <th>RP [mag]</th>
-             <th>BP-RP [mag]</th>
-             <th>J [mag]</th>
-             <th>H [mag]</th>
-             <th>K [mag]</th>
-             <th>Reddening (BP-RP) [mag]</th>
-             <th>Extinction (G) [mag]</th>
-         </tr>
-         </thead>
-         <tbody>
-         <tr>
-             <td>{{Gmag}}&#8723;{{Gmag_error}}</td>
-             <td>{{BPmag}}&#8723;{{BPmag_error}}</td>
-             <td>{{RPmag}}&#8723;{{RPmag_error}}</td>
-             <td>{{BP_RP}}&#8723;{{BP_RP_error}}</td>
-             <td>{{Mag_peak_J}}</td>
-             <td>{{Mag_peak_H}}</td>
-             <td>{{Mag_peak_K}}</td>
-             <td>{{Reddening_BP_RP_}}</td>
-             <td>{{Extinction_G}}</td>
-             <td></td>
-         </tr>
-         </tbody>
-     </table>
-</div>
-
-<div class="row" style="border:1px solid black; margin-top: 20px; margin-bottom: 20px; overflow: scroll">
-    <div class="col-md-8">
-        <h5>GSC2 stars</h5>
+        </table>
     </div>
-    {% if gsc_table|length > 0 %}
-        <table class="table table-striped">
+
+    <div class="row" style="margin-top: 20px; margin-bottom: 20px; border:1px solid black; overflow: scroll">
+        <div class="col-md-8">
+            <h5>Target Data</h5>
+        </div>
+        <br>
+        <p>
+        Gaia Source ID: {{Gaia_Source_ID}}
+        </p>
+        <table class="table">
             <thead>
                 <tr>
-                    <th>GSC2</th>
-                    <th>Separation</th>
-                    <th>Gmag</th>
-                    <th>Jmag</th>
-                    <th>Hmag</th>
-                    <th>Ksmag</th>
-                    <th>W1mag</th>
-                    <th>RA</th>
-                    <th>Dec</th>
-                    <th>plx</th>
-                    <th>pmRA</th>
-                    <th>pmDE</th>
-                    <th>AO</th>
-                    <th>FT</th>
-                </tr>
-                <tr>
-                    <th></th>
-                    <th>arcsec</th>
-                    <th>mag</th>
-                    <th>mag</th>
-                    <th>mag</th>
-                    <th>mag</th>
-                    <th>mag</th>
-                    <th>deg</th>
-                    <th>deg</th>
-                    <th>mas</th>
-                    <th>mas/yr</th>
-                    <th>mas/yr</th>
-                    <th></th>
-                    <th></th>
+                    <th>Distance [pc]</th>
+                    <th>Teff [K]</th>
+                    <th>log(g)</th>
+                    <th>[Fe/H]</th>
+                    <th>RUWE</th>
                 </tr>
             </thead>
             <tbody>
-                {% for star in gsc_table %}
+                <tr>
+                    <td>{{Distance}}</td>
+                    <td>{{Teff}}</td>
+                    <td>{{logg}}</td>
+                    <td>{{Fe_H}}</td>
+                    <td>{{RUWE}}</td>
+                </tr>
+            </tbody>
+        </table>
+         <table class="table">
+             <thead>
+             <tr>
+                 <th>G [mag]</th>
+                 <th>BP [mag]</th>
+                 <th>RP [mag]</th>
+                 <th>BP-RP [mag]</th>
+                 <th>J [mag]</th>
+                 <th>H [mag]</th>
+                 <th>K [mag]</th>
+                 <th>Reddening (BP-RP) [mag]</th>
+                 <th>Extinction (G) [mag]</th>
+             </tr>
+             </thead>
+             <tbody>
+             <tr>
+                 <td>{{Gmag}}&#8723;{{Gmag_error}}</td>
+                 <td>{{BPmag}}&#8723;{{BPmag_error}}</td>
+                 <td>{{RPmag}}&#8723;{{RPmag_error}}</td>
+                 <td>{{BP_RP}}&#8723;{{BP_RP_error}}</td>
+                 <td>{{Mag_peak_J}}</td>
+                 <td>{{Mag_peak_H}}</td>
+                 <td>{{Mag_peak_K}}</td>
+                 <td>{{Reddening_BP_RP_}}</td>
+                 <td>{{Extinction_G}}</td>
+                 <td></td>
+             </tr>
+             </tbody>
+         </table>
+    </div>
+
+    <div class="row" style="border:1px solid black; margin-top: 20px; margin-bottom: 20px; overflow: scroll">
+        <div class="col-md-8">
+            <h5>GSC2 stars</h5>
+        </div>
+        {% if gsc_table|length > 0 %}
+            <table class="table table-striped">
+                <thead>
                     <tr>
-                        <td>{{star.GSC2}}</td>
-                        <td>{{star.Separation}}</td>
-                        <td>{{star.Gmag}}</td>
-                        <td>{{star.Jmag}}</td>
-                        <td>{{star.Hmag}}</td>
-                        <td>{{star.Ksmag}}</td>
-                        <td>{{star.W1mag}}</td>
-                        <td>{{star.RA}}</td>
-                        <td>{{star.Dec}}</td>
-                        <td>{{star.plx}}</td>
-                        <td>{{star.pmRA}}</td>
-                        <td>{{star.pmDE}}</td>
-                        <td>{{star.AOstar}}</td>
+                        <th>GSC2</th>
+                        <th>Separation</th>
+                        <th>Gmag</th>
+                        <th>Jmag</th>
+                        <th>Hmag</th>
+                        <th>Ksmag</th>
+                        <th>W1mag</th>
+                        <th>RA</th>
+                        <th>Dec</th>
+                        <th>plx</th>
+                        <th>pmRA</th>
+                        <th>pmDE</th>
+                        <th>AO</th>
+                        <th>FT</th>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>arcsec</th>
+                        <th>mag</th>
+                        <th>mag</th>
+                        <th>mag</th>
+                        <th>mag</th>
+                        <th>mag</th>
+                        <th>deg</th>
+                        <th>deg</th>
+                        <th>mas</th>
+                        <th>mas/yr</th>
+                        <th>mas/yr</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for star in gsc_table %}
+                        <tr>
+                            <td>{{star.GSC2}}</td>
+                            <td>{{star.Separation}}</td>
+                            <td>{{star.Gmag}}</td>
+                            <td>{{star.Jmag}}</td>
+                            <td>{{star.Hmag}}</td>
+                            <td>{{star.Ksmag}}</td>
+                            <td>{{star.W1mag}}</td>
+                            <td>{{star.RA}}</td>
+                            <td>{{star.Dec}}</td>
+                            <td>{{star.plx}}</td>
+                            <td>{{star.pmRA}}</td>
+                            <td>{{star.pmDE}}</td>
+                            <td>{{star.AOstar}}</td>
+                            <td>{{star.FTstar}}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            No nearby stars found in the Guide Star Catalog v2.4.2
+        {% endif %}
+    </div>
+
+    <div class="row" style="border:1px solid black; margin-top: 20px; margin-bottom: 20px; overflow: scroll">
+        <div class="col-md-8">
+            <h5>Matrix of FT and AO stars</h5>
+        </div>
+        {% if nftstars > 0 %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>AO Stars</th>
+                        {% for star in AOstars %}
+                            <th colspan="2">{{star.name}}</th>
+                        {% endfor %}
+                    </tr>
+                <tr>
+                    <th></th>
+                    <th></th>
+                    {% for star in AOstars %}
+                        <th colspan="2" style="background-color: {{star.scstrehl_colour}}">SCstrehl: {{star.SCstrehl}}</th>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th>FT stars</th>
+                    <th></th>
+                    {% for star in AOstars %}
+                        <th>G=: {{star.Gmag}}mag</th>
+                        <th>@{{star.SC_separation}}"</th>
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for star in AOFT_table %}
+                    <tr>
                         <td>{{star.FTstar}}</td>
+                        <td style="background-color: {{star.scvloss_colour}}">
+                            SCvis: {{star.SC_Vloss}}
+                        </td>
+                        {% for entry in star.aostars %}
+                            <td style="background-color: {{entry.FTstrehl.1}}" colspan="2">FTstrehl: {{entry.FTstrehl.0}}</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>K={{star.Ksmag}}mag</td>
+                        <td>@{{star.SC_separation}}"</td>
+                        {% for entry in star.aostars %}
+                            <td style="background-color: {{entry.Ksmag.1}}">K~{{entry.Ksmag.0}}mag</td>
+                            <td style="background-color: {{entry.FT_separation.1}}">@{{entry.FT_separation.0}}"</td>
+                        {% endfor %}
                     </tr>
                 {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        No nearby stars found in the Guide Star Catalog v2.4.2
-    {% endif %}
-</div>
-
-<div class="row" style="border:1px solid black; margin-top: 20px; margin-bottom: 20px; overflow: scroll">
-    <div class="col-md-8">
-        <h5>Matrix of FT and AO stars</h5>
+                </tbody>
+            </table>
+        {% else %}
+            No candidate stars for adaptive optics or fringe tracking
+        {% endif %}
     </div>
-    {% if nftstars > 0 %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>AO Stars</th>
-                    {% for star in AOstars %}
-                        <th colspan="2">{{star.name}}</th>
-                    {% endfor %}
-                </tr>
-            <tr>
-                <th></th>
-                <th></th>
-                {% for star in AOstars %}
-                    <th colspan="2" style="background-color: {{star.scstrehl_colour}}">SCstrehl: {{star.SCstrehl}}</th>
-                {% endfor %}
-            </tr>
-            <tr>
-                <th>FT stars</th>
-                <th></th>
-                {% for star in AOstars %}
-                    <th>G=: {{star.Gmag}}mag</th>
-                    <th>@{{star.SC_separation}}"</th>
-                {% endfor %}
-            </tr>
-            </thead>
-            <tbody>
-            {% for star in AOFT_table %}
-                <tr>
-                    <td>{{star.FTstar}}</td>
-                    <td style="background-color: {{star.scvloss_colour}}">
-                        SCvis: {{star.SC_Vloss}}
-                    </td>
-                    {% for entry in star.aostars %}
-                        <td style="background-color: {{entry.FTstrehl.1}}">FTstrehl: {{entry.FTstrehl.0}}</td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <td>K={{star.Ksmag}}mag</td>
-                    <td>@{{star.SC_separation}}"</td>
-                    {% for entry in star.aostars %}
-                        <td style="background-color: {{entry.Ksmag.1}}">K~{{entry.Ksmag.0}}mag</td>
-                        <td style="background-color: {{entry.FT_separation.1}}">@{{entry.FT_separation.0}}"</td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        No candidate stars for adaptive optics or fringe tracking
-    {% endif %}
-</div>
+
+{% else %}
+    No evaluation of this target will be made until a valid microlensing model fit is available
+{% endif %}

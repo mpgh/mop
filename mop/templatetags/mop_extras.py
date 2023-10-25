@@ -125,6 +125,13 @@ def interferometry_data(target):
     context = {}
 
     # Gather extra_param key values for target's Gaia catalog data
+    u0 = utilities.fetch_extra_param(target, 'u0')
+    u0_error = utilities.fetch_extra_param(target, 'u0_error')
+    if u0 == None or u0_error == None or u0 == 0.0 or u0_error == 0.0:
+        context['model_valid'] = False
+    else:
+        context['model_valid'] = True
+    print(u0, u0_error, context['model_valid'])
     key_list = ['Gaia_Source_ID',
                 'Gmag', 'Gmag_error', 'RPmag', 'RPmag_error', 'BPmag', 'BPmag_error', 'BP-RP', 'BP-RP_error',
                 'Reddening(BP-RP)', 'Extinction_G', 'Distance', 'Teff', 'logg', '[Fe/H]', 'RUWE',
@@ -284,7 +291,7 @@ def colour_percent(value, thresholds=None, norm=100):
     """
     # Colours: Magenta, red, yellow, green, cyan, blue
     ascii_cols = ['\033[45m', '\033[41m', '\033[43m', '\033[42m', '\033[46m', '\033[44m']
-    hex_cols = ['#7105a3', '#f70a0e', '#e8db23', '#23e851', '#23e8db', '#235ee8']
+    hex_cols = ['#de47fc', '#f70a0e', '#e8db23', '#23e851', '#23e8db', '#3e96fa']
 
     if thresholds is None:
         thresholds = norm * np.linspace(0, 1, len(hex_cols) + 1)[1:]
@@ -301,7 +308,7 @@ def brightness_shader(Ksmag, kmax=10.5):
 
     if Ksmag < kmax - 2:
         #col = '\033[44m'
-        col = '#235ee8'
+        col = '#3e96fa'
     elif Ksmag < kmax - 1:
         #col = '\033[46m'
         col = '#23e8db'
@@ -322,11 +329,11 @@ def distance_shader(dist, distmax=30):
     Function returns the table cell background colour based on the angular separation in arcsec.
     """
     # Default is purple
-    col = '#7105a3'
+    col = '#de47fc'
 
     if dist == 0:
         #cold.append('\033[44m')
-        col = '#235ee8'
+        col = '#3e96fa'
     elif dist < distmax / 4:
         #cold.append('\033[46m')
         col = '#23e8db'
