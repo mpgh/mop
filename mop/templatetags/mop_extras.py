@@ -382,3 +382,12 @@ def gaia_neighbours_data(target):
     context['neighbours'] = neighbours
 
     return context
+@register.inclusion_tag('tom_targets/partials/current_timestamp.html')
+def current_timestamp():
+
+    context = {}
+    utc_now = datetime.utcnow()
+    context['utc_now'] = utc_now.strftime("%Y-%m-%d %H:%M:%S")
+    context['jd_now'] = str(np.around(Time(utc_now).jd,3))
+
+    return context
