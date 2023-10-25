@@ -14,7 +14,7 @@ from pyLIMA import telescopes
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
-import TAP_priority
+from mop.toolbox import TAP_priority
 
 ZP = 27.4 #pyLIMA convention
 
@@ -34,7 +34,7 @@ def TAP_observing_mode(planet_priority, planet_priority_error,
         return 'priority_long_event'
 
     elif (TAP_priority.check_long_priority(long_priority, long_priority_error,
-                        t_E, t_E_error, mag_baseline) == 'regular')
+                        t_E, t_E_error, mag_baseline) == 'regular'):
         return 'regular_long_event'
 
     else:

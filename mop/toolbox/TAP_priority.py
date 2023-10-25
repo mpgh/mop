@@ -48,9 +48,6 @@ def TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance):
     dpsipdu = -8*(usqr+2)/(usqr*(usqr+4)**1.5)
     dpsipdu += 4*(usqr**0.5*(usqr+4)**0.5+usqr+2)/(usqr+2+(usqr+4)**0.5)**2*1/(usqr+4)**0.5
 
-
-
-
     dUdto = -(time_now - t0_pspl) / (tE_pspl ** 2 *usqr**0.5)
     dUduo = u0_pspl/ usqr**0.5
     dUdtE = -(time_now - t0_pspl) ** 2 / (tE_pspl ** 3 * usqr**0.5)
@@ -59,7 +56,6 @@ def TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance):
     Jacob[0] = dpsipdu*dUdto
     Jacob[1] = dpsipdu*dUduo
     Jacob[2] = dpsipdu*dUdtE
-
 
     error_psip = np.dot(Jacob.T,np.dot(covariance,Jacob))**0.5
 
@@ -159,8 +155,8 @@ def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, 
     :param mag_baseline: baseline magnitude of the event
     :param mag_now: current magnitude of the event
     '''
-    if (planet_priority>10) and (planet_priority/planet_priority_error>3)
-        and (mag_baseline-mag_now>2) and (mag_now<19)):
+    if (planet_priority>10) and (planet_priority/planet_priority_error>3) \
+        and (mag_baseline-mag_now>2) and (mag_now<19):
         return True
     else:
         return False
