@@ -49,6 +49,7 @@ class MOABroker(GenericBroker):
 
         #ingest the TOM db
         list_of_targets = []
+        new_targets = []
         self.event_dictionnary = {}
         time_now = Time(datetime.datetime.now()).jd
         for year in years:
@@ -72,12 +73,13 @@ class MOABroker(GenericBroker):
                        target.save()
                        utilities.add_gal_coords(target)
                        TAP.set_target_sky_location(target)
+                       new_targets.append(target)
 
                    list_of_targets.append(target)
 
         logs.stop_log(log)
 
-        return list_of_targets
+        return list_of_targets, new_targets
 
 
     def find_and_ingest_photometry(self, targets):

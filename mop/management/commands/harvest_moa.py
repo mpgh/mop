@@ -15,12 +15,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         
         Moa = moa.MOABroker()
-        list_of_targets = Moa.fetch_alerts('./data/',[options['years']])
+        (list_of_targets, new_targets) = Moa.fetch_alerts('./data/',[options['years']])
         logger.info('MOA HARVESTER: Found '+str(len(list_of_targets))+' targets')
 
         Moa.find_and_ingest_photometry(list_of_targets)
         logger.info('MOA HARVESTER: Ingested photometry for MOA targets')
 
-        for target in list_of_targets:
+        for target in new_targets:
             gaia_mop.fetch_gaia_dr3_entry(target)
         logger.info('MOA HARVESTER: Retrieved Gaia photometry for MOA targets')

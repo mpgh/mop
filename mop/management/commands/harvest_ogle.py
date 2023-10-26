@@ -34,9 +34,9 @@ class Command(BaseCommand):
 
         Ogle.find_and_ingest_photometry(selected_targets)
 
-        for target in list_of_targets:
+        logger.info('Harvesting Gaia photometry for new OGLE targets')
+        for target in new_targets:
             gaia_mop.fetch_gaia_dr3_entry(target)
-        logger.info('Harvested Gaia photometry for targets')
 
         logger.info('Completed run of OGLE event harvester')
 
