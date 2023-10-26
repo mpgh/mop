@@ -13,6 +13,7 @@ from urllib.error import HTTPError
 
 from tom_dataproducts.models import ReducedDatum
 from tom_targets.models import Target
+from mop.toolbox import TAP, utilities
 
 BROKER_URL = 'http://www.astronomy.ohio-state.edu/asassn/transients.html'
 photometry = 'https://asas-sn.osu.edu/photometry'
@@ -111,6 +112,8 @@ class ASASSNBroker():
                                                                 type='SIDEREAL', epoch=2000)
                 if created:
                     target.save()
+                    utilities.add_gal_coords(target)
+                    TAP.set_target_sky_location(target)
             list_of_targets.append(target)
         return list_of_targets
 

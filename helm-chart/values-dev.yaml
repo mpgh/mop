@@ -160,7 +160,7 @@ harvestasassn:
 
 # CronJob: Add Galactic Coordinates
 addgalacticcoordinates:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m

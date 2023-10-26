@@ -14,7 +14,7 @@ import numpy as np
 from astropy.time import Time, TimezoneInfo
 import datetime
 from mop.toolbox import logs
-from mop.toolbox import TAP
+from mop.toolbox import TAP, utilities
 
 BROKER_URL = 'https://www.massey.ac.nz/~iabond/moa/'
 photometry = "https://www.massey.ac.nz/~iabond/moa/alert2019/fetchtxt.php?path=moa/ephot/"
@@ -70,6 +70,7 @@ class MOABroker(GenericBroker):
                    if created:
 
                        target.save()
+                       utilities.add_gal_coords(target)
                        TAP.set_target_sky_location(target)
 
                    list_of_targets.append(target)

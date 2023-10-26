@@ -12,7 +12,7 @@ from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_dataproducts.models import ReducedDatum
 
 from astropy.time import Time, TimezoneInfo
-from mop.toolbox import TAP
+from mop.toolbox import TAP, utilities
 
 
 BASE_BROKER_URL = gaia.BASE_BROKER_URL
@@ -108,6 +108,7 @@ class Command(BaseCommand):
             except:
                   target, created = Target.objects.get_or_create(name=clean_alert.name)
 
+            utilities.add_gal_coords(target)
             TAP.set_target_sky_location(target)
             Gaia.process_reduced_data(target, alert=alert)
             gaia_mop.update_gaia_errors(target)

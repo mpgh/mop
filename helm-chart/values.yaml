@@ -81,7 +81,7 @@ harvestasassn:
 
 # CronJob: Add Galactic Coordinates
 addgalacticcoordinates:
-  enabled: true
+  enabled: false
   schedule: "0 */12 * * *"
   resources: {}
 

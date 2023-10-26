@@ -8,14 +8,14 @@ from tom_targets.models import Target
 from tom_observations import facility
 from tom_dataproducts.models import ReducedDatum
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Galactic
 import astropy.units as unit
 import os
 import numpy as np
 import requests
 from astropy.time import Time, TimezoneInfo
 import logging
-from mop.toolbox import TAP
+from mop.toolbox import TAP, utilities
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +99,7 @@ class OGLEBroker(GenericBroker):
                                                            type='SIDEREAL', epoch=2000)
                 if created:
                     target.save()
+                    utilities.add_gal_coords(target)
                     TAP.set_target_sky_location(target)
                     logger.info('OGLE harvester: added event '+event_name+' to MOP')
                     new_targets.append(target)
