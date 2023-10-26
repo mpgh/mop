@@ -138,7 +138,7 @@ harvestmoa:
 
 # CronJob: Harvest OGLE
 harvestogle:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m
@@ -149,7 +149,7 @@ harvestogle:
 
 # CronJob: Harvest ASAS-SN
 harvestasassn:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m
