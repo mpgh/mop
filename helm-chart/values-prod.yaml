@@ -66,7 +66,7 @@ ingress:
 
 # CronJob: Fit Alive Events
 fitaliveevents:
-  enabled: true
+  enabled: false
   # Do not parallelize this process since the code isn't designed for it
   # Use 3 CPU on each Node (Machine)
   cores: 3
@@ -81,7 +81,7 @@ fitaliveevents:
 
 # CronJob: Fit Need Events
 fitneedevents:
-  enabled: true
+  enabled: false
   # Run in parallel across 6 Nodes (Machines) until all jobs are finished
   parallelism: 6
   # Use 3 CPU on each Node (Machine)

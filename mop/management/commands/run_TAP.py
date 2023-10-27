@@ -89,9 +89,8 @@ class Command(BaseCommand):
 
                         # ACTION RAS: Need to calculate this if not already available.
                         # If not available, assume a default 30d period to encourage observations
-                        if 'Latest_data_HJD' in event.extra_fields.keys():
-                            t_last = event.extra_fields['Latest_data_HJD']
-                        else:
+                        (t_last, t_last_date) = TAP.TAP_time_last_datapoint(target)
+                        if not t_last:
                             t_last = Time.now(jd) - TimeDelta(days=30.0)
                         logger.info('runTAP: Last datapoint: ' + str(t_last))
 

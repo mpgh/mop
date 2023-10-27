@@ -8,7 +8,7 @@ gunicornTimeout: 300
 # CronJob: Fit Alive Events
 # Fits a set of events; not intended to parallelize
 fitaliveevents:
-  enabled: true
+  enabled: false
   schedule: "0 */4 * * *"
   resources: {}
 
@@ -16,7 +16,7 @@ fitaliveevents:
 # CronJob: Fit Need Events
 # Selects the first available alive event to model; can parallelizes
 fitneedevents:
-  enabled: true
+  enabled: false
   # Run every 4 hours
   schedule: "0 */4 * * *"
   # maximum execution time: 4 hours - 10 minutes == 14400 seconds - 600 seconds == 13800 seconds

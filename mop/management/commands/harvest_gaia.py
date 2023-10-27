@@ -39,43 +39,46 @@ class MOPGaia(gaia.GaiaBroker):
         else:
             return
 
-        response = requests.get(lc_url)
-        response.raise_for_status()
-        html_data = response.text.split('\n')
-
         try:
-            times = [Time(i.timestamp).jd for i in ReducedDatum.objects.filter(target=target) if i.data_type == 'photometry']
-        except:
-            times = []
+            response = requests.get(lc_url)
+            response.raise_for_status()
+            html_data = response.text.split('\n')
 
-        for entry in html_data[2:]:
-            phot_data = entry.split(',')
+            try:
+                times = [Time(i.timestamp).jd for i in ReducedDatum.objects.filter(target=target) if i.data_type == 'photometry']
+            except:
+                times = []
 
-            if len(phot_data) == 3:
+            for entry in html_data[2:]:
+                phot_data = entry.split(',')
 
-                jd = Time(float(phot_data[1]), format='jd', scale='utc')
-                jd.to_datetime(timezone=TimezoneInfo())
+                if len(phot_data) == 3:
 
-                if ('untrusted' not in phot_data[2]) and ('null' not in phot_data[2]) and (jd.value not in times):
+                    jd = Time(float(phot_data[1]), format='jd', scale='utc')
+                    jd.to_datetime(timezone=TimezoneInfo())
 
-                    value = {
-                    'magnitude': float(phot_data[2]),
-                    'filter': 'G'
-                    }
+                    if ('untrusted' not in phot_data[2]) and ('null' not in phot_data[2]) and (jd.value not in times):
 
-                    rd, _ = ReducedDatum.objects.get_or_create(
-                            timestamp=jd.to_datetime(timezone=TimezoneInfo()),
-                            value=value,
-                            source_name=self.name,
-                            source_location=alert_url,
-                            data_type='photometry',
-                            target=target)
+                        value = {
+                        'magnitude': float(phot_data[2]),
+                        'filter': 'G'
+                        }
 
-                    rd.save()
+                        rd, _ = ReducedDatum.objects.get_or_create(
+                                timestamp=jd.to_datetime(timezone=TimezoneInfo()),
+                                value=value,
+                                source_name=self.name,
+                                source_location=alert_url,
+                                data_type='photometry',
+                                target=target)
 
-        (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
-        extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
-        target.save(extras=extras)
+                        rd.save()
+
+            (t_last_jd, t_last_date) = TAP.TAP_time_last_datapoint(target)
+            extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
+            target.save(extras=extras)
+        except requests.exceptions.HTTPError:
+            pass
 
         return
 
