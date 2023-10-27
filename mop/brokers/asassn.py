@@ -93,6 +93,7 @@ class ASASSNBroker():
         Creates and saves Target objects from the list of microlensing events
         '''
         list_of_targets = []
+        new_targets  = []
         listofevents = events
         for event in listofevents[0:]:
             if("---" in event[0]):
@@ -112,10 +113,11 @@ class ASASSNBroker():
                                                                 type='SIDEREAL', epoch=2000)
                 if created:
                     target.save()
+                    new_targets.append(target)
                     utilities.add_gal_coords(target)
                     TAP.set_target_sky_location(target)
             list_of_targets.append(target)
-        return list_of_targets
+        return list_of_targets, new_targets
 
     def url_get_contents(self, url):
         '''

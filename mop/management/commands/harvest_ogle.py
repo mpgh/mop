@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from mop.brokers import ogle
 from mop.brokers import gaia as gaia_mop
+from mop.toolbox import utilities
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,9 @@ class Command(BaseCommand):
         # the random selection is applied later.  If a specific event name is given, fetch data for that event only
         (list_of_targets, new_targets) = Ogle.fetch_alerts(years=[options['years']], events=str(options['events']))
         logger.info('Identified and ingested '+str(len(list_of_targets))+' target(s) from OGLE survey')
+
+        # For the new targets, set the permissions such that all OMEGA team members can see them
+        utilities.open_targets_to_OMEGA_team(new_targets)
 
         # The following random selection is made to avoid the harvesting process taking so long
         # that the Kubernetes pod times out.  By randomizing the target selection, we ensure

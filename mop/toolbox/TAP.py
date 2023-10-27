@@ -278,8 +278,14 @@ def TAP_time_last_datapoint(target):
     if datasets.count() > 0:
         time = [Time(i.timestamp, format='datetime').jd for i in datasets if i.data_type == 'photometry']
 
-        last_jd = time[-1]
-        last_ts = Time(last_jd, format='jd').to_datetime(timezone=TimezoneInfo())
+        # It's apparently possible for targets to get ingested with a single, zero-length dataset array,
+        # in which case this exception handling is needed
+        if len(time) > 0:
+            last_jd = time[-1]
+            last_ts = Time(last_jd, format='jd').to_datetime(timezone=TimezoneInfo())
+        else:
+            last_jd = None
+            last_ts = None
 
     # If there is no photometry for this target, return a default timestamp a long time ago
     # so that any photometry that subsequently becomes available will be more recent and MOP will

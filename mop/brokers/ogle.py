@@ -129,14 +129,18 @@ class OGLEBroker(GenericBroker):
             # runtime.
             if year == current_year:
                 photometry = self.read_ogle_lightcurve(target)
-                if photometry[-1][0] > t_last_jd:
-                    status = self.ingest_ogle_photometry(target, photometry)
-                    logger.info('OGLE harvester: read and ingested photometry for event '+target.name)
+                if t_last_jd:
+                    if photometry[-1][0] > t_last_jd:
+                        status = self.ingest_ogle_photometry(target, photometry)
+                        logger.info('OGLE harvester: read and ingested photometry for event '+target.name)
+                    else:
+                        logger.info('OGLE harvester: most recent photometry for event '
+                                    +target.name+' ('+str(photometry[-1][0])+') already ingested')
+                        extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
+                        target.save(extras=extras)
                 else:
-                    logger.info('OGLE harvester: most recent photometry for event '
-                                +target.name+' ('+str(photometry[-1][0])+') already ingested')
-                    extras = {'Latest_data_HJD': t_last_jd, 'Latest_data_UTC': t_last_date}
-                    target.save(extras=extras)
+                    status = self.ingest_ogle_photometry(target, photometry)
+                    logger.info('OGLE harvester: read and ingested photometry for event ' + target.name)
 
         logger.info('OGLE harvester: Completed ingest of photometry')
 

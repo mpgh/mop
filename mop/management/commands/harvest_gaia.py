@@ -93,6 +93,7 @@ class Command(BaseCommand):
 
         (list_of_alerts, broker_feedback) = Gaia.fetch_alerts({'target_name':None,'cone':None})
 
+        new_alerts = []
         for alert in list_of_alerts:
 
             # As of Oct 2022, Gaia alerts will no longer be providing the
@@ -108,8 +109,14 @@ class Command(BaseCommand):
             except:
                   target, created = Target.objects.get_or_create(name=clean_alert.name)
 
+            if created:
+                new_alerts.append(target)
+
             utilities.add_gal_coords(target)
             TAP.set_target_sky_location(target)
             Gaia.process_reduced_data(target, alert=alert)
             gaia_mop.update_gaia_errors(target)
             gaia_mop.fetch_gaia_dr3_entry(target)
+
+        # For all new alerts, set the permissions on the targets so all OMEGA users can see them
+        utilities.open_targets_to_OMEGA_team(new_alerts)

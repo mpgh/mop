@@ -154,7 +154,7 @@ harvestmoa:
 
 # CronJob: Harvest OGLE
 harvestogle:
-  enabled: false
+  enabled: true
   resources:
     requests:
       cpu: 10m
@@ -176,7 +176,7 @@ addgalacticcoordinates:
 
 # CronJob: Open targets to OMEGA users
 opentargetstoomegausers:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m
