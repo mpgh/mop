@@ -128,14 +128,6 @@ spec:
             - name: gunicorn
               containerPort: 8080
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: gunicorn
-          readinessProbe:
-            httpGet:
-              path: /
-              port: gunicorn
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -153,18 +145,6 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
-          livenessProbe:
-            initialDelaySeconds: 15
-            timeoutSeconds: 3
-            httpGet:
-              path: /healthz
-              port: http
-          readinessProbe:
-            initialDelaySeconds: 15
-            timeoutSeconds: 3
-            httpGet:
-              path: /healthz
-              port: http
           securityContext:
             {{- toYaml .Values.nginx.securityContext | nindent 12 }}
           resources:
