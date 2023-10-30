@@ -513,8 +513,11 @@ def predict_peak_brightness(mag_base, u0):
     """
 
     # Calculate the expected peak K-band brightness
-    magnification = peak_magnification(u0)
-    mag_peak = mag_base - 2.5 * np.log10(magnification)
+    if u0 > 0.0:
+        magnification = peak_magnification(u0)
+        mag_peak = mag_base - 2.5 * np.log10(magnification)
+    elif u0 == 0.0:
+        mag_peak = np.inf
 
     return mag_peak
 
