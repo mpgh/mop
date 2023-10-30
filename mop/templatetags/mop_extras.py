@@ -362,11 +362,15 @@ def distance_shader(dist, distmax=30):
     return col
 
 def convert_JD_to_UTC(jd):
-    t = Time(jd, format='jd')
-    t = t.utc
-    t.format = 'iso'
-    t.out_subfmt = 'date'
-    return t.value
+    try:
+        t = Time(jd, format='jd')
+        t = t.utc
+        t.format = 'iso'
+        t.out_subfmt = 'date'
+        ts = t.value
+    except TypeError:
+        ts = None
+    return ts
 
 @register.inclusion_tag('tom_dataproducts/partials/gaia_neighbours_data.html')
 def gaia_neighbours_data(target):
