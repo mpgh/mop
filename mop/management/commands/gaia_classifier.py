@@ -13,6 +13,11 @@ import datetime
 import os
 from functools import reduce
 
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+
+from mop.toolbox.classifier_tools import check_YSO, check_QSO, check_SN
+
 class Command(BaseCommand):
 
     help = 'Identify microlensing events from Gaia alerts'
@@ -74,6 +79,49 @@ class Command(BaseCommand):
                         if event.extra_fields['red_chi2'] > 50.0 \
                             or event.extra_fields['red_chi2'] < 0.0:
                             valid_chisq = False
+
+                    # Check target in catalogs
+                    coord = SkyCoord(ra=event.ra, dec=event.dec, unit=(u.degree, u.degree), frame='icrs')
+
+                    is_YSO, is_QSO, is_SN = False, False, False
+
+                    if 'is_YSO' in event.extra_fields.keys():
+                        if event.extra_fields['is_YSO']:
+                            is_YSO = True
+                    else:
+                        is_YSO = check_YSO(coord)
+                        event.save(extras={'is_YSO': is_YSO})
+                        log.info(event.name + ': Checked if YSO for the first time.')
+
+                    if 'is_QSO' in event.extra_fields.keys():
+                        if event.extra_fields['is_QSO']:
+                            is_QSO = True
+                    else:
+                        is_QSO = check_QSO(coord)
+                        event.save(extras={'is_QSO': is_QSO})
+                        log.info(event.name + ': Checked if QSO for the first time.')
+
+                    if 'is_SN' in event.extra_fields.keys():
+                        if event.extra_fields['is_SN']:
+                            is_SN = True
+                    else:
+                        is_SN = check_SN(coord)
+                        event.save(extras={'is_SN': is_SN})
+                        log.info(event.name + ': Checked if SN for the first time.')
+
+                    # Save classification based on catalogs
+                    if is_YSO:
+                        event.save(extras={'Classification': 'Possible YSO'})
+                        log.info(event.name + ': set as a possible YSO')
+
+                    if is_QSO:
+                        event.save(extras={'Classification': 'QSO'})
+                        log.info(event.name + ': set as a QSO')
+                    elif is_SN:
+                        # Some QSOs from Miliquas are in GLADE+ catalog,
+                        # so we don't want them "misclassified"
+                        event.save(extras={'Classification': 'Possible SN'})
+                        log.info(event.name + ': set as a possible SN')
 
                     # If a target fails all three criteria, set its classification
                     # to 'Unclassified variable'.  Note that TAP will consider scheduling
