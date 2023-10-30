@@ -340,6 +340,10 @@ def evaluate_target_for_interferometry(target):
                                   Jpeak, Hpeak, Kpeak, interval)
 
     else:
+        Jpeak = None
+        Hpeak = None
+        Kpeak = None
+        interval = None
         extras = {
                 'Interferometry_mode': 'No',
                 'Interferometry_guide_star': 0,
@@ -354,7 +358,8 @@ def evaluate_target_for_interferometry(target):
     store_gsc_search_results(target, gsc_table, AOFT_table)
 
     # Select candidate targets for GRAVITY program
-    gravity_target_selection(target, Kpeak, interval, gsc_table)
+    if Kpeak:
+        gravity_target_selection(target, Kpeak, interval, gsc_table)
 
 def store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K,
                               Jpeak, Hpeak, Kpeak, interval):
@@ -520,7 +525,7 @@ def predict_peak_brightness(mag_base, u0):
         mag_peak = np.inf
     elif np.isnan(u0):
         mag_peak = np.nan
-        
+
     return mag_peak
 
 def predict_period_above_brightness_threshold(target, Kbase, Kthreshold=14.0):
