@@ -11,6 +11,7 @@ from astropy.coordinates import Angle
 from astropy.table import Table, Column
 from astropy.time import Time, TimezoneInfo
 import logging
+from datetime import datetime
 from mop import settings
 
 logger = logging.getLogger(__name__)
@@ -151,8 +152,7 @@ def interferometry_decision(G_lens, BPRP_lens, K_neighbours):
 
                 mode = 'Dual Field Wide'
                 guide = np.argmin(K_neighbours)
-    return mode,guide        
-        
+    return mode,guide
             
 def GAIA_toJHK(G,BpRp):
     
@@ -323,12 +323,21 @@ def evaluate_target_for_interferometry(target):
         (J, H, K) = convert_Gmag_to_JHK(neighbours['Gmag'], neighbours['BP-RP'])
         logger.info('INTERFERO: Computed JHK photometry for neighbouring stars')
 
+        # Predict the K-band magnitude of the target around the peak of the event
+        Jpeak = predict_peak_brightness(J[0], u0)
+        Hpeak = predict_peak_brightness(H[0], u0)
+        Kpeak = predict_peak_brightness(K[0], u0)
+
+        # Determine how long the target will be bright enough to observe
+        interval = predict_period_above_brightness_threshold(target, K[0], Kthreshold=14.0)
+
         # Evaluate whether this target is suitable for inteferometry
         (mode, guide) = interferometry_decision(G_lens, BPRP_lens, np.array(K.data)[1:])
         logger.info('INTERFERO: Evaluation for interferometry for ' + target.name + ': ' + str(mode) + ' guide=' + str(guide))
 
         # Store the results
-        store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K)
+        store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K,
+                                  Jpeak, Hpeak, Kpeak, interval)
 
     else:
         extras = {
@@ -344,7 +353,11 @@ def evaluate_target_for_interferometry(target):
     # Store the results from the GSC
     store_gsc_search_results(target, gsc_table, AOFT_table)
 
-def store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K):
+    # Select candidate targets for GRAVITY program
+    gravity_target_selection(target, Kpeak, interval, gsc_table)
+
+def store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K,
+                              Jpeak, Hpeak, Kpeak, interval):
     extras = {
         'Gaia_Source_ID': neighbours['Gaia_Source_ID'][0],
         'Gmag': G_lens, 'Gmag_error': G_lens_error,
@@ -360,9 +373,13 @@ def store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_len
         'RUWE': neighbours['RUWE'][0],
         'Interferometry_mode': mode,
         'Interferometry_guide_star': guide,
-        'Mag_peak_J': J[0],
-        'Mag_peak_H': H[0],
-        'Mag_peak_K': K[0],
+        'Mag_base_J': J[0],
+        'Mag_base_H': H[0],
+        'Mag_base_K': K[0],
+        'Mag_peak_J': Jpeak,
+        'Mag_peak_H': Hpeak,
+        'Mag_peak_K': Kpeak,
+        'Interferometry_interval': interval
     }
     target.save(extras=extras)
 
@@ -489,3 +506,54 @@ def store_gsc_search_results(target, gsc_table, AOFT_table):
         data_type='tabular',
         target=target)
     logger.info('INTERFERO: Stored AOFT matrix in MOP')
+
+def predict_peak_brightness(mag_base, u0):
+    """
+    Function to estimate the peak brightness expected for the lensed target in K-band
+    """
+
+    # Calculate the expected peak K-band brightness
+    magnification = peak_magnification(u0)
+    mag_peak = mag_base - 2.5 * np.log10(magnification)
+
+    return mag_peak
+
+def predict_period_above_brightness_threshold(target, Kbase, Kthreshold=14.0):
+    # Search MOP to see if an existing model is already stored.  The model_time parameter is hardwired into
+    # mop.toolbox.fittools.  Unclear why.
+    model_time = datetime.strptime('2018-06-29 08:15:27.243860', '%Y-%m-%d %H:%M:%S.%f')
+    qs = ReducedDatum.objects.filter(source_name='MOP', data_type='lc_model',
+                                    timestamp=model_time, source_location=target.name)
+    mag_base = target.extra_fields['Baseline_magnitude']
+    interval = np.nan
+
+    # This calculation can only be made if a valid model has been fitted
+    if qs.count() > 0 and not np.isnan(mag_base) and mag_base > 0.0:
+
+        ts = np.array(qs[0].value['lc_model_time'])
+        mags = np.array(qs[0].value['lc_model_magnitude'])
+
+        # Estimate the K-band lightcurve
+        Klc = Kbase + (mags - mag_base)
+
+        # Calulate how many days the lightcurve spends brighter than Kthreshold
+        idx = np.where(Klc <= Kthreshold)[0]
+
+        if len(idx) > 0 and len(idx) < len(mags):
+            interval = ts[idx].max() - ts[idx].min()
+        elif len(idx) > 0 and len(idx) == len(mags):
+            interval = np.inf
+
+    return interval
+
+def gravity_target_selection(target, Kpeak, interval, gsc_table, Kthreshold=14.0):
+
+    # Count the numbers of AO and FT stars
+    nft = len(np.where(gsc_table['FTstar'] == 1.0)[0])
+    nao = len(np.where(gsc_table['AOstar'] == 1.0)[0])
+
+    if Kpeak <= Kthreshold \
+            and (interval > 0.0 or np.isinf(interval)) \
+            and nao > 0 and nft > 0:
+        extras = {'Interferometry_candidate': True}
+        target.save(extras=extras)
