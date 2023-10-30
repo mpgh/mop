@@ -518,7 +518,9 @@ def predict_peak_brightness(mag_base, u0):
         mag_peak = mag_base - 2.5 * np.log10(magnification)
     elif u0 == 0.0:
         mag_peak = np.inf
-
+    elif np.isnan(u0):
+        mag_peak = np.nan
+        
     return mag_peak
 
 def predict_period_above_brightness_threshold(target, Kbase, Kthreshold=14.0):
