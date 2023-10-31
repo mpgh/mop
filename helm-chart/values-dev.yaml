@@ -90,18 +90,6 @@ runtap:
       cpu: 1000m
       memory: 1024Mi
 
-# CronJob: Harvest IPAC ZTF
-# Disabled; used to rely on retired MARS broker
-harvestztfipac:
-  enabled: false
-  resources:
-    requests:
-      cpu: 10m
-      memory: 256Mi
-    limits:
-      cpu: 1000m
-      memory: 1024Mi
-
 # CronJob: Harvest ZTF DR3
 # Logs into IPAC archive portal directly
 harvestztfdr3:
