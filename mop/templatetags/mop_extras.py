@@ -11,10 +11,11 @@ from tom_dataproducts.processors.data_serializers import SpectrumSerializer
 from mop.toolbox import utilities
 from astropy.time import Time
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 register = template.Library()
-
-
 
 @register.inclusion_tag('tom_dataproducts/partials/photometry_for_target.html')
 def mop_photometry(target):
@@ -24,8 +25,12 @@ def mop_photometry(target):
     following keys in the JSON representation: magnitude, error, filter
     """
     photometry_data = {}
-    for datum in ReducedDatum.objects.filter(target=target, data_type=settings.DATA_PRODUCT_TYPES['photometry'][0]):
+    qs = ReducedDatum.objects.filter(target=target, data_type=settings.DATA_PRODUCT_TYPES['photometry'][0])
+    logger.info('MOP PHOTOMETRY: Got ' + str(qs.count()) + ' datasets for target ' + target.name)
+    for datum in qs:
         values = datum.value
+        logger.info('MOP PHOTOMETRY dataset ' + str(values['filter']))
+
         try:
            
                 photometry_data.setdefault(values['filter'], {})
