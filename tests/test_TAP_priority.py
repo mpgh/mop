@@ -16,7 +16,7 @@ class TestTAPPlanetPriority(TestCase):
         self.target.dec = -35.70483
 
         self.model_params = {'t': 2460199.0,
-                             't0': 2460201.74
+                             't0': 2460201.74,
                              'u0': 0.007,
                              'te': 76.1,
                              'Source_magnitude' : 19.49,
