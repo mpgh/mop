@@ -140,11 +140,13 @@ def interferometry_data(target):
                 'Gmag', 'Gmag_error', 'RPmag', 'RPmag_error', 'BPmag', 'BPmag_error', 'BP-RP', 'BP-RP_error',
                 'Reddening(BP-RP)', 'Extinction_G', 'Distance', 'Teff', 'logg', '[Fe/H]', 'RUWE',
                 'Interferometry_mode', 'Interferometry_guide_star', 'Interferometry_interval',
-                'Mag_base_J', 'Mag_base_H', 'Mag_base_K', 'Mag_peak_J', 'Mag_peak_H', 'Mag_peak_K',
+                'Mag_base_J', 'Mag_base_H', 'Mag_base_K', 'Mag_peak_J', 'Mag_peak_J_error',
+                'Mag_peak_H', 'Mag_peak_H_error', 'Mag_peak_K', 'Mag_peak_K_error',
                 't0', 't0_error', 'Interferometry_candidate'
                 ]
     round_keys = ['Gmag', 'Gmag_error', 'RPmag', 'RPmag_error', 'BPmag', 'BPmag_error', 'BP-RP', 'BP-RP_error',
-                'Reddening(BP-RP)', 'Extinction_G', 'Mag_peak_J', 'Mag_peak_H', 'Mag_peak_K',
+                'Reddening(BP-RP)', 'Extinction_G', 'Mag_peak_J', 'Mag_peak_J_error',
+                  'Mag_peak_H', 'Mag_peak_H_error', 'Mag_peak_K', 'Mag_peak_K_error',
                   'Mag_base_J', 'Mag_base_H', 'Mag_base_K', 't0', 't0_error', 'Interferometry_interval' ]
     bool_keys = ['Interferometry_candidate']
     for key in key_list:

@@ -74,11 +74,12 @@ class TestInterferomeinterferometry_predictiontryFunctions(TestCase):
         assert(len(stars_table) <= len(self.params['test_catalog'].values()[0]))
         assert(len(stars_table.columns) == 4)
 
-    def test_estimate_target_Gaia_phot_uncertainties(self):
-        Gmag_error = interferometry_prediction.estimate_target_Gaia_phot_uncertainties(self.params['test_star']['Gmag'],
+    def test_estimate_target_peak_phot_uncertainties(self):
+        peak_phot = interferometry_prediction.estimate_target_peak_phot_uncertainties(self.params['test_star']['Gmag'],
+                                                                                      self.params['test_star']['BPRP'],
                                                                                       self.params['test_star']['u0'],
                                                                                       self.params['test_star']['u0_error'])
-        assert(Gmag_error < 2.0)
+        assert(peak_phot['Gerror'] < 2.0)
 
     def test_interferometry_decision(self):
         (mode1, guide1) = interferometry_prediction.interferometry_decision(self.params['test_star']['Gmag'],
