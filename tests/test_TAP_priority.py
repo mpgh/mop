@@ -83,9 +83,9 @@ class TestTAPPlanetPriority(TestCase):
         self.assertEqual(result, True)
 
 class TestTAPLongEventPriority(TestCase):
-        """
-        Class describing unittests for the target long event priority functions
-        """
+    """
+    Class describing unittests for the target long event priority functions
+    """
 
     def setUp(self):
         self.target = SiderealTargetFactory.create()
