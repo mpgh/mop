@@ -3,6 +3,8 @@ from tom_targets.tests.factories import SiderealTargetFactory
 from mop.toolbox import TAP_priority
 from mop.toolbox import TAP
 
+import numpy as np
+
 class TestTAPPlanetPriority(TestCase):
     """
     Class describing unittests for the target planet priority functions
