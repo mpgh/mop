@@ -65,7 +65,7 @@ fitaliveevents:
 
 # CronJob: Fit Need Events
 fitneedevents:
-  enabled: false
+  enabled: true
   # Run in parallel across 6 Nodes (Machines) until all jobs are finished
   parallelism: 6
   # Use 3 CPU on each Node (Machine)
