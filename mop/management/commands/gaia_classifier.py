@@ -16,7 +16,7 @@ from functools import reduce
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from mop.toolbox.classifier_tools import check_YSO, check_QSO, check_SN
+from mop.toolbox.classifier_tools import check_YSO, check_QSO, check_galaxy
 
 class Command(BaseCommand):
 
@@ -83,7 +83,7 @@ class Command(BaseCommand):
                     # Check target in catalogs
                     coord = SkyCoord(ra=event.ra, dec=event.dec, unit=(u.degree, u.degree), frame='icrs')
 
-                    is_YSO, is_QSO, is_SN = False, False, False
+                    is_YSO, is_QSO, is_galaxy = False, False, False
 
                     if 'is_YSO' in event.extra_fields.keys():
                         if event.extra_fields['is_YSO']:
@@ -101,12 +101,12 @@ class Command(BaseCommand):
                         event.save(extras={'is_QSO': is_QSO})
                         log.info(event.name + ': Checked if QSO for the first time.')
 
-                    if 'is_SN' in event.extra_fields.keys():
-                        if event.extra_fields['is_SN']:
-                            is_SN = True
+                    if 'is_galaxy' in event.extra_fields.keys():
+                        if event.extra_fields['is_galaxy']:
+                            is_galaxy = True
                     else:
-                        is_SN = check_SN(coord)
-                        event.save(extras={'is_SN': is_SN})
+                        is_galaxy = check_galaxy(coord)
+                        event.save(extras={'is_galaxy': is_galaxy})
                         log.info(event.name + ': Checked if SN for the first time.')
 
                     # Save classification based on catalogs
@@ -117,7 +117,7 @@ class Command(BaseCommand):
                     if is_QSO:
                         event.save(extras={'Classification': 'QSO'})
                         log.info(event.name + ': set as a QSO')
-                    elif is_SN:
+                    elif is_galaxy:
                         # Some QSOs from Miliquas are in GLADE+ catalog,
                         # so we don't want them "misclassified"
                         event.save(extras={'Classification': 'Possible SN'})
