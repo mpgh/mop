@@ -87,29 +87,29 @@ class TestTAPLongEventPriority(TestCase):
         Class describing unittests for the target long event priority functions
         """
 
-        def setUp(self):
-            self.target = SiderealTargetFactory.create()
-            self.target.name = 'Gaia23cnu'
-            self.target.ra = 284.1060
-            self.target.dec = -18.0808
+    def setUp(self):
+        self.target = SiderealTargetFactory.create()
+        self.target.name = 'Gaia23cnu'
+        self.target.ra = 284.1060
+        self.target.dec = -18.0808
 
-            self.model_params = {'t': 2460237.0,
-                                 't0': 2460217.09,
-                                 'u0': 0.34,
-                                 'te': 126.4,
-                                 'Source_magnitude': 16.92,
-                                 'Blend_magnitude': 16.50,
-                                 'Baseline_magnitude': 15.94,
-                                 'Fit_covariance': np.array([[2.15139430e+02, -6.99073781e-01, 1.58171420e+02, 9.10223660e+03, -9.17011400e+03],
-                                                             [-6.99073781e-01, 2.77657360e-03, -4.40726722e-01, -4.40097857e+01, 4.42423141e+01],
-                                                             [1.58171420e+02, -4.40726722e-01, 1.32540884e+02, 4.79312741e+03, -4.85656397e+03],
-                                                             [9.10223660e+03, -4.40097857e+01, 4.79312741e+03, 8.78518102e+05, -8.82383618e+05],
-                                                             [-9.17011400e+03, 4.42423141e+01, -4.85656397e+03, -8.82383618e+05, 8.87477082e+05]]
-                                                            ),
-                                 'chi2': 6.35,
-                                 'red_chi2': 6135.256,
-                                 }
-            self.params = {'Latest_data_HJD': 2460207.09}
+        self.model_params = {'t': 2460237.0,
+                             't0': 2460217.09,
+                             'u0': 0.34,
+                             'te': 126.4,
+                             'Source_magnitude': 16.92,
+                             'Blend_magnitude': 16.50,
+                             'Baseline_magnitude': 15.94,
+                             'Fit_covariance': np.array([[2.15139430e+02, -6.99073781e-01, 1.58171420e+02, 9.10223660e+03, -9.17011400e+03],
+                                                         [-6.99073781e-01, 2.77657360e-03, -4.40726722e-01, -4.40097857e+01, 4.42423141e+01],
+                                                         [1.58171420e+02, -4.40726722e-01, 1.32540884e+02, 4.79312741e+03, -4.85656397e+03],
+                                                         [9.10223660e+03, -4.40097857e+01, 4.79312741e+03, 8.78518102e+05, -8.82383618e+05],
+                                                         [-9.17011400e+03, 4.42423141e+01, -4.85656397e+03, -8.82383618e+05, 8.87477082e+05]]
+                                                        ),
+                             'chi2': 6.35,
+                             'red_chi2': 6135.256,
+                             }
+        self.params = {'Latest_data_HJD': 2460207.09}
 
     def test_TAP_long_event_priority(self):
         result = TAP_priority.TAP_long_event_priority(self.model_params['t'],
