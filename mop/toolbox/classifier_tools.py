@@ -13,6 +13,7 @@ def check_YSO(coord):
     :return: boolean if the target was found YSO catalogs
     '''
 
+    Vizier.cache_location = None
     # check if in Konkoly YSO catalogue, Marton et al. 2023
     result1 = Vizier.query_region(coord, radius=Angle(1. / 60. / 60., "deg"), catalog='J/A+A/674/A21/kyso')
     # Marton et al 2019 YSOs
@@ -38,6 +39,8 @@ def check_QSO(coord):
     :params coord: astropy SkyCoord with coordinates of the checked target
     :return: boolean if the target was found QSO/AGN catalogs
     '''
+
+    Vizier.cache_location = None
     # check if in Flesch et al. 2021 Milliquas
     result1 = Vizier.query_region(coord, radius=Angle(2. / 60. / 60., "deg"), catalog='VII/290/catalog')
     # check if in GDR3 vari_agn, Carnerer et al. 2023
@@ -50,7 +53,7 @@ def check_QSO(coord):
 
     return False
 
-def check_SN(coord):
+def check_galaxy(coord):
     '''
     This function checks if the target appears within 1.5 arcsec of the GLADE+ catalog of galaxies.
     If yes, this could be a supernova.
@@ -58,6 +61,8 @@ def check_SN(coord):
     :params coord: astropy SkyCoord with coordinates of the checked target
     :return: boolean if the target was found the GLADE+ catalog (Dálya et al. 2022)
     '''
+
+    Vizier.cache_location = None
     # check if near galaxy in GLADE+ catalogue
     result = Vizier.query_region(coord, radius=Angle(1.5 / 60. / 60., "deg"), catalog='VII/281')
 
