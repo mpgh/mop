@@ -53,9 +53,7 @@ def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
     """
 
     data = []
-    ts_dates = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2)
-    ts_jds, mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2)
-    print(ts_dates)
+    ts_jds, mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=(1,2))
     jd = Time(float(ts_jds), format='jd', scale='utc')
 
     for i in range(len(mags)):
