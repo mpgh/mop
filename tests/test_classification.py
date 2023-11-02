@@ -20,7 +20,7 @@ class TestClassMicrolens(TestCase):
         st1.dec = -18.0808
         cwd = getcwd()
         lightcurve_file = path.join(cwd, 'tests/data/Gaia23cnu.csv')
-        photometry = generate_test_ReducedDatums(st1, lightcurve_file)
+        photometry = generate_test_ReducedDatums(st1, lightcurve_file, 'G')
 
         self.model_params = {'t': 2460237.0,
                              't0': 2460217.09,
@@ -39,7 +39,7 @@ class TestClassMicrolens(TestCase):
             'Latest_data_HJD': 2460207.09
         }
 
-def generate_test_ReducedDatums(target, lightcurve_file):
+def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
     """Taken from test_fittools, by R. Street.
     Method generates a set of ReducedDatums for different telescopes, as is held in the TOM for a
     single target
@@ -51,7 +51,7 @@ def generate_test_ReducedDatums(target, lightcurve_file):
     jd = Time(float(ts_jds), format='jd', scale='utc')
 
     for i in range(len(mags)):
-        if(mags[i] != 'untrusted' or mags[i] != 'null')
+        if(mags[i] != 'untrusted' or mags[i] != 'null'):
             datum = {
                     'magnitude': mags[i],
                     'filter': tel_label,
