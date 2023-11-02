@@ -153,7 +153,7 @@ def interferometry_data(target):
             if value:
                 context[clean_key] = 'True'
             else:
-                context[clear_key] = 'False'
+                context[clean_key] = 'False'
         else:
             context[clean_key] = value
 
