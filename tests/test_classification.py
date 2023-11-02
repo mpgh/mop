@@ -53,15 +53,16 @@ def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
     """
 
     data = []
-    ts_jds, mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=(1,2))
+    ts_jds = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=1)
+    mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=2, dtype='str')
     jd = Time(float(ts_jds), format='jd', scale='utc')
 
     for i in range(len(mags)):
         if(mags[i] != 'untrusted' or mags[i] != 'null'):
             datum = {
-                    'magnitude': mags[i],
+                    'magnitude': float(mags[i]),
                     'filter': tel_label,
-                    'error': gaia_mop.estimateGaiaError(mags[i])
+                    'error': gaia_mop.estimateGaiaError(float(mags[i]))
                     }
             rd, created = ReducedDatum.objects.get_or_create(
                 timestamp=jd.to_datetime(timezone=TimezoneInfo()),
