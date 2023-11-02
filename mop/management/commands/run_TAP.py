@@ -233,9 +233,16 @@ def load_covar_matrix(raw_covar_data):
     payload = str(raw_covar_data).replace('[[','').replace(']]','').replace('\n','').lstrip()
     array_list = payload.split('] [')
 
+    # Check for older covar matrix format
+    if len(array_list) == 1:
+        array_list = array_list[0].split('], [')
+
     data = []
     for entry in array_list:
-        data.append([float(x) for x in entry.split()])
+        try:
+            data.append([float(x) for x in entry.split()])
+        except ValueError:
+            data.append([float(x) for x in entry.split(',')])
 
     return np.array(data)
 

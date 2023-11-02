@@ -29,21 +29,16 @@ def mop_photometry(target):
     logger.info('MOP PHOTOMETRY: Got ' + str(qs.count()) + ' datasets for target ' + target.name)
     for datum in qs:
         values = datum.value
-        logger.info('MOP PHOTOMETRY dataset ' + str(values['filter']))
 
         try:
-           
-                photometry_data.setdefault(values['filter'], {})
-                photometry_data[values['filter']].setdefault('time', []).append(Time(datum.timestamp).jd-2450000)
-                photometry_data[values['filter']].setdefault('magnitude', []).append(values.get('magnitude'))
-                photometry_data[values['filter']].setdefault('error', []).append(values.get('error'))
+            photometry_data.setdefault(values['filter'], {})
+            photometry_data[values['filter']].setdefault('time', []).append(Time(datum.timestamp).jd-2450000)
+            photometry_data[values['filter']].setdefault('magnitude', []).append(values.get('magnitude'))
+            photometry_data[values['filter']].setdefault('error', []).append(values.get('error'))
 
         except:
-                
-                photometry_data.setdefault(values['filter'], {})
-                photometry_data[values['filter']].setdefault('time', []).append(Time(datum.timestamp).jd-2450000)
-                photometry_data[values['filter']].setdefault('magnitude', []).append(values.get('magnitude'))
-                photometry_data[values['filter']].setdefault('error', []).append(values.get('error'))
+            pass
+
     plot_data = [
         go.Scatter(
             x=filter_values['time'],
