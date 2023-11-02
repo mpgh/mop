@@ -10,6 +10,8 @@ from mop.brokers import gaia as gaia_mop
 from os import getcwd, path
 import numpy as np
 from astropy.time import Time, TimezoneInfo
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 
 class TestClassMicrolens(TestCase):
     """
@@ -42,7 +44,7 @@ class TestClassMicrolens(TestCase):
         }
 
     def test_check_YSO(self):
-        coord = SkyCoord(ra=self.ra, dec=self.dec, unit=(u.degree, u.degree), frame='icrs')
+        coord = SkyCoord(ra=self.params['target'].ra, dec=self.params['target'].dec, unit=(u.degree, u.degree), frame='icrs')
         is_YSO = classifier_tools.check_YSO(coord)
         assert (type(is_YSO) == type(True))
         self.assertEqual(is_YSO, False)
