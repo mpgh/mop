@@ -41,6 +41,8 @@ class TestClassMicrolens(TestCase):
         }
 
     def test_check_YSO(self):
+        ts_dates, ts_jds, mags = np.loadtxt(self.params['lightcurve_file'], delimiter=',', skiprows=2)
+        print(ts_dates)
         coord = SkyCoord(ra=self.ra, dec=self.dec, unit=(u.degree, u.degree), frame='icrs')
         is_YSO = classifier_tools.check_YSO(coord)
         assert (type(is_YSO) == type(True))
