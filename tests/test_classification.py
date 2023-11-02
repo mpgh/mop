@@ -58,7 +58,7 @@ def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
     mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=2, dtype='str')
 
     for i in range(len(mags)):
-        if(mags[i] != 'untrusted' or mags[i] != 'null'):
+        if('untrusted' not in mags[i] and 'null' not in mags[i]):
             jd = Time(float(ts_jds[i]), format='jd', scale='utc')
             datum = {
                     'magnitude': float(mags[i]),
