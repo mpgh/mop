@@ -1,5 +1,6 @@
 from django.test import TestCase
 from tom_targets.tests.factories import SiderealTargetFactory
+from tom_dataproducts.models import ReducedDatum
 
 from mop.toolbox import classifier_tools
 from mop.management.commands import gaia_classifier
