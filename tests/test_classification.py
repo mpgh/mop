@@ -41,8 +41,6 @@ class TestClassMicrolens(TestCase):
         }
 
     def test_check_YSO(self):
-        ts_dates, ts_jds, mags = np.loadtxt(self.params['lightcurve_file'], delimiter=',', skiprows=2)
-        print(ts_dates)
         coord = SkyCoord(ra=self.ra, dec=self.dec, unit=(u.degree, u.degree), frame='icrs')
         is_YSO = classifier_tools.check_YSO(coord)
         assert (type(is_YSO) == type(True))
@@ -55,7 +53,8 @@ def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
     """
 
     data = []
-    ts_dates, ts_jds, mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2)
+    ts_dates = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2)
+    ts_jds, mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2)
     print(ts_dates)
     jd = Time(float(ts_jds), format='jd', scale='utc')
 
