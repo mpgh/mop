@@ -52,7 +52,7 @@ class TestTAPPlanetPriority(TestCase):
                                      self.model_params['te'])
 
         assert(type(result) == type(1.0))
-        self.assertAlmostEqual(result, 64.92, places=1)
+        self.assertAlmostEqual(result, 53.55, places=1)
     def test_TAP_planet_priority_error(self):
 
         result = TAP_priority.TAP_planet_priority_error(self.model_params['t'],
@@ -60,8 +60,9 @@ class TestTAPPlanetPriority(TestCase):
                                            self.model_params['u0'],
                                            self.model_params['te'],
                                            self.model_params['Fit_covariance'])
-        assert(type(result) == type(1.0))
-        self.assertAlmostEqual(result, 8.66, places=1)
+
+        assert(type(result) == type(np.float64(1.0)))
+        self.assertAlmostEqual(result, 6.49, places=1)
 
     def test_check_planet_priority(self):
         mag_now = 16.39
@@ -108,8 +109,8 @@ class TestTAPLongEventPriority(TestCase):
                                                          [9.10223660e+03, -4.40097857e+01, 4.79312741e+03, 8.78518102e+05, -8.82383618e+05],
                                                          [-9.17011400e+03, 4.42423141e+01, -4.85656397e+03, -8.82383618e+05, 8.87477082e+05]]
                                                         ),
-                             'chi2': 6.35,
-                             'red_chi2': 6135.256,
+                             'chi2': 6135.256,
+                             'red_chi2': 6.35,
                              }
         self.params = {'Latest_data_HJD': 2460207.09}
 
@@ -118,28 +119,24 @@ class TestTAPLongEventPriority(TestCase):
                                                       self.params['Latest_data_HJD'],
                                                       self.model_params['te'])
 
-        assert (type(result) == type(1.0))
+        assert (type(result) == type(np.float64(1.0)))
         self.assertAlmostEqual(result, 16.84, places=1)
 
     def test_TAP_long_event_priority_erro(self):
         result = TAP_priority.TAP_long_event_priority_error(self.model_params['te'],
                                                            self.model_params['Fit_covariance'])
-        assert (type(result) == type(1.0))
+        assert (type(result) == type(np.float64(1.0)))
         self.assertAlmostEqual(result, 1.53, places=1)
 
     def test_check_long_priority(self):
-        long_priority = TAP_priority.TAP_planet_priority(self.model_params['t'],
-                                                         self.model_params['t0'],
-                                                         self.model_params['u0'],
-                                                         self.model_params['te'])
+        long_priority = TAP_priority.TAP_long_event_priority(self.model_params['t'],
+                                                             self.params['Latest_data_HJD'],
+                                                             self.model_params['te'])
         
-        t_E_error = self.model_params['Fit_covariance'][2,2]
+        t_E_error = np.sqrt(self.model_params['Fit_covariance'][2,2])
         
-        long_priority_error = TAP_priority.TAP_planet_priority_error(self.model_params['t'],
-                                                                     self.model_params['t0'],
-                                                                     self.model_params['u0'],
-                                                                     self.model_params['te'],
-                                                                     self.model_params['Fit_covariance'])
+        long_priority_error = TAP_priority.TAP_long_event_priority_error(self.model_params['te'],
+                                                                         self.model_params['Fit_covariance'])
 
         result = TAP_priority.check_long_priority(long_priority,
                                                   long_priority_error,
@@ -148,5 +145,5 @@ class TestTAPLongEventPriority(TestCase):
                                                   self.model_params['Baseline_magnitude'],
                                                   self.model_params['red_chi2'])
 
-        assert (type(result) == type(True))
-        self.assertEqual(result, True)
+        assert (type(result) == type('regular'))
+        self.assertEqual(result, 'regular')

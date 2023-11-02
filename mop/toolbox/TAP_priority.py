@@ -142,7 +142,7 @@ def TAP_long_event_priority_error(t_E, covariance, t_E_base = 75.):
     else:
         # Simple derevative
         err_t_E = np.sqrt(covariance[2,2])
-        err_psi = err_t_E / t_E_base
+        err_psi = 10. *  err_t_E / t_E_base
 
     return err_psi
 
