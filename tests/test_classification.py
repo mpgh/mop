@@ -6,6 +6,7 @@ from mop.management.commands import gaia_classifier
 
 from mop.brokers import gaia as gaia_mop
 
+from os import getcwd, path
 import numpy as np
 from astropy.time import Time, TimezoneInfo
 
@@ -38,6 +39,12 @@ class TestClassMicrolens(TestCase):
             'photometry': photometry,
             'Latest_data_HJD': 2460207.09
         }
+
+    def test_check_YSO(self):
+        coord = SkyCoord(ra=self.ra, dec=self.dec, unit=(u.degree, u.degree), frame='icrs')
+        is_YSO = classifier_tools.check_YSO(coord)
+        assert (type(is_YSO) == type(True))
+        self.assertEqual(is_YSO, False)
 
 def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
     """Taken from test_fittools, by R. Street.
