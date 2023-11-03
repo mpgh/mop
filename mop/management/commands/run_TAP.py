@@ -49,6 +49,12 @@ class Command(BaseCommand):
         
         KMTNet_fields = TAP.load_KMTNet_fields()
 
+        ## Get list of targets for which there are currently-pending observations already in the LCO Portal.
+        response = obs_control.fetch_pending_lco_requestgroups()
+        pending_obs = obs_control.parse_lco_requestgroups(response)
+        logger.info('runTAP: identified pending observations for ' + str(len(pending_obs)) \
+                    + ' targets: ' + repr(pending_obs))
+
         for event in list_of_events_alive[:]:
             logger.info('runTAP: analyzing event '+event.name)
 
@@ -56,7 +62,7 @@ class Command(BaseCommand):
                pass
 
             else:
-                try:
+                #try:
 
                     # Gather the necessary information from the model fit to this event.  Sanity check: if this information
                     # isn't available, skip the event
@@ -191,7 +197,7 @@ class Command(BaseCommand):
 
                                     # Filter this list of hypothetical observations, removing any for which a similar
                                     # request has already been submitted and has status 'PENDING'
-                                    obs_configs = obs_control.filter_duplicated_observations(obs_configs)
+                                    obs_configs = obs_control.filter_duplicated_observations(obs_configs, pending_obs)
                                     logger.info('runTAP: Filtered out duplicates: ' + repr(obs_configs))
 
                                     # Build the corresponding observation requests in LCO format:
@@ -224,8 +230,8 @@ class Command(BaseCommand):
                         interferometry_prediction.evaluate_target_for_interferometry(event)
                         logger.info('runTAP: Evaluated ' + event.name + ' for interferometry')
 
-                except:
-                    logger.warning('runTAP: Cannot perform TAP for target ' + event.name)
+                #except:
+                #    logger.warning('runTAP: Cannot perform TAP for target ' + event.name)
 
 
 def load_covar_matrix(raw_covar_data):

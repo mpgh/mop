@@ -1,3 +1,4 @@
+from django.conf import settings
 from tom_observations.facility import GenericObservationFacility, GenericObservationForm, get_service_class
 from tom_observations.facilities import lco
 from tom_observations.cadence import CadenceForm
@@ -17,28 +18,39 @@ import os
 import json
 from scipy import interpolate
 
+def fetch_pending_lco_requestgroups():
+    """Function to retrieve the request groups for a given user from the LCO Observe Portal"""
 
-def check_pending_observations(name,status):
-
-    token  = os.getenv('LCO_API_KEY')
-    username =  os.getenv('LCO_USERNAME')
+    # Contact the LCO Observe Portal.  This query now returns a list of all request groups accessible to the user
+    token = os.getenv('LCO_API_KEY')
+    username = os.getenv('LCO_USERNAME')
     headers = {'Authorization': 'Token ' + token}
-    url = os.path.join("https://observe.lco.global/api/requestgroups/?state="+status+"&user="+username+"&name="+name)
-
+    url = os.path.join(
+        "https://observe.lco.global/api/requestgroups/?state=PENDING&user=" + username)
     response = requests.get(url, headers=headers, timeout=20).json()
 
-    if response['count']==0:
+    return response
 
-       need_to_submit = True
+def parse_lco_requestgroups(response):
+    # Parse the list of results returned to extract observations from the configured observing proposal,
+    # and return only those with state pending.
+    proposal_code = os.getenv('LCO_PROPOSAL_ID')
+    pending_obs = {}
 
-    else:
+    if 'results' in response.keys():
+        for result in response['results']:
+            if result['state'] == 'PENDING' and result['proposal'] == proposal_code:
+                for request in result['requests']:
+                    for config in request['configurations']:
+                        if config['target']['name'] not in pending_obs:
+                            pending_obs[config['target']['name']] = [config['instrument_type']]
+                        else:
+                            if config['instrument_type'] not in pending_obs[config['target']['name']]:
+                                pending_obs[config['target']['name']].append(config['instrument_type'])
 
-       need_to_submit = False
+    return pending_obs
 
-
-    return need_to_submit
-
-def filter_duplicated_observations(configs):
+def filter_duplicated_observations(configs, pending_obs):
     """Function designed to filter a list of dictionaries containing the parameters of
     observing requests for a given target.
     This function checks to see if an observation with similar parameters has already
@@ -47,7 +59,10 @@ def filter_duplicated_observations(configs):
     """
     new_configs = []
     for conf in configs:
-        need_to_submit = check_pending_observations(conf['group_id'][0], 'PENDING')
+        need_to_submit = True
+        if conf['target'].name in pending_obs.keys():
+            if conf['instrument_type'] in pending_obs[conf['target'].name]:
+                need_to_submit = False
         if need_to_submit:
             new_configs.append(conf)
 
