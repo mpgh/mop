@@ -74,7 +74,7 @@ class TestClassMicrolens(TestCase):
         self.assertEqual(valid_u0, True)
 
     def test_valid_dmag(self):
-        photometry = gaia_classifier.retrieve_target_photometry(self)
+        photometry = gaia_classifier.retrieve_target_photometry(self.params['target'])
         valid_dmag = classifier_tools.check_valid_dmag(self.model_params['Baseline_magnitude'], photometry)
 
         assert (type(valid_dmag) == type(True))
