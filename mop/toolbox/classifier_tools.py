@@ -70,3 +70,37 @@ def check_galaxy(coord):
         return True
 
     return False
+
+def check_valid_blend(blend_field):
+    if blend_field == None or blend_field == 0.0:
+        return False
+
+    return True
+
+def check_valid_u0(u_0_field):
+    if abs(u_0_field) > 0.5:
+        return False
+
+    return True
+
+def check_valid_dmag(baseline_mag_field, photometry):
+    if len(photometry) > 0:
+        peak_mag = photometry[:, 1].min()
+        delta_mag = baseline_mag_field - peak_mag
+        if delta_mag < 0.5:
+            return False
+    else:
+        return False
+
+    return True
+
+def check_valid_chi2sq(event_extra_fields):
+    if 'red_chi2' in event_extra_fields.keys():
+        if event_extra_fields['red_chi2'] > 50.0 \
+                or event_extra_fields['red_chi2'] < 0.0:
+            return False
+
+    else:
+        return False
+
+    return True
