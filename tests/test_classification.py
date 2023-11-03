@@ -33,8 +33,8 @@ class TestClassMicrolens(TestCase):
                              'Source_magnitude': 16.92,
                              'Blend_magnitude': 16.50,
                              'Baseline_magnitude': 15.94,
-                             'chi2': 6.35,
-                             'red_chi2': 6135.256,
+                             'chi2': 6135.256,
+                             'red_chi2': 6.35,
                              }
         self.params = {
             'target': st1,
@@ -49,8 +49,45 @@ class TestClassMicrolens(TestCase):
         assert (type(is_YSO) == type(True))
         self.assertEqual(is_YSO, False)
 
+    def test_check_QSO(self):
+        coord = SkyCoord(ra=self.params['target'].ra, dec=self.params['target'].dec, unit=(u.degree, u.degree), frame='icrs')
+        is_QSO = classifier_tools.check_QSO(coord)
+        assert (type(is_QSO) == type(True))
+        self.assertEqual(is_QSO, False)
+
+    def test_check_galaxy(self):
+        coord = SkyCoord(ra=self.params['target'].ra, dec=self.params['target'].dec, unit=(u.degree, u.degree), frame='icrs')
+        is_galaxy = classifier_tools.check_galaxy(coord)
+        assert (type(is_galaxy) == type(True))
+        self.assertEqual(is_galaxy, False)
+
+    def test_valid_blend(self):
+        valid_blend = classifier_tools.check_valid_blend(self.model_params['Blend_magnitude'])
+
+        assert (type(valid_blend) == type(True))
+        self.assertEqual(valid_blend, True)
+
+    def test_valid_u0(self):
+        valid_u0 = classifier_tools.check_valid_u0(self.model_params['u0'])
+
+        assert (type(valid_u0) == type(True))
+        self.assertEqual(valid_u0, True)
+
+    def test_valid_dmag(self):
+        photometry = gaia_classifier.retrieve_target_photometry(self)
+        valid_dmag = classifier_tools.check_valid_dmag(self.model_params['Baseline_magnitude'], photometry)
+
+        assert (type(valid_dmag) == type(True))
+        self.assertEqual(valid_dmag, True)
+
+    def test_valid_chi2sq(self):
+        valid_chi2sq = classifier_tools.check_valid_chi2sq(self.model_params)
+
+        assert (type(valid_chi2sq) == type(True))
+        self.assertEqual(valid_chi2sq, True)
+
 def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
-    """Taken from test_fittools, by R. Street.
+    """Taken from test_fittools, by R. Street. Modified to match this test case.
     Method generates a set of ReducedDatums for different telescopes, as is held in the TOM for a
     single target
     """
