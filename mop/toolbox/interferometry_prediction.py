@@ -11,6 +11,7 @@ from astropy.coordinates import Angle
 from astropy.table import Table, Column
 from astropy.time import Time, TimezoneInfo
 import logging
+from datetime import datetime
 from mop import settings
 
 logger = logging.getLogger(__name__)
@@ -110,8 +111,10 @@ def convert_Gmag_to_JHK(Gmag,BpRp):
         K = Column(name='Kmag', data=K.data)
     return J, H, K
 
-def estimate_target_Gaia_phot_uncertainties(Gmag, u0, u0_error):
+def estimate_target_peak_phot_uncertainties(Gmag, BPRP, u0, u0_error):
     """Function to estimate the photometric uncertainties for the Gaia photometry of a given star"""
+
+    peak_phot = {'G': Gmag, 'BPRP': BPRP}
 
     # Simulate a distribution of event baseline magnitudes and colours
     g_sample = np.random.normal(Gmag, 0.1, 10000)
@@ -124,9 +127,18 @@ def estimate_target_Gaia_phot_uncertainties(Gmag, u0, u0_error):
     # Calculate the corresponding distribution of G-band peak event magnitudes,
     # and estimate the uncertainty from the width of the distribution
     g_sample -= 2.5 * np.log10(magnification)
-    Gmag_error = g_sample.std()
+    peak_phot['Gerror'] = g_sample.std()
 
-    return Gmag_error
+    # To estimate the target's NIR photometry around the peak, convert the sample of events
+    (Jsample, Hsample, Ksample) = convert_Gmag_to_JHK(g_sample, BPRP)
+    peak_phot['J'] = np.median(Jsample)
+    peak_phot['Jerror'] = Jsample.std()
+    peak_phot['H'] = np.median(Hsample)
+    peak_phot['Herror'] = Hsample.std()
+    peak_phot['K'] = np.median(Ksample)
+    peak_phot['Kerror'] = Ksample.std()
+
+    return peak_phot
 
 def interferometry_decision(G_lens, BPRP_lens, K_neighbours):
 
@@ -151,8 +163,7 @@ def interferometry_decision(G_lens, BPRP_lens, K_neighbours):
 
                 mode = 'Dual Field Wide'
                 guide = np.argmin(K_neighbours)
-    return mode,guide        
-        
+    return mode,guide
             
 def GAIA_toJHK(G,BpRp):
     
@@ -315,22 +326,30 @@ def evaluate_target_for_interferometry(target):
     if len(neighbours) > 0:
         G_lens = neighbours['Gmag'][0]
         BPRP_lens = neighbours['BP-RP'][0]
-        G_lens_error = estimate_target_Gaia_phot_uncertainties(G_lens, u0, u0_error)
+        peak_phot = estimate_target_peak_phot_uncertainties(G_lens, BPRP_lens, u0, u0_error)
         logger.info('INTERFERO: Calculated uncertainties Gmag=' + str(G_lens)
-                    + '+/-' + str(G_lens_error) + 'mag')
+                    + '+/-' + str(peak_phot['Gerror']) + 'mag')
 
-        # Predict the NIR photometry of all stars in the region
+        # Calculate the NIR photometry of all stars in the region
         (J, H, K) = convert_Gmag_to_JHK(neighbours['Gmag'], neighbours['BP-RP'])
         logger.info('INTERFERO: Computed JHK photometry for neighbouring stars')
+
+        # Determine how long the target will be bright enough to observe
+        interval = predict_period_above_brightness_threshold(target, K[0], Kthreshold=14.0)
 
         # Evaluate whether this target is suitable for inteferometry
         (mode, guide) = interferometry_decision(G_lens, BPRP_lens, np.array(K.data)[1:])
         logger.info('INTERFERO: Evaluation for interferometry for ' + target.name + ': ' + str(mode) + ' guide=' + str(guide))
 
         # Store the results
-        store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K)
+        store_gaia_search_results(target, neighbours, peak_phot, BPRP_lens, mode, guide, J, H, K, interval)
 
     else:
+        peak_phot = {'G': None, 'Gerror': None,
+                     'J': None, 'Jerror': None,
+                     'H': None, 'Herror': None,
+                     'K': None, 'Kerror': None}
+        interval = None
         extras = {
                 'Interferometry_mode': 'No',
                 'Interferometry_guide_star': 0,
@@ -344,10 +363,14 @@ def evaluate_target_for_interferometry(target):
     # Store the results from the GSC
     store_gsc_search_results(target, gsc_table, AOFT_table)
 
-def store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_lens, mode, guide, J, H, K):
+    # Select candidate targets for GRAVITY program
+    if peak_phot['K']:
+        gravity_target_selection(target, peak_phot['K'], interval, gsc_table)
+
+def store_gaia_search_results(target, neighbours, peak_phot, BPRP_lens, mode, guide, J, H, K, interval):
     extras = {
         'Gaia_Source_ID': neighbours['Gaia_Source_ID'][0],
-        'Gmag': G_lens, 'Gmag_error': G_lens_error,
+        'Gmag': peak_phot['G'], 'Gmag_error': peak_phot['Gerror'],
         'RPmag': neighbours['RPmag'][0], 'RPmag_error': neighbours['RPmag_error'][0],
         'BPmag': neighbours['BPmag'][0], 'BPmag_error': neighbours['BPmag_error'][0],
         'BP-RP': BPRP_lens, 'BP-RP_error': neighbours['BP-RP_error'][0],
@@ -360,9 +383,16 @@ def store_gaia_search_results(target, neighbours, G_lens, G_lens_error, BPRP_len
         'RUWE': neighbours['RUWE'][0],
         'Interferometry_mode': mode,
         'Interferometry_guide_star': guide,
-        'Mag_peak_J': J[0],
-        'Mag_peak_H': H[0],
-        'Mag_peak_K': K[0],
+        'Mag_base_J': J[0],
+        'Mag_base_H': H[0],
+        'Mag_base_K': K[0],
+        'Mag_peak_J': peak_phot['J'],
+        'Mag_peak_J_error': peak_phot['Jerror'],
+        'Mag_peak_H': peak_phot['H'],
+        'Mag_peak_H_error': peak_phot['Herror'],
+        'Mag_peak_K': peak_phot['K'],
+        'Mag_peak_K_error': peak_phot['Kerror'],
+        'Interferometry_interval': interval
     }
     target.save(extras=extras)
 
@@ -489,3 +519,64 @@ def store_gsc_search_results(target, gsc_table, AOFT_table):
         data_type='tabular',
         target=target)
     logger.info('INTERFERO: Stored AOFT matrix in MOP')
+
+def predict_peak_brightness(mag_base, mag_base_error, u0, u0_error):
+    """
+    Function to estimate the peak brightness expected for the lensed target
+    """
+
+    # Calculate the expected peak K-band brightness
+    if u0 > 0.0:
+        magnification = peak_magnification(u0)
+        mag_peak = mag_base - 2.5 * np.log10(magnification)
+        dmag = mag_base_error / mag_base
+        du = ((1.0/np.log(10.0)) * (u0_error/u0))
+        mag_peak_error = np.sqrt(dmag*dmag + du*du)
+    elif u0 == 0.0:
+        mag_peak = np.inf
+        mag_peak_error
+    elif np.isnan(u0):
+        mag_peak = np.nan
+        mag_peak_error = np.nan
+
+    return mag_peak, mag_peak_error
+
+def predict_period_above_brightness_threshold(target, Kbase, Kthreshold=14.0):
+    # Search MOP to see if an existing model is already stored.  The model_time parameter is hardwired into
+    # mop.toolbox.fittools.  Unclear why.
+    model_time = datetime.strptime('2018-06-29 08:15:27.243860', '%Y-%m-%d %H:%M:%S.%f')
+    qs = ReducedDatum.objects.filter(source_name='MOP', data_type='lc_model',
+                                    timestamp=model_time, source_location=target.name)
+    mag_base = target.extra_fields['Baseline_magnitude']
+    interval = np.nan
+
+    # This calculation can only be made if a valid model has been fitted
+    if qs.count() > 0 and not np.isnan(mag_base) and mag_base > 0.0:
+
+        ts = np.array(qs[0].value['lc_model_time'])
+        mags = np.array(qs[0].value['lc_model_magnitude'])
+
+        # Estimate the K-band lightcurve
+        Klc = Kbase + (mags - mag_base)
+
+        # Calulate how many days the lightcurve spends brighter than Kthreshold
+        idx = np.where(Klc <= Kthreshold)[0]
+
+        if len(idx) > 0 and len(idx) < len(mags):
+            interval = ts[idx].max() - ts[idx].min()
+        elif len(idx) > 0 and len(idx) == len(mags):
+            interval = np.inf
+
+    return interval
+
+def gravity_target_selection(target, Kpeak, interval, gsc_table, Kthreshold=14.0):
+
+    # Count the numbers of AO and FT stars
+    nft = len(np.where(gsc_table['FTstar'] == 1.0)[0])
+    nao = len(np.where(gsc_table['AOstar'] == 1.0)[0])
+
+    if Kpeak <= Kthreshold \
+            and (interval > 0.0 or np.isinf(interval)) \
+            and nao > 0 and nft > 0:
+        extras = {'Interferometry_candidate': True}
+        target.save(extras=extras)

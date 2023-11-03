@@ -11,10 +11,11 @@ from tom_dataproducts.processors.data_serializers import SpectrumSerializer
 from mop.toolbox import utilities
 from astropy.time import Time
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 register = template.Library()
-
-
 
 @register.inclusion_tag('tom_dataproducts/partials/photometry_for_target.html')
 def mop_photometry(target):
@@ -24,21 +25,20 @@ def mop_photometry(target):
     following keys in the JSON representation: magnitude, error, filter
     """
     photometry_data = {}
-    for datum in ReducedDatum.objects.filter(target=target, data_type=settings.DATA_PRODUCT_TYPES['photometry'][0]):
+    qs = ReducedDatum.objects.filter(target=target, data_type=settings.DATA_PRODUCT_TYPES['photometry'][0])
+    logger.info('MOP PHOTOMETRY: Got ' + str(qs.count()) + ' datasets for target ' + target.name)
+    for datum in qs:
         values = datum.value
+
         try:
-           
-                photometry_data.setdefault(values['filter'], {})
-                photometry_data[values['filter']].setdefault('time', []).append(Time(datum.timestamp).jd-2450000)
-                photometry_data[values['filter']].setdefault('magnitude', []).append(values.get('magnitude'))
-                photometry_data[values['filter']].setdefault('error', []).append(values.get('error'))
+            photometry_data.setdefault(values['filter'], {})
+            photometry_data[values['filter']].setdefault('time', []).append(Time(datum.timestamp).jd-2450000)
+            photometry_data[values['filter']].setdefault('magnitude', []).append(values.get('magnitude'))
+            photometry_data[values['filter']].setdefault('error', []).append(values.get('error'))
 
         except:
-                
-                photometry_data.setdefault(values['filter'], {})
-                photometry_data[values['filter']].setdefault('time', []).append(Time(datum.timestamp).jd-2450000)
-                photometry_data[values['filter']].setdefault('magnitude', []).append(values.get('magnitude'))
-                photometry_data[values['filter']].setdefault('error', []).append(values.get('error'))
+            pass
+
     plot_data = [
         go.Scatter(
             x=filter_values['time'],
@@ -131,19 +131,33 @@ def interferometry_data(target):
         context['model_valid'] = False
     else:
         context['model_valid'] = True
-    print(u0, u0_error, context['model_valid'])
     key_list = ['Gaia_Source_ID',
                 'Gmag', 'Gmag_error', 'RPmag', 'RPmag_error', 'BPmag', 'BPmag_error', 'BP-RP', 'BP-RP_error',
                 'Reddening(BP-RP)', 'Extinction_G', 'Distance', 'Teff', 'logg', '[Fe/H]', 'RUWE',
-                'Interferometry_mode', 'Interferometry_guide_star', 'Mag_peak_J', 'Mag_peak_H', 'Mag_peak_K']
+                'Interferometry_mode', 'Interferometry_guide_star', 'Interferometry_interval',
+                'Mag_base_J', 'Mag_base_H', 'Mag_base_K', 'Mag_peak_J', 'Mag_peak_J_error',
+                'Mag_peak_H', 'Mag_peak_H_error', 'Mag_peak_K', 'Mag_peak_K_error',
+                't0', 't0_error', 'Interferometry_candidate'
+                ]
+    round_keys = ['Gmag', 'Gmag_error', 'RPmag', 'RPmag_error', 'BPmag', 'BPmag_error', 'BP-RP', 'BP-RP_error',
+                'Reddening(BP-RP)', 'Extinction_G', 'Mag_peak_J', 'Mag_peak_J_error',
+                  'Mag_peak_H', 'Mag_peak_H_error', 'Mag_peak_K', 'Mag_peak_K_error',
+                  'Mag_base_J', 'Mag_base_H', 'Mag_base_K', 't0', 't0_error', 'Interferometry_interval' ]
+    bool_keys = ['Interferometry_candidate']
     for key in key_list:
         clean_key = key.replace('[','').replace(']','').replace('/','_').replace('(','_').replace(')','_').replace('-','_')
         value = utilities.fetch_extra_param(target, key)
-        if key in ['Gmag', 'Gmag_error', 'RPmag', 'RPmag_error', 'BPmag', 'BPmag_error', 'BP-RP', 'BP-RP_error',
-                'Reddening(BP-RP)', 'Extinction_G', 'Mag_peak_J', 'Mag_peak_H', 'Mag_peak_K'] and value != None:
+        if key in round_keys and value != None:
             context[clean_key] = np.around(value,3)
+        elif key in bool_keys and value != None:
+            if value:
+                context[clean_key] = 'True'
+            else:
+                context[clean_key] = 'False'
         else:
             context[clean_key] = value
+
+    context['t0_date'] = convert_JD_to_UTC(utilities.fetch_extra_param(target, 't0'))
 
     # Gather the ReducedData for the neighbouring stars
     # Unpack the QuerySet returned into a more convenient format for display
@@ -349,8 +363,16 @@ def distance_shader(dist, distmax=30):
 
     return col
 
-
-
+def convert_JD_to_UTC(jd):
+    try:
+        t = Time(jd, format='jd')
+        t = t.utc
+        t.format = 'iso'
+        t.out_subfmt = 'date'
+        ts = t.value
+    except TypeError:
+        ts = None
+    return ts
 
 @register.inclusion_tag('tom_dataproducts/partials/gaia_neighbours_data.html')
 def gaia_neighbours_data(target):

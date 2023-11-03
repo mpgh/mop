@@ -1,3 +1,4 @@
+import json
 import os
 from django.test import TestCase
 from unittest import skip
@@ -104,7 +105,11 @@ class TestObsConfig(TestCase):
                                 ]
                             }]
                         )
-                        ]
+        ]
+        cwd = os.getcwd()
+        requests = open(os.path.join(cwd,'tests/data/lco_portal_requestgroups.json'),'r').read()
+        self.portal_requestgroups_response = json.loads(requests)
+
     def test_build_lco_imaging_request(self):
         for config in self.params:
             obs_list = obs_control.build_lco_imaging_request(config[0])
@@ -124,6 +129,13 @@ class TestObsConfig(TestCase):
             obs = obs_control.build_lco_imaging_request(config[0])
             obs_control.submit_lco_obs_request(obs, self.st)
 
+    def test_parse_lco_requestgroups(self):
+        pending_obs = obs_control.parse_lco_requestgroups(self.portal_requestgroups_response)
+        assert('Gaia21ccu' in pending_obs.keys())
+        assert('1M0-SCICAM-SINISTRO' in pending_obs['Gaia21ccu'])
+
+    #def test_check_pending_observations(self):
+    #    target = 'Gaia21ccu'
 
 class TestVisibility(TestCase):
     def setUp(self):
