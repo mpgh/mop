@@ -16,7 +16,7 @@ from functools import reduce
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-from mop.toolbox.classifier_tools import check_YSO, check_QSO, check_galaxy
+from mop.toolbox import classifier_tools
 
 class Command(BaseCommand):
 
@@ -53,32 +53,18 @@ class Command(BaseCommand):
                     photometry = retrieve_target_photometry(event)
 
                     # Test for an invalid blend magnitude:
-                    valid_blend_mag = True
-                    if event.extra_fields['Blend_magnitude'] == None \
-                        or event.extra_fields['Blend_magnitude'] == 0.0:
-                        valid_blend_mag = False
+                    valid_blend_mag = classifier_tools.check_valid_blend(event.extra_fields['Blend_magnitude'])
 
                     # Test for a suspiciously large u0:
-                    valid_u0 = True
-                    if abs(event.extra_fields['u0']) > 0.5:
-                        valid_u0 = False
+                    valid_u0 = classifier_tools.check_valid_u0(event.extra_fields['u0'])
+
 
                     # Test for low-amplitude change in photometry:
-                    if len(photometry) > 0:
-                        peak_mag = photometry[:,1].min()
-                        delta_mag = event.extra_fields['Baseline_magnitude'] - peak_mag
-                        valid_dmag = True
-                        if delta_mag < 0.5:
-                            valid_dmag = False
-                    else:
-                        valid_dmag = False
+                    valid_dmag = classifier_tools.check_valid_dmag(event.extra_fields['Baseline_magnitude'], photometry)
 
                     # Test for suspicious reduced chi squared value
-                    if 'red_chi2' in event.extra_fields.keys():
-                        valid_chisq = True
-                        if event.extra_fields['red_chi2'] > 50.0 \
-                            or event.extra_fields['red_chi2'] < 0.0:
-                            valid_chisq = False
+                    valid_chisq = classifier_tools.check_valid_chi2sq(event.event_extra_fields)
+
 
                     # Check target in catalogs
                     coord = SkyCoord(ra=event.ra, dec=event.dec, unit=(u.degree, u.degree), frame='icrs')
@@ -86,30 +72,36 @@ class Command(BaseCommand):
                     is_YSO, is_QSO, is_galaxy = False, False, False
 
                     if 'is_YSO' in event.extra_fields.keys():
-                        if event.extra_fields['is_YSO']:
+                        if event.extra_fields['is_YSO'] == "True":
                             is_YSO = True
+                        elif event.extra_fields['is_YSO'] == "False":
+                            is_YSO = False
                     else:
-                        is_YSO = check_YSO(coord)
+                        is_YSO = classifier_tools.check_YSO(coord)
                         event.save(extras={'is_YSO': is_YSO})
                         log.info(event.name + ': Checked if YSO for the first time.')
 
                     if 'is_QSO' in event.extra_fields.keys():
-                        if event.extra_fields['is_QSO']:
+                        if event.extra_fields['is_QSO'] == "True":
                             is_QSO = True
+                        if event.extra_fields['is_QSO'] == "False":
+                            is_QSO = False
                     else:
-                        is_QSO = check_QSO(coord)
+                        is_QSO = classifier_tools.check_QSO(coord)
                         event.save(extras={'is_QSO': is_QSO})
                         log.info(event.name + ': Checked if QSO for the first time.')
 
                     if 'is_galaxy' in event.extra_fields.keys():
-                        if event.extra_fields['is_galaxy']:
+                        if event.extra_fields['is_galaxy'] == "True":
                             is_galaxy = True
+                        if event.extra_fields['is_galaxy'] == "False":
+                            is_galaxy = False
                     else:
-                        is_galaxy = check_galaxy(coord)
+                        is_galaxy = classifier_tools.check_galaxy(coord)
                         event.save(extras={'is_galaxy': is_galaxy})
                         log.info(event.name + ': Checked if SN for the first time.')
 
-                    # Save classification based on catalogs
+                    # Save classification based on catalogs and tests
                     if is_YSO:
                         event.save(extras={'Classification': 'Possible YSO'})
                         log.info(event.name + ': set as a possible YSO')
