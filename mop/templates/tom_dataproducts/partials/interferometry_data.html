@@ -8,6 +8,7 @@
     <div class="row"">
         <table class="table">
             <tr>
+                <td><b>GRAVITY candidate</b></td><td>{{Interferometry_candidate}}</td>
                 <td><b>Observation mode</b></td><td>{{Interferometry_mode}}</td>
                 <td><b>Guide star</b></td><td>{{Interferometry_guide_star}}</td>
             </tr>
@@ -49,9 +50,9 @@
                  <th>BP [mag]</th>
                  <th>RP [mag]</th>
                  <th>BP-RP [mag]</th>
-                 <th>J [mag]</th>
-                 <th>H [mag]</th>
-                 <th>K [mag]</th>
+                 <th>J baseline [mag]</th>
+                 <th>H baseline [mag]</th>
+                 <th>K baseline [mag]</th>
                  <th>Reddening (BP-RP) [mag]</th>
                  <th>Extinction (G) [mag]</th>
              </tr>
@@ -62,15 +63,37 @@
                  <td>{{BPmag}}&#8723;{{BPmag_error}}</td>
                  <td>{{RPmag}}&#8723;{{RPmag_error}}</td>
                  <td>{{BP_RP}}&#8723;{{BP_RP_error}}</td>
-                 <td>{{Mag_peak_J}}</td>
-                 <td>{{Mag_peak_H}}</td>
-                 <td>{{Mag_peak_K}}</td>
+                 <td>{{Mag_base_J}}</td>
+                 <td>{{Mag_base_H}}</td>
+                 <td>{{Mag_base_K}}</td>
                  <td>{{Reddening_BP_RP_}}</td>
                  <td>{{Extinction_G}}</td>
                  <td></td>
              </tr>
              </tbody>
          </table>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Peak J [mag]</th>
+                    <th>Peak H [mag]</th>
+                    <th>Peak Ks [mag]</th>
+                    <th>Peak date [UTC]</th>
+                    <th>Peak date JD</th>
+                    <th>Observable Interval [days]</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{Mag_peak_J}}&#8723;{{Mag_peak_J_error}}</td>
+                    <td>{{Mag_peak_H}}&#8723;{{Mag_peak_H_error}}</td>
+                    <td>{{Mag_peak_K}}&#8723;{{Mag_peak_K_error}}</td>
+                    <td>{{t0_date}}</td>
+                    <td>{{t0}}&#8723;{{t0_error}}</td>
+                    <td>{{Interferometry_interval}}</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <div class="row" style="border:1px solid black; margin-top: 20px; margin-bottom: 20px; overflow: scroll">

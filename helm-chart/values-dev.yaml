@@ -65,7 +65,7 @@ fitaliveevents:
 
 # CronJob: Fit Need Events
 fitneedevents:
-  enabled: false
+  enabled: true
   # Run in parallel across 6 Nodes (Machines) until all jobs are finished
   parallelism: 6
   # Use 3 CPU on each Node (Machine)
@@ -82,18 +82,6 @@ fitneedevents:
 # CronJob: Run TAP
 runtap:
   enabled: true
-  resources:
-    requests:
-      cpu: 10m
-      memory: 256Mi
-    limits:
-      cpu: 1000m
-      memory: 1024Mi
-
-# CronJob: Harvest IPAC ZTF
-# Disabled; used to rely on retired MARS broker
-harvestztfipac:
-  enabled: false
   resources:
     requests:
       cpu: 10m
