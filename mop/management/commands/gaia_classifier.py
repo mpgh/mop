@@ -5,7 +5,6 @@ from tom_targets.models import Target, TargetExtra
 from astropy.time import Time
 from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
-from mop.toolbox import logs
 
 import json
 import numpy as np
@@ -18,6 +17,10 @@ from astropy import units as u
 
 from mop.toolbox import classifier_tools
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class Command(BaseCommand):
 
     help = 'Identify microlensing events from Gaia alerts'
@@ -25,15 +28,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         classifier = 1
 
-        # Start logging process:
-        log = logs.start_log()
-        log.info('Gaia classifier started run - version check')
+        logger.info('Gaia classifier started run - version check')
 
         # Retrieve a list of Gaia Targets that are flagged as Alive:
         targets = Target.objects.filter(name__contains='Gaia',
                                         targetextra__in=TargetExtra.objects.filter(key='Alive', value=True))
 
-        log.info('Found '+str(len(targets))+' alive Gaia targets')
+        logger.info('Found '+str(len(targets))+' alive Gaia targets')
 
         if classifier == 1:
             # Evaluate each selected Target:
@@ -63,7 +64,7 @@ class Command(BaseCommand):
                     valid_dmag = classifier_tools.check_valid_dmag(event.extra_fields['Baseline_magnitude'], photometry)
 
                     # Test for suspicious reduced chi squared value
-                    valid_chisq = classifier_tools.check_valid_chi2sq(event.event_extra_fields)
+                    valid_chisq = classifier_tools.check_valid_chi2sq(event.extra_fields)
 
 
                     # Check target in catalogs
@@ -79,7 +80,7 @@ class Command(BaseCommand):
                     else:
                         is_YSO = classifier_tools.check_YSO(coord)
                         event.save(extras={'is_YSO': is_YSO})
-                        log.info(event.name + ': Checked if YSO for the first time.')
+                        logger.info(event.name + ': Checked if YSO for the first time.')
 
                     if 'is_QSO' in event.extra_fields.keys():
                         if event.extra_fields['is_QSO'] == "True":
@@ -89,7 +90,7 @@ class Command(BaseCommand):
                     else:
                         is_QSO = classifier_tools.check_QSO(coord)
                         event.save(extras={'is_QSO': is_QSO})
-                        log.info(event.name + ': Checked if QSO for the first time.')
+                        logger.info(event.name + ': Checked if QSO for the first time.')
 
                     if 'is_galaxy' in event.extra_fields.keys():
                         if event.extra_fields['is_galaxy'] == "True":
@@ -99,21 +100,21 @@ class Command(BaseCommand):
                     else:
                         is_galaxy = classifier_tools.check_galaxy(coord)
                         event.save(extras={'is_galaxy': is_galaxy})
-                        log.info(event.name + ': Checked if SN for the first time.')
+                        logger.info(event.name + ': Checked if SN for the first time.')
 
                     # Save classification based on catalogs and tests
                     if is_YSO:
                         event.save(extras={'Classification': 'Possible YSO'})
-                        log.info(event.name + ': set as a possible YSO')
+                        logger.info(event.name + ': set as a possible YSO')
 
                     if is_QSO:
                         event.save(extras={'Classification': 'QSO'})
-                        log.info(event.name + ': set as a QSO')
+                        logger.info(event.name + ': set as a QSO')
                     elif is_galaxy:
                         # Some QSOs from Miliquas are in GLADE+ catalog,
                         # so we don't want them "misclassified"
                         event.save(extras={'Classification': 'Possible SN'})
-                        log.info(event.name + ': set as a possible SN')
+                        logger.info(event.name + ': set as a possible SN')
 
                     # If a target fails all three criteria, set its classification
                     # to 'Unclassified variable'.  Note that TAP will consider scheduling
@@ -121,39 +122,39 @@ class Command(BaseCommand):
                     # classification
                     if not valid_blend_mag or not valid_u0 or not valid_dmag:
                         event.save(extras={'Classification': 'Unclassified variable'})
-                        log.info(event.name+': Reset as unclassified variable')
+                        logger.info(event.name+': Reset as unclassified variable')
                     if 'red_chi2' in event.extra_fields.keys():
                         if not valid_chisq:
                             event.save(extras={'Classification': 'Unclassified poor fit'})
-                            log.info(event.name+': Reset as unclassified poor fit')
+                            logger.info(event.name+': Reset as unclassified poor fit')
 
 
         elif classifier == 2:
             for event in targets:
                 event.save(extras={'Classification': 'Unclassified Gaia target'})
-                log.info(event.name+': Reset as unclassified Gaia target')
+                logger.info(event.name+': Reset as unclassified Gaia target')
 
-        logs.stop_log(log)
 
 def retrieve_target_photometry(target):
     """Function to retrieve all available photometry for a target, combining
     all datasets.  Based on code by E. Bachelet."""
 
     datasets = ReducedDatum.objects.filter(target=target)
-    time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
 
     phot = []
+    time = []
     for data in datasets:
         if data.data_type == 'photometry':
-           try:
-                phot.append([float(data.value['magnitude']),
-                             float(data.value['error'])])
-
-           except:
-                # Weights == 1
-                phot.append([float(data.value['magnitude']),
-                             1])
-
+            if 'magnitude' in data.value.keys():
+                try:
+                    phot.append([float(data.value['magnitude']),
+                    float(data.value['error'])])
+                    time.append(Time(data.timestamp).jd)
+                except:
+                    # Weights == 1
+                    phot.append([float(data.value['magnitude']),
+                    1])
+                    time.append(Time(data.timestamp).jd)
 
     photometry = np.c_[time,phot]
 
