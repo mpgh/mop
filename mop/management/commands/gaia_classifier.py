@@ -39,6 +39,7 @@ class Command(BaseCommand):
         if classifier == 1:
             # Evaluate each selected Target:
             for event in targets:
+                logger.info('Classifier evaluating ' + event.name)
 
                 # The expectation is that the lightcurve data for them will have a model
                 # fit by a separate process, which will have stored the resulting model
@@ -48,7 +49,8 @@ class Command(BaseCommand):
                 if event.extra_fields['u0'] != 0.0 \
                     and event.extra_fields['t0'] != 0.0 \
                     and event.extra_fields['tE'] != 0.0 \
-                    and 'Microlensing' in event.extra_fields['Classification']:
+                    and 'Microlensing' in event.extra_fields['Classification'] \
+                    and event.ra != None and event.dec != None:
 
                     # Retrieve the Gaia photometry for this Target:
                     photometry = retrieve_target_photometry(event)
