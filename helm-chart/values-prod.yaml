@@ -176,7 +176,7 @@ opentargetstoomegausers:
 
 # CronJob: Add Gaia Classifier
 gaiaclassifier:
-  enabled: false
+  enabled: true
   resources:
     requests:
       cpu: 10m
