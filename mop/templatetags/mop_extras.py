@@ -157,7 +157,7 @@ def interferometry_data(target):
         else:
             context[clean_key] = value
 
-    context['t0_date'] = convert_JD_to_UTC(utilities.fetch_extra_param(target, 't0'))
+    context['t0_date'] = str(convert_JD_to_UTC(utilities.fetch_extra_param(target, 't0')))
 
     # Gather the ReducedData for the neighbouring stars
     # Unpack the QuerySet returned into a more convenient format for display
@@ -370,7 +370,9 @@ def convert_JD_to_UTC(jd):
         t.format = 'iso'
         t.out_subfmt = 'date'
         ts = t.value
-    except TypeError or ValueError:
+    except TypeError:
+        ts = None
+    except ValueError:
         ts = None
     return ts
 
