@@ -370,7 +370,7 @@ def convert_JD_to_UTC(jd):
         t.format = 'iso'
         t.out_subfmt = 'date'
         ts = t.value
-    except TypeError:
+    except TypeError or ValueError:
         ts = None
     return ts
 
