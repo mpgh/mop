@@ -17,7 +17,10 @@ class TestObservingMode(TestCase):
                             'long_priority_error': 1341260.75767964,
                             'mag_now': 14.292,
                             'mag_baseline': 15.0,
-                            'obs_mode': None
+                            'tE': 30.0,
+                            'tE_error': 0.1,
+                            'obs_mode': None,
+                            'red_chi2': 1.0
                         },
                         {
                             'planet_priority': 15.0,
@@ -26,37 +29,62 @@ class TestObservingMode(TestCase):
                             'long_priority_error': 1e5,
                             'mag_now': 15.5,
                             'mag_baseline': 18.0,
-                            'obs_mode': 'priority_stellar_event'
+                            'tE': 30.0,
+                            'tE_error': 0.1,
+                            'obs_mode': 'priority_stellar_event',
+                            'red_chi2': 1.0
                         },
                         {
                             'planet_priority': 0.01,
                             'planet_priority_error': 10.0,
                             'long_priority': 75.0,
                             'long_priority_error': 5.0,
-                            'mag_now': 17.0,
-                            'mag_baseline': 18.5,
-                            'obs_mode': 'priority_long_event'
+                            'mag_now': 15.0,
+                            'mag_baseline': 16.8,
+                            'tE': 300.0,
+                            'tE_error': 0.1,
+                            'obs_mode': 'priority_long_event',
+                            'red_chi2': 1.0
                         },
                         {
                             'planet_priority': 0.01,
                             'planet_priority_error': 10.0,
-                            'long_priority': 15.0,
+                            'long_priority': 20.0,
                             'long_priority_error': 5.0,
-                            'mag_now': 17.0,
-                            'mag_baseline': 18.5,
-                            'obs_mode': 'regular_long_event'
+                            'mag_now': 16.0,
+                            'mag_baseline': 16.8,
+                            'tE': 300.0,
+                            'tE_error': 0.1,
+                            'obs_mode': 'regular_long_event',
+                            'red_chi2': 1.0
+                        },
+                        {
+                            'planet_priority': np.nan,
+                            'planet_priority_error': np.nan,
+                            'long_priority': 0.0,
+                            'long_priority_error': 0.0,
+                            'mag_now': 13.28,
+                            'mag_baseline': 14.4,
+                            'tE': 30.0,
+                            'tE_error': 0.1,
+                            'obs_mode': None,
+                            'red_chi2': 5.3
                         },
                         ]
 
     def test_TAP_observing_mode(self):
         for event in self.params:
+            print(event)
             obs_mode = TAP.TAP_observing_mode(
                 event['planet_priority'],
                 event['planet_priority_error'],
                 event['long_priority'],
                 event['long_priority_error'],
+                event['tE'],
+                event['tE_error'],
                 event['mag_now'],
-                event['mag_baseline']
+                event['mag_baseline'],
+                event['red_chi2']
             )
             self.assertEqual(obs_mode, event['obs_mode'])
 
