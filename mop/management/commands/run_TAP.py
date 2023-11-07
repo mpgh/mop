@@ -46,7 +46,8 @@ class Command(BaseCommand):
             target, created = Target.objects.get_or_create(name= options['target_name'])
             list_of_events_alive = [target]
             logger.info('runTAP: Loaded event ' + target.name)
-        
+        nalive = str(len(list_of_events_alive[:]))
+
         KMTNet_fields = TAP.load_KMTNet_fields()
 
         ## Get list of targets for which there are currently-pending observations already in the LCO Portal.
@@ -55,14 +56,14 @@ class Command(BaseCommand):
         logger.info('runTAP: identified pending observations for ' + str(len(pending_obs)) \
                     + ' targets: ' + repr(pending_obs))
 
-        for event in list_of_events_alive[:]:
-            logger.info('runTAP: analyzing event '+event.name)
+        for k,event in enumerate(list_of_events_alive[:]):
+            logger.info('runTAP: analyzing event ' + event.name + ', ' + str(k) + ' out of ' + nalive)
 
             if 'Microlensing' not in event.extra_fields['Classification']:
                pass
 
             else:
-                #try:
+                try:
 
                     # Gather the necessary information from the model fit to this event.  Sanity check: if this information
                     # isn't available, skip the event
@@ -230,9 +231,9 @@ class Command(BaseCommand):
                         interferometry_prediction.evaluate_target_for_interferometry(event)
                         logger.info('runTAP: Evaluated ' + event.name + ' for interferometry')
 
-                #except:
-                #    logger.warning('runTAP: Cannot perform TAP for target ' + event.name)
-
+                except:
+                    logger.warning('runTAP: Cannot perform TAP for target ' + event.name)
+        logger.info('runTAP: Completed run')
 
 def load_covar_matrix(raw_covar_data):
 

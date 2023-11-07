@@ -17,6 +17,9 @@ import requests
 import os
 import json
 from scipy import interpolate
+import logging
+
+logger = logging.getLogger(__name__)
 
 def fetch_pending_lco_requestgroups():
     """Function to retrieve the request groups for a given user from the LCO Observe Portal"""
@@ -483,9 +486,10 @@ def submit_lco_obs_request(obs_requests, target):
 
     for obs in obs_requests:
         response = obs.submit(credentials)
-        print(response)
+        logger.info('OBS CONTROL: Submitted observation request with response: ' + repr(response))
         # Record each observation
         if 'id' in response.keys() and 'requests' in response.keys():
+            logger.info('OBS CONTROL: Saving observation record with status ' + repr(response['requests'][0]['state']))
             if response['requests'][0]['state'] == 'PENDING':
                 record = ObservationRecord.objects.create(
                     target=target,
@@ -493,8 +497,9 @@ def submit_lco_obs_request(obs_requests, target):
                     parameters=obs.request,
                     observation_id=response['id']
                 )
+                logger.info('OBS CONTROL: stored record in MOP')
         else:
-            print(response)
+            logger.warning('OBS CONTROL: Received unexpected response to obs submission ' + repr(response))
 
 def submit_lco_obs_requests_old(obs_request):
     """
