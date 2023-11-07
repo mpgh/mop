@@ -43,9 +43,14 @@ class Command(BaseCommand):
             logger.info('runTAP: Loaded all '+str(len(list_of_events_alive))+' events')
 
         else:
-            target, created = Target.objects.get_or_create(name= options['target_name'])
-            list_of_events_alive = [target]
-            logger.info('runTAP: Loaded event ' + target.name)
+            qs = Target.objects.filter(name= options['target_name'])
+            if qs.count() == 0:
+                logger.error('runTAP: Cannot find requested target ' + options['target_name'])
+                list_of_events_alive = []
+            else:
+                target = qs[0]
+                list_of_events_alive = [target]
+                logger.info('runTAP: Loaded event ' + target.name)
         nalive = str(len(list_of_events_alive[:]))
 
         KMTNet_fields = TAP.load_KMTNet_fields()
