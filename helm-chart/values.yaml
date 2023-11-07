@@ -34,7 +34,7 @@ fitneedevents:
 # CronJob: Run TAP
 runtap:
   enabled: true
-  schedule: "0 */4 * * *"
+  schedule: "0 */1 * * *"
   resources: {}
 
 # CronJob: Harvest ZTF DR3
