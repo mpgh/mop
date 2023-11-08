@@ -113,7 +113,9 @@ class Command(BaseCommand):
                         # Storing both types of priority as extra_params and also as ReducedDatums so
                         # that we can track the evolution of the priority as a function of time
                         extras = {'TAP_priority':np.around(planet_priority,5),
-                                  'TAP_priority_longtE': np.around(long_priority, 5)}
+                                  'TAP_priority_error': np.around(planet_priority_error, 5),
+                                  'TAP_priority_longtE': np.around(long_priority, 5),
+                                  'TAP_priority_longtE_error': np.around(long_priority_error, 5)}
                         event.save(extras = extras)
 
                         data = {'tap_planet': planet_priority,
@@ -152,7 +154,7 @@ class Command(BaseCommand):
                             sky_location = 'In HCZ'
                         else:
                             sky_location = 'Outside HCZ'
-                        logger.info('runTAP: Event NOT in OMEGA: ' + str(event_in_HCZ))
+                        logger.info('runTAP: Event in HCZ: ' + str(event_in_HCZ))
                         logger.info('runTAP: Event alive? ' + repr(event.extra_fields['Alive']))
 
                         # If the event is in the HCZ, set the MOP flag to not observe it
