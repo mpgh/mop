@@ -61,11 +61,11 @@
   {% endif%}
  {% if key == 'TAP_priority' %}
     <dt class="col-sm-6">{{ key }}</dt>
-    <dd class="col-sm-6">{{ value }}</dd>
+    <dd class="col-sm-6">{{ value }}&#8723;{{ target.extra_fields.TAP_priority_error }}</dd>
   {% endif%}
  {% if key == 'TAP_priority_longtE' %}
     <dt class="col-sm-6">{{ key }}</dt>
-    <dd class="col-sm-6">{{ value }}</dd>
+    <dd class="col-sm-6">{{ value }}&#8723;{{ target.extra_fields.TAP_priority_longtE_error }}</dd>
   {% endif%}
  {% if key == 'Interferometry_candidate' %}
     <dt class="col-sm-6">{{ key }}</dt>
