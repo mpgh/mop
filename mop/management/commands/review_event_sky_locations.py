@@ -21,9 +21,9 @@ class Command(BaseCommand):
 
             # Determine whether the target falls within the HCZ or not
             try:
-                event_not_in_OMEGA_II = TAP.event_not_in_OMEGA_II(target.ra, target.dec, KMTNet_fields)
+                event_in_HCZ = TAP.event_in_HCZ(target.ra, target.dec, KMTNet_fields)
 
-                if event_not_in_OMEGA_II:
+                if event_in_HCZ:
                     try:
                         if 'True' in target.extra_fields.alive:
                             alive = 'True'
