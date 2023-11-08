@@ -104,7 +104,7 @@ def TAP_long_event_priority(t_now, t_last, t_E, t_E_base = 75.):
         # t_E may hit the fit bounds. This means, the fit was
         # wrong. In this case the event should not be observed
         # and wait for a better estimate of the values.
-        psi = 0.
+        psi = np.nan
     else:
         t_obs_gap = 2.
 
