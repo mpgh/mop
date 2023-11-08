@@ -107,7 +107,7 @@ def set_target_sky_location(target):
 
     KMTNet_fields = load_KMTNet_fields()
 
-    event_status = event_not_in_OMEGA_II(target.ra, target.dec, KMTNet_fields)
+    event_status = event_in_HCZ(target.ra, target.dec, KMTNet_fields)
 
     if event_status:
         sky_location = 'In HCZ'
@@ -243,7 +243,7 @@ def load_KMTNet_fields():
                         [264.00, -36.00]])
     return fields
     
-def event_not_in_OMEGA_II(ra, dec, KMTNet_fields):
+def event_in_HCZ(ra, dec, KMTNet_fields):
 
     """
     This function checks if the event is within the KMTNet fields.
@@ -258,13 +258,13 @@ def event_not_in_OMEGA_II(ra, dec, KMTNet_fields):
 
     exclusion_zone = Polygon(zip(KMTNet_fields[:,0], KMTNet_fields[:,1]))
 
-    not_in_OMEGA_II = False
+    event_in_HCZ = False
 
     point = Point(ra, dec)
     if (exclusion_zone.contains(point)):
-        not_in_OMEGA_II = True
+        event_in_HCZ = True
 
-    return not_in_OMEGA_II
+    return event_in_HCZ
 
 def TAP_time_last_datapoint(target):
     """
