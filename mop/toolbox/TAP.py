@@ -30,9 +30,9 @@ def TAP_observing_mode(planet_priority, planet_priority_error,
                        t_E, t_E_error, mag_now, mag_baseline, red_chi2):
 
     check_planet = TAP_priority.check_planet_priority(planet_priority, planet_priority_error, mag_baseline, mag_now)
-    logger.info('Good for planet observations: '+true(check_planet))
+    logger.info('Good for planet observations: '+str(check_planet))
     check_long = TAP_priority.check_long_priority(long_priority, long_priority_error, t_E, t_E_error, mag_baseline, red_chi2)
-    logger.info('Good for long tE observations: ' + true(check_long))
+    logger.info('Good for long tE observations: ' + str(check_long))
 
     if (check_planet):
         return 'priority_stellar_event'
