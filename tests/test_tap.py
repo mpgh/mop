@@ -100,9 +100,9 @@ class TestEventLocation(TestCase):
              'expect': False},
         ]
 
-    def test_event_not_in_OMEGA_II(self):
+    def test_event_in_HCZ(self):
         for config in self.params:
-            status = TAP.event_not_in_OMEGA_II(config['test'][0], config['test'][1], self.kmtnet_fields)
+            status = TAP.event_in_HCZ(config['test'][0], config['test'][1], self.kmtnet_fields)
             assert (status == config['expect'])
 
 class TestLightcurveData(TestCase):
