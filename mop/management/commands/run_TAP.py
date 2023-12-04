@@ -215,7 +215,7 @@ class Command(BaseCommand):
                                     # Submit the set of observation requests:
                                     # Currently observations are restricted to OGLE events only until the Gaia classifier
                                     # is updated
-                                    if 'live_obs' in options['observe'] and 'OGLE' in event.name:
+                                    if 'live_obs' in options['observe'] and ('OGLE' in event.name or 'Gaia' in event.name):
                                         obs_control.submit_lco_obs_request(obs_requests, event)
                                         logger.info('runTAP: SUBMITTING OBSERVATIONS')
                                     else:
