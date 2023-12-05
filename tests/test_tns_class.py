@@ -21,7 +21,7 @@ class TestClassSN(TestCase):
         st1.dec = -20.80996
         cwd = getcwd()
         lightcurve_file = path.join(cwd, 'tests/data/Gaia23dje.csv')
-        photometry = generate_test_ReducedDatums(st1, lightcurve_file, 'G')
+        # photometry = generate_test_ReducedDatums(st1, lightcurve_file, 'G')
 
         self.model_params = {'t': 2460284.3426,
                              't0': 2460273.62618,
@@ -36,7 +36,7 @@ class TestClassSN(TestCase):
         self.params = {
             'target': st1,
             'lightcurve_file': lightcurve_file,
-            'photometry': photometry,
+            # 'photometry': photometry,
             'Latest_data_HJD': 2460277.45285
         }
 
