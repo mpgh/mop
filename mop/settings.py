@@ -298,6 +298,14 @@ TOM_ALERT_CLASSES = [
     'tom_alerts.brokers.gaia.GaiaBroker',
 ]
 
+# TNS credentials for broker
+BROKERS = {
+    'TNS': {
+        'api_key': '8949e6e28c8d2c04f65315cdee8c152bf6a78591',
+        'bot_id': '164734',
+        'bot_name': 'MOP_Bot',
+    }
+}
 #'tom_antares.antares.AntaresBroker',
 #BROKER_CREDENTIALS = {}
 
