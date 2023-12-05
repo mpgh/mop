@@ -301,7 +301,7 @@ TOM_ALERT_CLASSES = [
 # TNS credentials for broker
 BROKERS = {
     'TNS': {
-        'api_key': '8949e6e28c8d2c04f65315cdee8c152bf6a78591',
+        'api_key': os.environ.get('TNS_API_KEY','dummy'),
         'bot_id': '164734',
         'bot_name': 'MOP_Bot',
     }
