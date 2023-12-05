@@ -1,4 +1,5 @@
 from tom_alerts.brokers.tns import TNSBroker
+from django.conf import settings
 
 class Custom_TNS(TNSBroker):
     def fetch_tns_class(cls, parameters):
