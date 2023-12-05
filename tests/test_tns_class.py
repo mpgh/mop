@@ -48,6 +48,6 @@ class TestClassSN(TestCase):
             'radius' : 1.0,
             'units' : 'arcsec'
         }
-        tns_classes = tns.Custom_TNS.fetch_tns_class(cls, parameters)
+        tns_classes = tns.Custom_TNS.fetch_tns_class(self, parameters)
         print(tns_classes)
         self.assertEqual(tns_classes, ['SN Ic-BL'])
