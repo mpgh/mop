@@ -32,12 +32,12 @@ class Command(BaseCommand):
                 # Handle older format of parameter dictionary
                 else:
                     if 'start' in obs_record.parameters and 'end' in obs_record.parameters:
-                        tstart = self.convert_to_datetime(obs_record.parameters['start'])
-                        tend = self.convert_to_datetime(obs_record.parameters['end'])
+                        tstart = obs_record.parameters['start']
+                        tend = obs_record.parameters['end']
 
                 if tstart and tend:
-                    tstart = tstart.replace(tzinfo=tz)
-                    tend = tend.replace(tzinfo=tz)
+                    tstart = self.convert_to_datetime(tstart, tz)
+                    tend = self.convert_to_datetime(tend, tz)
                     obs_record.scheduled_start = tstart
                     obs_record.scheduled_end = tend
                     obs_record.save()
@@ -45,14 +45,23 @@ class Command(BaseCommand):
             else:
                 print(obs_record.target, obs_record.scheduled_start, obs_record.scheduled_end)
 
-    def convert_to_datetime(self, date_string):
+    def convert_to_datetime(self, date_string, tz):
         """Convert dates and times from strings to datetime objects, when they may be in different string formats"""
 
+        # Check whether the input is already a datetime object, and return if it is
+        if type(date_string) == type(datetime.utcnow()):
+            t = date_string.replace(tzinfo=tz)
+            return t
+
+        # Parse date/time strings in different formats
         try:
             t = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%f')
         except ValueError:
             t = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S')
         except:
-            raise IOError('Unsupported format of date string: ' + date_string)
+            raise IOError('Unsupported format of date string: ' + str(date_string))
+
+        # Ensure the timezone information is set correctly
+        t = t.replace(tzinfo=tz)
 
         return t
