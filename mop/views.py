@@ -7,7 +7,7 @@ from tom_targets.models import Target, TargetExtra
 from tom_observations.models import ObservationRecord
 from tom_observations.views import ObservationFilter
 from mop.toolbox.TAP import set_target_sky_location
-from mop.toolbox.obs_control import fetch_pending_lco_requestgroups, parse_lco_requestgroups
+from mop.toolbox.obs_control import fetch_all_lco_requestgroups, parse_lco_requestgroups
 from django_filters.views import FilterView
 from guardian.mixins import PermissionListMixin
 from guardian.shortcuts import get_objects_for_user
@@ -110,8 +110,9 @@ class ActiveObsView(ListView):
             context['obs_list'] = []
 
         # Retrieve a list of pending observations from the LCO Portal
-        response = fetch_pending_lco_requestgroups()
-        pending_obs = parse_lco_requestgroups(response, short_form=False)
+        response = fetch_all_lco_requestgroups()
+        pending_obs = parse_lco_requestgroups(response, short_form=False, pending_only=False)
+
         pending_obs_list = []
         for target, obs_info in pending_obs.items():
             for config in obs_info:

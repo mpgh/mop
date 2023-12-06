@@ -34,7 +34,20 @@ def fetch_pending_lco_requestgroups():
 
     return response
 
-def parse_lco_requestgroups(response, short_form=True):
+def fetch_all_lco_requestgroups():
+    """Function to retrieve the request groups for a given user from the LCO Observe Portal"""
+
+    # Contact the LCO Observe Portal.  This query now returns a list of all request groups accessible to the user
+    token = os.getenv('LCO_API_KEY')
+    username = os.getenv('LCO_USERNAME')
+    headers = {'Authorization': 'Token ' + token}
+    url = os.path.join(
+        "https://observe.lco.global/api/requestgroups/?user=" + username)
+    response = requests.get(url, headers=headers, timeout=20).json()
+
+    return response
+
+def parse_lco_requestgroups(response, short_form=True, pending_only=True):
     # Parse the list of results returned to extract observations from the configured observing proposal,
     # and return only those with state pending.
     proposal_code = os.getenv('LCO_PROPOSAL_ID')
@@ -42,14 +55,19 @@ def parse_lco_requestgroups(response, short_form=True):
 
     if 'results' in response.keys():
         for result in response['results']:
-            if result['state'] == 'PENDING' and result['proposal'] == proposal_code:
+            if pending_only:
+                select_obs = (result['state'] == 'PENDING') and (result['proposal'] == proposal_code)
+            else:
+                select_obs = (result['proposal'] == proposal_code)
+
+            if select_obs:
                 for request in result['requests']:
                     for config in request['configurations']:
                         if config['target']['name'] not in pending_obs:
                             if short_form:
                                 pending_obs[config['target']['name']] = [config['instrument_type']]
                             else:
-                                obs_info = extract_obs_request_info(config)
+                                obs_info = extract_obs_request_info(result)
                                 pending_obs[config['target']['name']] = [obs_info]
                         else:
                             if short_form:
@@ -60,27 +78,30 @@ def parse_lco_requestgroups(response, short_form=True):
 
                             else:
                                 # This will return all submitted groups for a given target
-                                obs_info = extract_obs_request_info(config)
+                                obs_info = extract_obs_request_info(result)
                                 pending_obs[config['target']['name']].append(obs_info)
 
     return pending_obs
 
-def extract_obs_request_info(request_config):
+def extract_obs_request_info(result):
     """Function to extract a set of standard parameters from the JSON dictionary returned by the LCO Observe Portal
     for a given configuration of an observing request"""
 
-    obs_info = {'id': None, 'instrument_type': None, 'filters': [], 'exposure_times': [], 'exposure_counts': []}
+    obs_info = {'id': None, 'instrument_type': None, 'state': None, 'name': None,
+                'filters': [], 'exposure_times': [], 'exposure_counts': []}
 
-    for key, value in obs_info.items():
-        if type(value) != type([]):
-            if key in request_config.keys():
-                obs_info[key] = request_config[key]
+    obs_info['id'] = result['id']
+    obs_info['name'] = result['name']
+    obs_info['instrument_type'] = result['requests'][0]['configurations'][0]['instrument_type']
+    obs_info['state'] = result['state']
 
-    if 'instrument_configs' in request_config.keys():
-        for inst_conf in request_config['instrument_configs']:
-            obs_info['filters'].append(inst_conf['optical_elements']['filter'])
-            obs_info['exposure_times'].append(inst_conf['exposure_time'])
-            obs_info['exposure_counts'].append(inst_conf['exposure_count'])
+    for request in result['requests']:
+        for config in request['configurations']:
+            if 'instrument_configs' in config.keys():
+                for inst_conf in config['instrument_configs']:
+                    obs_info['filters'].append(inst_conf['optical_elements']['filter'])
+                    obs_info['exposure_times'].append(inst_conf['exposure_time'])
+                    obs_info['exposure_counts'].append(inst_conf['exposure_count'])
 
     return obs_info
 

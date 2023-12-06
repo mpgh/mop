@@ -84,27 +84,31 @@
         </div>
         <div class="col">
             <h4>Submitted Observations</h4>
-            <p>Observations currently pending in the LCO Observe Portal</p>
+            <p>Recent observations in the LCO Observe Portal</p>
                     <table class="table" style="overflow: scroll">
                         <thead>
                             <tr>
+                                <th>Request<br>name</th>
+                                <th>ID</th>
                                 <th>Target</th>
-                                <th>Request ID</th>
                                 <th>Instrument</th>
-                                <th>Filters </th>
-                                <th>Exposure times [s]</th>
-                                <th>Exposure counts</th>
+                                <th>Filters</th>
+                                <th>Exposure<br>times [s]</th>
+                                <th>Exposure<br>counts</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
                         {% for obs in pending_obs %}
                             <tr>
-                                <td>{{obs.target}}</td>
+                                <td>{{obs.name}}</td>
                                 <td>{{obs.id}}</td>
+                                <td>{{obs.target}}</td>
                                 <td>{{obs.instrument_type}}</td>
                                 <td>{{obs.filters}}</td>
                                 <td>{{obs.exposure_times}}</td>
                                 <td>{{obs.exposure_counts}}</td>
+                                <td>{{obs.state}}</td>
                             </tr>
                         {% endfor %}
                         </tbody>
