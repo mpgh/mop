@@ -526,7 +526,9 @@ def submit_lco_obs_request(obs_requests, target):
                     target=target,
                     facility='LCO',
                     parameters=obs.request,
-                    observation_id=response['id']
+                    observation_id=response['requests'][0]['id'],
+                    scheduled_start=obs.tstart,
+                    scheduled_end=obs.tend
                 )
                 logger.info('OBS CONTROL: stored record in MOP')
         else:

@@ -18,6 +18,10 @@ class TestObsConfig(TestCase):
         self.st.name = 'Gaia23bvd'
         self.st.ra = 285.8068
         self.st.dec = -30.4068
+        # Alternative target for northern winter months
+        self.st.name = 'Gaia23dlb'
+        self.st.ra = 44.2047
+        self.st.dec = -24.6351
         self.params = [
                         (
                             [{
@@ -126,7 +130,7 @@ class TestObsConfig(TestCase):
                             for key2,value2 in expected_obs['requests'][0].items():
                                 assert (obs.request[key][0][key2] == value2)
 
-    @skip("Uncomment this to submit live test observations")
+    #@skip("Uncomment this to submit live test observations")
     def test_submit_observations(self):
         for config in self.params:
             obs = obs_control.build_lco_imaging_request(config[0])
