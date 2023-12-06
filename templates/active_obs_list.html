@@ -10,73 +10,106 @@
 {% block content %}
     {% current_timestamp %}
     <h3>Active Observations List</h3>
-    <p>This page lists the observations requested by run_TAP in the last 24hrs.
-        Click on each target to see information on its observations.</p>
-    <table class="table" style="width: 80em; overflow: scroll">
-        <thead>
-            <tr>
-                <th>Target</th>
-                <th>tE [days]</th>
-                <th>t0 [JD]</th>
-                <th>Current mag</th>
-                <th>Category</th>
-                <th>TAP_priority</th>
-                <th>TAP_priority_longtE</th>
-            </tr>
-        </thead>
-        <tbody>
-    {% for target in targets %}
-        <tr>
-            <td><a class="nav-link" data-target="#{{target.name}}" data-toggle="tab">{{target.name}}</a></td>
-            <td>{{target.tE}}</td>
-            <td>{{target.t0}}</td>
-            <td>{{target.Mag_now}}</td>
-            <td>{{target.Category}}</td>
-            <td>{{target.TAP_priority}}</td>
-            <td>{{target.TAP_priority_longtE}}</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-    </table>
-    <div class="tab-content"  style="width: 80em">
-        <div class="tab-pane in active" id="default">
-        </div>
-    {% for target in targets %}
-        <div class="tab-pane" id="{{target.name}}">
-            <table class="table" style="overflow: scroll; border: 1px solid black">
+    <div class="row">
+        <div class="col">
+            <h4>Requested Observations</h4>
+            <p>This page lists the targets requested by run_TAP in the last week.
+                Click on each target to see information on its observations.</p>
+            <table class="table" style="overflow: scroll">
                 <thead>
                     <tr>
                         <th>Target</th>
-                        <th>Facility</th>
-                        <th>Type</th>
-                        <th>UTC start</th>
-                        <th>UTC end</th>
-                        <th>Instrument</th>
-                        <th>Filter1 </th>
-                        <th>Exposure time 1 [s]</th>
-                        <th>Filter 2</th>
-                        <th>Exposure time 2 [s]</th>
+                        <th>tE [days]</th>
+                        <th>t0 [JD]</th>
+                        <th>Current mag</th>
+                        <th>Category</th>
+                        <th>TAP_priority</th>
+                        <th>TAP_priority_longtE</th>
                     </tr>
                 </thead>
                 <tbody>
-                {% for obs in target.obs_list %}
-                    <tr>
-                        <td>{{target.name}}</td>
-                        <td>{{obs.facility}}</td>
-                        <td>{{obs.observation_type}}</td>
-                        <td>{{obs.start}}</td>
-                        <td>{{obs.end}}</td>
-                        <td>{{obs.c_1_instrument_type}}</td>
-                        <td>{{obs.c_1_ic_1_filter}}</td>
-                        <td>{{obs.c_1_ic_1_exposure_time}}</td>
-                        <td>{{obs.c_1_ic_2_filter}}</td>
-                        <td>{{obs.c_1_ic_2_exposure_time}}</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
+            {% for target in targets %}
+                <tr>
+                    <td><a class="nav-link" data-target="#{{target.name}}" data-toggle="tab">{{target.name}}</a></td>
+                    <td>{{target.tE}}</td>
+                    <td>{{target.t0}}</td>
+                    <td>{{target.Mag_now}}</td>
+                    <td>{{target.Category}}</td>
+                    <td>{{target.TAP_priority}}</td>
+                    <td>{{target.TAP_priority_longtE}}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
             </table>
+            <div class="tab-content">
+                <div class="tab-pane in active" id="default">
+                </div>
+            {% for target in targets %}
+                <div class="tab-pane" id="{{target.name}}">
+                    <table class="table" style="overflow: scroll; border: 1px solid black">
+                        <thead>
+                            <tr>
+                                <th>Target</th>
+                                <th>Facility</th>
+                                <th>Type</th>
+                                <th>UTC start</th>
+                                <th>UTC end</th>
+                                <th>Instrument</th>
+                                <th>Filter1 </th>
+                                <th>Exposure time 1 [s]</th>
+                                <th>Filter 2</th>
+                                <th>Exposure time 2 [s]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for obs in target.obs_list %}
+                            <tr>
+                                <td>{{target.name}}</td>
+                                <td>{{obs.facility}}</td>
+                                <td>{{obs.observation_type}}</td>
+                                <td>{{obs.start}}</td>
+                                <td>{{obs.end}}</td>
+                                <td>{{obs.c_1_instrument_type}}</td>
+                                <td>{{obs.c_1_ic_1_filter}}</td>
+                                <td>{{obs.c_1_ic_1_exposure_time}}</td>
+                                <td>{{obs.c_1_ic_2_filter}}</td>
+                                <td>{{obs.c_1_ic_2_exposure_time}}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+            </div>
         </div>
-    {% endfor %}
-    </div>
+        <div class="col">
+            <h4>Submitted Observations</h4>
+            <p>Observations currently pending in the LCO Observe Portal</p>
+                    <table class="table" style="overflow: scroll">
+                        <thead>
+                            <tr>
+                                <th>Target</th>
+                                <th>Request ID</th>
+                                <th>Instrument</th>
+                                <th>Filters </th>
+                                <th>Exposure times [s]</th>
+                                <th>Exposure counts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for obs in pending_obs %}
+                            <tr>
+                                <td>{{obs.target}}</td>
+                                <td>{{obs.id}}</td>
+                                <td>{{obs.instrument_type}}</td>
+                                <td>{{obs.filters}}</td>
+                                <td>{{obs.exposure_times}}</td>
+                                <td>{{obs.exposure_counts}}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+        </div>
+</div>
 
 {% endblock %}

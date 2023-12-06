@@ -7,6 +7,7 @@ from tom_targets.models import Target, TargetExtra
 from tom_observations.models import ObservationRecord
 from tom_observations.views import ObservationFilter
 from mop.toolbox.TAP import set_target_sky_location
+from mop.toolbox.obs_control import fetch_pending_lco_requestgroups, parse_lco_requestgroups
 from django_filters.views import FilterView
 from guardian.mixins import PermissionListMixin
 from guardian.shortcuts import get_objects_for_user
@@ -64,8 +65,10 @@ class ActiveObsView(ListView):
 
         # Retrieve a list of Targets for which observations have recently been requested
         if self.request.user.is_authenticated:
-            utc24 = datetime.utcnow() - timedelta(days=1.0)
-            obs_qs = ObservationRecord.objects.filter(created__gt=utc24)
+            utc_threshold = datetime.utcnow() - timedelta(days=7.0)
+            utcnow = datetime.utcnow()
+            obs_qs = ObservationRecord.objects.filter(scheduled_start__gt=utc_threshold,
+                                                      scheduled_end__gt=utcnow)
 
             # Build lists of the ObservationRecords and Targets, while respecting
             # user access permissions
@@ -105,6 +108,20 @@ class ActiveObsView(ListView):
         else:
             context['targets'] = []
             context['obs_list'] = []
+
+        # Retrieve a list of pending observations from the LCO Portal
+        response = fetch_pending_lco_requestgroups()
+        pending_obs = parse_lco_requestgroups(response, short_form=False)
+        pending_obs_list = []
+        for target, obs_info in pending_obs.items():
+            for config in obs_info:
+                config['target'] = target
+                config['filters'] = ','.join(config['filters'])
+                config['exposure_times'] = ','.join([str(x) for x in config['exposure_times']])
+                config['exposure_counts'] = ','.join([str(x) for x in config['exposure_counts']])
+                pending_obs_list.append(config)
+
+        context['pending_obs'] = pending_obs_list
 
         context['query_string'] = self.request.META['QUERY_STRING']
 

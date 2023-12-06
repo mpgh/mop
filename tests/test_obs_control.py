@@ -109,7 +109,10 @@ class TestObsConfig(TestCase):
         cwd = os.getcwd()
         requests = open(os.path.join(cwd,'tests/data/lco_portal_requestgroups.json'),'r').read()
         self.portal_requestgroups_response = json.loads(requests)
-
+        self.obs_info = {'id': 10453348, 'instrument_type': '1M0-SCICAM-SINISTRO',
+                         'filters': ['gp', 'ip', 'ip', 'ip', 'gp', 'ip', 'ip', 'ip', 'gp', 'ip', 'ip', 'ip'],
+                         'exptimes': [150.0, 150.0, 75.0, 75.0, 150.0, 150.0, 75.0, 75.0, 150.0, 150.0, 75.0, 75.0],
+                         'expcounts': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]}
     def test_build_lco_imaging_request(self):
         for config in self.params:
             obs_list = obs_control.build_lco_imaging_request(config[0])
@@ -131,11 +134,26 @@ class TestObsConfig(TestCase):
 
     def test_parse_lco_requestgroups(self):
         pending_obs = obs_control.parse_lco_requestgroups(self.portal_requestgroups_response)
+
         assert('Gaia21ccu' in pending_obs.keys())
+        assert(len(pending_obs['Gaia21ccu']) == 1)
+        assert(type(pending_obs['Gaia21ccu']) == type([]))
         assert('1M0-SCICAM-SINISTRO' in pending_obs['Gaia21ccu'])
 
-    #def test_check_pending_observations(self):
-    #    target = 'Gaia21ccu'
+        pending_obs = obs_control.parse_lco_requestgroups(self.portal_requestgroups_response, short_form=False)
+
+        assert(type(pending_obs['Gaia21ccu']) == type([]))
+        for entry in pending_obs['Gaia21ccu']:
+            assert(type(entry) == type({}))
+            for key in ['id', 'instrument_type', 'filters', 'exptimes', 'expcounts']:
+                assert(key in entry.keys())
+    def test_extract_obs_request_info(self):
+
+        request_config = self.portal_requestgroups_response['results'][0]['requests'][0]['configurations'][0]
+        obs_info = obs_control.extract_obs_request_info(request_config)
+
+        assert(self.obs_info == obs_info)
+
 
 class TestVisibility(TestCase):
     def setUp(self):
