@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from tom_observations.models import ObservationRecord
+from django.utils.timezone import make_aware
 
 class Command(BaseCommand):
 
@@ -20,6 +21,8 @@ class Command(BaseCommand):
                                 tstart = window['start']
                             if window['end'] > tend:
                                 tend = window['end']
+                    tstart = make_aware(tstart)
+                    tend = make_aware(tend)
                     obs_record.scheduled_start = tstart
                     obs_record.scheduled_end = tend
                     obs_record.save()
