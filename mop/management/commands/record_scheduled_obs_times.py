@@ -7,9 +7,9 @@ class Command(BaseCommand):
 
     help = "Command to back-fill the scheduled start and end times of observation groups"
 
-    tz = pytz.timezone('utc')
-
     def handle(self, *args, **options):
+
+        tz = pytz.timezone('utc')
 
         obs_list = ObservationRecord.objects.all()
 
@@ -52,5 +52,7 @@ class Command(BaseCommand):
             t = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%f')
         except ValueError:
             t = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S')
+        except:
+            raise IOError('Unsupported format of date string: ' + date_string)
 
         return t
