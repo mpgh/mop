@@ -32,8 +32,8 @@ class Command(BaseCommand):
                 # Handle older format of parameter dictionary
                 else:
                     if 'start' in obs_record.parameters and 'end' in obs_record.parameters:
-                        tstart = datetime.strptime(obs_record.parameters['start'], '%Y-%m-%dT%H:%M:%S.%f')
-                        tend = datetime.strptime(obs_record.parameters['end'], '%Y-%m-%dT%H:%M:%S.%f')
+                        tstart = self.convert_to_datetime(obs_record.parameters['start'])
+                        tend = self.convert_to_datetime(obs_record.parameters['end'])
 
                 if tstart and tend:
                     tstart = tstart.replace(tzinfo=tz)
@@ -41,6 +41,16 @@ class Command(BaseCommand):
                     obs_record.scheduled_start = tstart
                     obs_record.scheduled_end = tend
                     obs_record.save()
-                    
+
             else:
                 print(obs_record.target, obs_record.scheduled_start, obs_record.scheduled_end)
+
+    def convert_to_datetime(self, date_string):
+        """Convert dates and times from strings to datetime objects, when they may be in different string formats"""
+
+        try:
+            t = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%f')
+        except ValueError:
+            t = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S')
+
+        return t
