@@ -8,6 +8,8 @@ class Custom_TNS(TNSBroker):
         '''
         broker_feedback = ''
 
+        print(settings.BROKERS)
+
         data = {
             'api_key': settings.BROKERS['TNS']['api_key'],
             'data': json.dumps({
