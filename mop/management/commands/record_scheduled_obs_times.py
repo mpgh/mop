@@ -38,6 +38,9 @@ class Command(BaseCommand):
                 if tstart and tend:
                     tstart = self.convert_to_datetime(tstart, tz)
                     tend = self.convert_to_datetime(tend, tz)
+
+                # This is a separate if clause to handle the case where the conversion to datetime fails
+                if tstart and tend:
                     obs_record.scheduled_start = tstart
                     obs_record.scheduled_end = tend
                     obs_record.save()
@@ -54,14 +57,20 @@ class Command(BaseCommand):
             return t
 
         # Parse date/time strings in different formats
-        try:
-            t = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%f')
-        except ValueError:
-            t = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S')
-        except:
-            raise IOError('Unsupported format of date string: ' + str(date_string))
+        t = None
+        if 'T' in date_string:
+            formats = ['%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S']
+        else:
+            formats = ['%Y-%m-%dT %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S']
+
+        for format in formats:
+            try:
+                t = datetime.strptime(date_string, format)
+            except ValueError:
+                pass
 
         # Ensure the timezone information is set correctly
-        t = t.replace(tzinfo=tz)
+        if t:
+            t = t.replace(tzinfo=tz)
 
         return t
