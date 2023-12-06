@@ -15,6 +15,9 @@ For customization instructions, see tom_common/base.html
             <a class="nav-link" href="{% url 'targets:list' %}"><font color="black">Targets</font></a>
         </li>
         <li class="nav-item {% if request.resolver_match.namespace == 'targets' %}active{% endif %}">
+            <a class="nav-link" href="{% url 'prioritytargets' %}"><font color="black">Priority Targets</font></a>
+        </li>
+        <li class="nav-item {% if request.resolver_match.namespace == 'targets' %}active{% endif %}">
             <a class="nav-link" href="{% url 'targets:targetgrouping' %}"><font color="black">Target Grouping</font></a>
         </li>
     </ul>

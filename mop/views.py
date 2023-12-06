@@ -13,6 +13,7 @@ from guardian.mixins import PermissionListMixin
 from guardian.shortcuts import get_objects_for_user
 from datetime import datetime, timedelta
 from django.views.generic.list import ListView
+import numpy as np
 
 class MOPTargetDetailView(TargetDetailView):
 
@@ -128,3 +129,78 @@ class ActiveObsView(ListView):
 
         return context
 
+class PriorityTargetsView(ListView):
+    template_name = 'priority_targets_list.html'
+    paginate_by = 25
+    strict = False
+    model = TargetExtra
+    permission_required = 'tom_targets.view_target'
+
+    def get_context_data(self, *args, **kwargs):
+        """Method to retrieve data on targets which TAP has prioritized
+
+        Returns:
+            context     dict    Context data for webpage template
+        """
+
+        # Configure context
+        context = super().get_context_data(*args, **kwargs)
+        context['target_count'] = context['paginator'].count
+
+        # Retrieve two lists of Targets, which have been prioritized as stellar and Black Hole candidates
+        if self.request.user.is_authenticated:
+
+            # Query for matching TargetExtra entries returns a list of Target PKs
+            qs_stars = TargetExtra.objects.filter(key='TAP_priority', float_value__gt=10.0).exclude(value=np.nan).exclude(value__exact='').exclude(value__exact='None').values_list('target').distinct()
+            qs_bh = TargetExtra.objects.filter(key='TAP_priority_longtE', float_value__gt=10.0).exclude(value=np.nan).exclude(value__exact='').exclude(value__exact='None').values_list('target').distinct()
+
+            # Repackage the two lists to extract the parameters to display in the table
+            context['stellar_targets'] = self.extract_target_parameters(qs_stars, 'stellar')
+            context['bh_targets'] = self.extract_target_parameters(qs_bh, 'bh')
+
+        # If user is not logged in, return empty lists:
+        else:
+            context['stellar_targets'] = []
+            context['bh_targets'] = []
+
+        return context
+
+    def extract_target_parameters(self, qs, target_category):
+
+        key_list = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error', 'Mag_now']
+
+        target_data = []
+        priority = []
+        for target_id in qs:
+            target = Target.objects.filter(pk=target_id[0])[0]
+            target_info = {'name': target.name, 'id': target_id[0]}
+            if target_category == 'stellar':
+                target_info['priority'] = target.extra_fields['TAP_priority']
+                # Not all entries have an uncertainty set, due to older versions of the code not storing it
+                try:
+                    target_info['priority_error'] = target.extra_fields['TAP_priority_error']
+                except KeyError:
+                    target_info['priority_error'] = np.nan
+            else:
+                target_info['priority'] = target.extra_fields['TAP_priority_longtE']
+                try:
+                    target_info['priority_error'] = target.extra_fields['TAP_priority_longtE_error']
+                except KeyError:
+                    target_info['priority_error'] = np.nan
+
+            for key in key_list:
+                try:
+                    target_info[key] = target.extra_fields[key]
+                except KeyError:
+                    target_info[key] = np.nan
+
+            if 'Outside HCZ' in target.extra_fields['Sky_location']:
+                target_data.append(target_info)
+                priority.append(target_info['priority'])
+
+        # Sort the returned list
+        priority = np.array(priority)
+        idx = np.argsort(priority)[::-1]
+        sorted_targets = [target_data[x] for x in idx]
+
+        return sorted_targets
