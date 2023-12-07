@@ -195,8 +195,14 @@ class PriorityTargetsView(ListView):
                     target_info[key] = np.nan
                 if key == 't0':
                     target_info[key] = round((target_info[key] - 2460000.0), 3)
-                elif not np.isnan(target_info[key]):
-                    target_info[key] = round(target_info[key], 3)
+                else:
+                    # Round floating point values where possible to save space in the table, catching
+                    # NaN entries.  Skip in the event that the value is None or a string.
+                    try:
+                        if not np.isnan(target_info[key]):
+                            target_info[key] = round(target_info[key], 3)
+                    except:
+                        pass
 
             if 'Outside HCZ' in target.extra_fields['Sky_location']:
                 target_data.append(target_info)
