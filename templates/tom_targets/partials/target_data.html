@@ -12,6 +12,26 @@
     <h5 style="color: #016603">{{ target.extra_fields.Sky_location }}</h5>
   {% endif %}
 {% endif %}
+{% if 'is_YSO' in target.extra_fields.keys %}
+    {% if target.extra_fields.is_YSO == 'True' %}
+        <h5 style="color: #016603">Known YSO</h5>
+    {% endif %}
+{% endif %}
+{% if 'is_QSO' in target.extra_fields.keys %}
+    {% if target.extra_fields.is_QSO == 'True' %}
+        <h5 style="color: #016603">Known QSO</h5>
+    {% endif %}
+{% endif %}
+{% if 'is_galaxy' in target.extra_fields.keys %}
+    {% if target.extra_fields.is_galaxy == 'True' %}
+        <h5 style="color: #016603">Known galaxy</h5>
+    {% endif %}
+{% endif %}
+{% if 'is_TNS' in target.extra_fields.keys %}
+    {% if target.extra_fields.is_TNS == 'True' %}
+        <h5 style="color: #016603">Known to TNS</h5>
+    {% endif %}
+{% endif %}
 <a href="{% url 'tom_targets:update' pk=target.id %}" title="Update Target parameters manually" class="btn  btn-primary">Update Target</a>
 <a href="{% url 'tom_targets:delete' pk=target.id %}" title="Delete Target" class="btn  btn-warning">Delete Target</a>
 <br><br>
@@ -46,35 +66,35 @@
   {% if key == 'Alive' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}</dd>
-  {% endif%}
+  {% endif %}
   {% if key == 'Classification' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}</dd>
-  {% endif%}
+  {% endif %}
   {% if key == 'Category' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}</dd>
-  {% endif%}
+  {% endif %}
   {% if key == 'Observing_mode' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}</dd>
-  {% endif%}
+  {% endif %}
  {% if key == 'TAP_priority' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}&#8723;{{ target.extra_fields.TAP_priority_error }}</dd>
-  {% endif%}
+  {% endif %}
  {% if key == 'TAP_priority_longtE' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}&#8723;{{ target.extra_fields.TAP_priority_longtE_error }}</dd>
-  {% endif%}
+  {% endif %}
  {% if key == 'Interferometry_candidate' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}</dd>
-  {% endif%}
+  {% endif %}
   {% if key == 'Spectras' %}
     <dt class="col-sm-6">{{ key }}</dt>
     <dd class="col-sm-6">{{ value }}</dd>
-  {% endif%}
+  {% endif %}
 {% endfor %}
 </dl>
 <font size="5"><b>Paczy&#324ski parameters</b></font>

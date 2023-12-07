@@ -174,39 +174,40 @@ class PriorityTargetsView(ListView):
         for target_id in qs:
             target = Target.objects.filter(pk=target_id[0])[0]
             target_info = {'name': target.name, 'id': target_id[0]}
-            if target_category == 'stellar':
-                target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
-                # Not all entries have an uncertainty set, due to older versions of the code not storing it
-                try:
-                    target_info['priority_error'] = round(target.extra_fields['TAP_priority_error'],3)
-                except KeyError:
-                    target_info['priority_error'] = np.nan
-            else:
-                target_info['priority'] = round(target.extra_fields['TAP_priority_longtE'],3)
-                try:
-                    target_info['priority_error'] = round(target.extra_fields['TAP_priority_longtE_error'],3)
-                except KeyError:
-                    target_info['priority_error'] = np.nan
-
-            for key in key_list:
-                try:
-                    target_info[key] = target.extra_fields[key]
-                except KeyError:
-                    target_info[key] = np.nan
-                if key == 't0':
-                    target_info[key] = round((target_info[key] - 2460000.0), 3)
-                else:
-                    # Round floating point values where possible to save space in the table, catching
-                    # NaN entries.  Skip in the event that the value is None or a string.
+            if self.check_classification(target):
+                if target_category == 'stellar':
+                    target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
+                    # Not all entries have an uncertainty set, due to older versions of the code not storing it
                     try:
-                        if not np.isnan(target_info[key]):
-                            target_info[key] = round(target_info[key], 3)
-                    except:
-                        pass
+                        target_info['priority_error'] = round(target.extra_fields['TAP_priority_error'],3)
+                    except KeyError:
+                        target_info['priority_error'] = np.nan
+                else:
+                    target_info['priority'] = round(target.extra_fields['TAP_priority_longtE'],3)
+                    try:
+                        target_info['priority_error'] = round(target.extra_fields['TAP_priority_longtE_error'],3)
+                    except KeyError:
+                        target_info['priority_error'] = np.nan
 
-            if 'Outside HCZ' in target.extra_fields['Sky_location']:
-                target_data.append(target_info)
-                priority.append(target_info['priority'])
+                for key in key_list:
+                    try:
+                        target_info[key] = target.extra_fields[key]
+                    except KeyError:
+                        target_info[key] = np.nan
+                    if key == 't0':
+                        target_info[key] = round((target_info[key] - 2460000.0), 3)
+                    else:
+                        # Round floating point values where possible to save space in the table, catching
+                        # NaN entries.  Skip in the event that the value is None or a string.
+                        try:
+                            if not np.isnan(target_info[key]):
+                                target_info[key] = round(target_info[key], 3)
+                        except:
+                            pass
+
+                if 'Outside HCZ' in target.extra_fields['Sky_location']:
+                    target_data.append(target_info)
+                    priority.append(target_info['priority'])
 
         # Sort the returned list
         priority = np.array(priority)
@@ -214,3 +215,26 @@ class PriorityTargetsView(ListView):
         sorted_targets = [target_data[x] for x in idx]
 
         return sorted_targets
+
+
+    def check_classification(self, target):
+        """Method to check that the listed events are actually microlensing"""
+
+        if 'microlensing' in str(target.extra_fields['Classification']).lower():
+            criteria = [True]
+        else:
+            return False
+
+        # Records True for each condition if it is NOT the classification
+        bool_keys = ['is_YSO', 'is_QSO', 'is_galaxy', 'is_TNS']
+        for key in bool_keys:
+            if key in target.extra_fields.keys():
+                if 'false' in str(target.extra_fields[key]).lower():
+                    value = True
+                else:
+                    value = False
+            else:
+                value = True
+            criteria.append(value)
+
+        return all(criteria)
