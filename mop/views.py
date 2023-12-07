@@ -167,7 +167,7 @@ class PriorityTargetsView(ListView):
 
     def extract_target_parameters(self, qs, target_category):
 
-        key_list = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error', 'Mag_now']
+        key_list = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error', 'Mag_now', 'Baseline_magnitude']
 
         target_data = []
         priority = []
@@ -175,16 +175,16 @@ class PriorityTargetsView(ListView):
             target = Target.objects.filter(pk=target_id[0])[0]
             target_info = {'name': target.name, 'id': target_id[0]}
             if target_category == 'stellar':
-                target_info['priority'] = target.extra_fields['TAP_priority']
+                target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
                 # Not all entries have an uncertainty set, due to older versions of the code not storing it
                 try:
-                    target_info['priority_error'] = target.extra_fields['TAP_priority_error']
+                    target_info['priority_error'] = round(target.extra_fields['TAP_priority_error'],3)
                 except KeyError:
                     target_info['priority_error'] = np.nan
             else:
-                target_info['priority'] = target.extra_fields['TAP_priority_longtE']
+                target_info['priority'] = round(target.extra_fields['TAP_priority_longtE'],3)
                 try:
-                    target_info['priority_error'] = target.extra_fields['TAP_priority_longtE_error']
+                    target_info['priority_error'] = round(target.extra_fields['TAP_priority_longtE_error'],3)
                 except KeyError:
                     target_info['priority_error'] = np.nan
 
@@ -193,6 +193,10 @@ class PriorityTargetsView(ListView):
                     target_info[key] = target.extra_fields[key]
                 except KeyError:
                     target_info[key] = np.nan
+                if key == 't0':
+                    target_info[key] = round((target_info[key] - 2460000.0), 3)
+                elif not np.isnan(target_info[key]):
+                    target_info[key] = round(target_info[key], 3)
 
             if 'Outside HCZ' in target.extra_fields['Sky_location']:
                 target_data.append(target_info)
