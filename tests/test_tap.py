@@ -125,6 +125,9 @@ class TestLightcurveData(TestCase):
         # Use this configuration to generate some photometry datapoints for testing
         photometry = generate_test_ReducedDatums(self.params['target'], self.params['tel_configs'])
 
+        # Generate a test lightcurve model
+        self.params['lc_model'] = generate_test_lc_model(self.params['target'])
+
     def test_TAP_time_last_datapoint(self):
         # Retrieve the photometry for the test target.  Note that we retrieve it here rather than
         # pass the photometry array into the test because the DB applies a TimeZone correction
@@ -155,3 +158,38 @@ class TestLightcurveData(TestCase):
         # This should still return a floating point JD and datetime, but for a much earlier date
         assert (t_last_jd > 2440000.0)
         assert (type(t_last_date) == type(tnow))
+
+    def test_TAP_mag_now(self):
+        mag_now = TAP.TAP_mag_now(self.params['target'])
+
+        last_dp = self.params['lc_model']['lc_model_magnitude'][-1]
+
+        assert(mag_now == last_dp)
+
+def generate_test_lc_model(target):
+    """Method generates a lightcurve model and stores it as a ReducedDatum"""
+
+    ndp = 100
+    time_now = Time(datetime.now()).jd
+    time_start = time_now - ndp
+    times = np.linspace(time_start, time_now, ndp)
+    mags = np.random.normal(loc=17.0, scale=0.01, size=ndp)
+    model_time = datetime.strptime('2018-06-29 08:15:27.243860', '%Y-%m-%d %H:%M:%S.%f')
+
+    data = {
+        'lc_model_time': times.tolist(),
+        'lc_model_magnitude': mags.tolist()
+    }
+
+    rd, created = ReducedDatum.objects.get_or_create(
+        timestamp=model_time,
+        value=data,
+        source_name='MOP',
+        source_location=target.name,
+        data_type='lc_model',
+        target=target
+    )
+
+    rd.save()
+
+    return data

@@ -1,0 +1,74 @@
+{% extends 'tom_common/base.html' %}
+{% load comments bootstrap4 tom_common_extras targets_extras observation_extras dataproduct_extras static cache dataproduct_extras mop_extras %}
+{% block additional_css %}
+<link rel="stylesheet" href="{% static 'tom_targets/css/main.css' %}">
+{% endblock %}
+{% block title %}
+    Priority Targets
+{% endblock %}
+
+{% block content %}
+    {% current_timestamp %}
+    <h3>Priority Targets</h3>
+    <div class="row">
+        <div class="col">
+            <h4>Stellar/planetary Targets</h4>
+            <table class="table" style="overflow: scroll">
+                <thead>
+                    <tr>
+                        <th>Target</th>
+                        <th>t0 [days]</br>-2460000.0</th>
+                        <th>u0</th>
+                        <th>tE [JD]</th>
+                        <th>Current mag</th>
+                        <th>Baseline mag</th>
+                        <th>TAP Priority</th>
+                    </tr>
+                </thead>
+                <tbody>
+            {% for target in stellar_targets %}
+                <tr>
+                    <td><a href="{% url 'targets:detail' target.id %}">{{target.name}}</a></td>
+                    <td>{{target.t0}}&#8723;{{target.t0_error}}</td>
+                    <td>{{target.u0}}&#8723;{{target.u0_error}}</td>
+                    <td>{{target.tE}}&#8723;{{target.tE_error}}</td>
+                    <td>{{target.Mag_now}}</td>
+                    <td>{{target.Baseline_magnitude}}</td>
+                    <td>{{target.priority}}&#8723;{{target.priority_error}}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            </table>
+        </div>
+        <div class="col">
+            <h4>Long tE Targets</h4>
+            <table class="table" style="overflow: scroll">
+                <thead>
+                    <tr>
+                        <th>Target</th>
+                        <th>t0 [days]</br>-2460000.0</th>
+                        <th>u0</th>
+                        <th>tE [JD]</th>
+                        <th>Current mag</th>
+                        <th>Baseline mag</th>
+                        <th>TAP Priority longtE</th>
+                    </tr>
+                </thead>
+                <tbody>
+            {% for target in bh_targets %}
+                <tr>
+                    <td><a href="{% url 'targets:detail' target.id %}">{{target.name}}</a></td>
+                    <td>{{target.t0}}&#8723;{{target.t0_error}}</td>
+                    <td>{{target.u0}}&#8723;{{target.u0_error}}</td>
+                    <td>{{target.tE}}&#8723;{{target.tE_error}}</td>
+                    <td>{{target.Mag_now}}</td>
+                    <td>{{target.Baseline_magnitude}}</td>
+                    <td>{{target.priority}}&#8723;{{target.priority_error}}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            </table>
+        </div>
+</div>
+
+{% endblock %}

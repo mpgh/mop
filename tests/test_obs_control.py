@@ -18,6 +18,10 @@ class TestObsConfig(TestCase):
         self.st.name = 'Gaia23bvd'
         self.st.ra = 285.8068
         self.st.dec = -30.4068
+        # Alternative target for northern winter months
+        self.st.name = 'Gaia23dlb'
+        self.st.ra = 44.2047
+        self.st.dec = -24.6351
         self.params = [
                         (
                             [{
@@ -106,10 +110,42 @@ class TestObsConfig(TestCase):
                             }]
                         )
         ]
+        self.obs_result = {'id': 1846734, 'submitter': 'rstreet@lcogt.net', 'proposal': 'KEY2023B-004', 'name': 'TEST1',
+                      'observation_type': 'NORMAL', 'operator': 'SINGLE', 'ipp_value': 1.05, 'state': 'CANCELED',
+                      'created': '2023-12-06T01:01:17.674550Z', 'modified': '2023-12-06T01:20:24.134915Z',
+                      'requests': [{'id': 3400574, 'observation_note': '', 'optimization_type': 'TIME',
+                                    'state': 'CANCELED', 'acceptability_threshold': 90.0, 'configuration_repeats': 1,
+                                    'extra_params': {}, 'modified': '2023-12-06T01:20:24.130410Z', 'duration': 167,
+                                    'configurations': [{'id': 10614032, 'instrument_type': '1M0-SCICAM-SINISTRO',
+                                                        'type': 'EXPOSE', 'repeat_duration': None, 'extra_params': {},
+                                                        'priority': 1,
+                                                        'instrument_configs': [{'optical_elements': {'filter': 'R'},
+                                                                                'mode': 'full_frame',
+                                                                                'exposure_time': 30.0,
+                                                                                'exposure_count': 1, 'rotator_mode': '',
+                                                                                'extra_params': {'bin_x': 1, 'bin_y': 1,
+                                                                                                 'defocus': 0,
+                                                                                                 'offset_ra': 0,
+                                                                                                 'offset_dec': 0},
+                                                                                'rois': []}],
+                                                        'constraints': {'max_airmass': 1.6, 'min_lunar_distance': 30.0,
+                                                                        'max_lunar_phase': 1.0, 'extra_params': {}},
+                                                        'acquisition_config': {'mode': 'OFF', 'extra_params': {}},
+                                                        'guiding_config': {'optional': True, 'mode': 'ON',
+                                                                           'optical_elements': {}, 'exposure_time': None,
+                                                                           'extra_params': {}},
+                                                        'target': {'type': 'ICRS', 'name': 'Gaia23dlb', 'ra': 44.2047,
+                                                                   'dec': -24.6351, 'proper_motion_ra': 0.0,
+                                                                   'proper_motion_dec': 0.0, 'parallax': 0.0,
+                                                                   'epoch': 2000.0, 'hour_angle': None,
+                                                                   'extra_params': {}}}],
+                                    'location': {'telescope_class': '1m0'},
+                                    'windows': [{'start': '2023-12-07T01:01:16Z', 'end': '2023-12-08T01:01:16Z'}]}]}
         cwd = os.getcwd()
         requests = open(os.path.join(cwd,'tests/data/lco_portal_requestgroups.json'),'r').read()
         self.portal_requestgroups_response = json.loads(requests)
-
+        self.obs_info = {'id': 1846734, 'instrument_type': '1M0-SCICAM-SINISTRO', 'state': 'CANCELED',
+                         'name': 'TEST1', 'filters': ['R'], 'exposure_times': [30.0], 'exposure_counts': [1]}
     def test_build_lco_imaging_request(self):
         for config in self.params:
             obs_list = obs_control.build_lco_imaging_request(config[0])
@@ -123,7 +159,7 @@ class TestObsConfig(TestCase):
                             for key2,value2 in expected_obs['requests'][0].items():
                                 assert (obs.request[key][0][key2] == value2)
 
-    @skip("Uncomment this to submit live test observations")
+    #@skip("Uncomment this to submit live test observations")
     def test_submit_observations(self):
         for config in self.params:
             obs = obs_control.build_lco_imaging_request(config[0])
@@ -131,11 +167,25 @@ class TestObsConfig(TestCase):
 
     def test_parse_lco_requestgroups(self):
         pending_obs = obs_control.parse_lco_requestgroups(self.portal_requestgroups_response)
+
         assert('Gaia21ccu' in pending_obs.keys())
+        assert(len(pending_obs['Gaia21ccu']) == 1)
+        assert(type(pending_obs['Gaia21ccu']) == type([]))
         assert('1M0-SCICAM-SINISTRO' in pending_obs['Gaia21ccu'])
 
-    #def test_check_pending_observations(self):
-    #    target = 'Gaia21ccu'
+        pending_obs = obs_control.parse_lco_requestgroups(self.portal_requestgroups_response, short_form=False)
+
+        assert(type(pending_obs['Gaia21ccu']) == type([]))
+        for entry in pending_obs['Gaia21ccu']:
+            assert(type(entry) == type({}))
+            for key in ['id', 'instrument_type', 'filters', 'exptimes', 'expcounts']:
+                assert(key in entry.keys())
+    def test_extract_obs_request_info(self):
+
+        obs_info = obs_control.extract_obs_request_info(self.obs_result)
+
+        assert(self.obs_info == obs_info)
+
 
 class TestVisibility(TestCase):
     def setUp(self):

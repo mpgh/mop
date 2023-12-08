@@ -106,6 +106,9 @@ class Command(BaseCommand):
                             t_last = Time.now(jd) - TimeDelta(days=30.0)
                         logger.info('runTAP: Last datapoint: ' + str(t_last))
 
+                        mag_now = TAP.TAP_mag_now(event)
+                        logger.info('runTAP: Mag now = ' + str(mag_now))
+
                         long_priority = TAP_priority.TAP_long_event_priority(time_now, t_last, tE_pspl)
                         long_priority_error = TAP_priority.TAP_long_event_priority_error(tE_pspl, covariance)
                         logger.info('runTAP: Long tE priority: ' + str(long_priority) + ' ' + str(long_priority_error))
@@ -179,8 +182,6 @@ class Command(BaseCommand):
                             logger.info('runTAP: Event visible?  ' + repr(visible))
 
                             if visible:
-                                mag_now = TAP.TAP_mag_now(event)
-                                logger.info('runTAP: Mag now = ' + str(mag_now))
                                 if mag_now:
                                     mag_baseline = event.extra_fields['Baseline_magnitude']
                                     logger.info('runTAP: mag_baseline: ' + str(mag_baseline))
