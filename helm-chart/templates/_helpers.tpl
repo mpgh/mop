@@ -107,17 +107,19 @@ build it here and use it everywhere.
 - name: IRSA_USERNAME
   value: {{ .Values.irsaUsername | quote }}
 - name: IRSA_PASSWORD
-  value: {{ .Values.irsaPassword | quote }} 
+  value: {{ .Values.irsaPassword | quote }}
 - name: AWS_ACCESS_KEY_ID
   value: {{ .Values.awsAccessKeyId | quote }}
 - name: AWS_SECRET_ACCESS_KEY
   value: {{ .Values.awsSecretAccessKey | quote }}
 - name: AWS_S3_BUCKET
-  value: {{ .Values.awsS3Bucket | quote }}  
+  value: {{ .Values.awsS3Bucket | quote }}
 - name: GEMINI_USERNAME
   value: {{ .Values.geminiUsername | quote }}
 - name: GEMINI_N_API_KEY
   value: {{ .Values.geminiNApiKey | quote }}
 - name: GEMINI_S_API_KEY
-  value: {{ .Values.geminiSApiKey | quote }}  
+  value: {{ .Values.geminiSApiKey | quote }}
+- name: TNS_API_KEY
+  value: {{ .Values.tnsApiKey | quote }}
 {{- end -}}
