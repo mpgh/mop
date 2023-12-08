@@ -424,31 +424,44 @@ def current_timestamp():
 
     return context
 
+
+@register.inclusion_tag('tom_targets/partials/target_data.html')
+def target_data(target, request):
+    """
+    Displays the data of a target.
+    """
+    extras = {k['name']: target.extra_fields.get(k['name'], '') for k in settings.EXTRA_FIELDS if not k.get('hidden')}
+    return {
+        'target': target,
+        'extras': extras,
+        'request': request
+    }
+
 @register.inclusion_tag('tom_targets/partials/target_class_form.html', takes_context=True)
-def classification_form(context):
+def classification_form(context, request):
     """Embedded form to enable user to change a Target's classification extra_field parameters"""
 
-    ### XXXX At the moment this code isn't receiving the request object, which includes the user submission
-    ### needed to fill out the form.  This may be because this templatetag is being called from a templatetag,
-    ### rather than directly from the template.
-    print(context)
     target = context['target']
-    extra_fields = context['extras']
-    class_form = TargetClassificationForm()
+    class_form = TargetClassificationForm({
+                'classification': target.extra_fields['Classification'],
+                'category': target.extra_fields['Category']
+            })
+    default_classes = [x[0] for x in class_form.fields['classification'].choices]
+    default_categories = [x[0] for x in class_form.fields['category'].choices]
 
     # If the user has set values for any of the form fields, then populate the class_form with those values
     if any(request.GET.get(x) for x in ['classification', 'text_class', 'category', 'text_category']):
         class_form = TargetClassificationForm({
-            'classification': request.GET.get('classification', extra_fields['Classification']),
+            'classification': request.GET.get('classification', target.extra_fields['Classification']),
             'text_class': request.GET.get('text_class', ''),
-            'category': request.GET.get('category', extra_fields['Category']),
+            'category': request.GET.get('category', target.extra_fields['Category']),
             'text_category': request.GET.get('text_category', '')
         })
 
         if class_form.is_valid():
             extras = {
-                'Classification': extra_fields['Classification'],
-                'Category': extra_fields['Category']
+                'Classification': target.extra_fields['Classification'],
+                'Category': target.extra_fields['Category']
             }
 
             # If the user has entered their own text into the text fields, this takes priority, otherwise
@@ -467,9 +480,16 @@ def classification_form(context):
             target.save(extras=extras)
 
             # Return a refreshed, empty form:
-            class_form = TargetClassificationForm()
+            class_form = TargetClassificationForm({
+                'classification': extras['Classification'],
+                'category': extras['Category']
+            })
 
     return {
         'form': class_form,
-        'target': context['object']
+        'target': target,
+        'categories': default_categories,
+        'current_category': target.extra_fields['Category'],
+        'classifications': default_classes,
+        'current_classification': target.extra_fields['Classification']
     }

@@ -238,7 +238,7 @@ class PriorityTargetsView(ListView):
             return False
 
         # Records True for each condition if it is NOT the classification
-        bool_keys = ['is_YSO', 'is_QSO', 'is_galaxy', 'is_TNS']
+        bool_keys = ['is_YSO', 'is_QSO', 'is_galaxy']
         for key in bool_keys:
             if key in target.extra_fields.keys():
                 if 'false' in str(target.extra_fields[key]).lower():
@@ -248,5 +248,15 @@ class PriorityTargetsView(ListView):
             else:
                 value = True
             criteria.append(value)
+
+        # Check for a TNS classification or name
+        keys = ['TNS_name', 'TNS_class']
+        for key in keys:
+            if key in target.extra_fields.keys():
+                if len(str(target.extra_fields[key]).lower().replace(' ','')) > 0:
+                    value = True
+                else:
+                    value = False
+                criteria.append(value)
 
         return all(criteria)
