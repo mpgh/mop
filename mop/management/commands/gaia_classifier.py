@@ -47,8 +47,7 @@ class Command(BaseCommand):
                 # parameters in the EXTRA_PARAMs for each Target.  Targets with no
                 # fit parameters are ignored until they are model fitted.
                 # Fitted targets will have their class set to microlensing by default
-                print(event.extra_fields['u0'], event.extra_fields['t0'], event.extra_fields['tE'],
-                      event.extra_fields['Classification'], event.ra, event.dec)
+
                 if event.extra_fields['u0'] != 0.0 \
                     and event.extra_fields['t0'] != 0.0 \
                     and event.extra_fields['tE'] != 0.0 \
