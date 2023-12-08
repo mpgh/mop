@@ -479,11 +479,16 @@ def classification_form(context, request):
             # Return a refreshed, empty form:
             class_form = TargetClassificationForm()
 
-    return {
+    result = {
         'form': class_form,
         'target': target,
         'categories': default_categories,
-        'current_category': target.extra_fields['Category'],
         'classifications': default_classes,
-        'current_classification': target.extra_fields['Classification']
     }
+    if 'Category' in target.extra_fields.keys():
+        result['current_category'] = target.extra_fields['Category']
+    if 'Classification' in target.extra_fields.keys():
+        result['current_classification'] = target.extra_fields['Classification']
+
+    return result
+
