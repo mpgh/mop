@@ -5,6 +5,7 @@ from tom_targets.models import Target, TargetExtra
 from astropy.time import Time
 from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
+from mop.brokers import tns
 
 import json
 import numpy as np
@@ -46,6 +47,8 @@ class Command(BaseCommand):
                 # parameters in the EXTRA_PARAMs for each Target.  Targets with no
                 # fit parameters are ignored until they are model fitted.
                 # Fitted targets will have their class set to microlensing by default
+                print(event.extra_fields['u0'], event.extra_fields['t0'], event.extra_fields['tE'],
+                      event.extra_fields['Classification'], event.ra, event.dec)
                 if event.extra_fields['u0'] != 0.0 \
                     and event.extra_fields['t0'] != 0.0 \
                     and event.extra_fields['tE'] != 0.0 \
@@ -61,13 +64,11 @@ class Command(BaseCommand):
                     # Test for a suspiciously large u0:
                     valid_u0 = classifier_tools.check_valid_u0(event.extra_fields['u0'])
 
-
                     # Test for low-amplitude change in photometry:
                     valid_dmag = classifier_tools.check_valid_dmag(event.extra_fields['Baseline_magnitude'], photometry)
 
                     # Test for suspicious reduced chi squared value
                     valid_chisq = classifier_tools.check_valid_chi2sq(event.extra_fields)
-
 
                     # Check target in catalogs
                     coord = SkyCoord(ra=event.ra, dec=event.dec, unit=(u.degree, u.degree), frame='icrs')
@@ -104,12 +105,63 @@ class Command(BaseCommand):
                         event.save(extras={'is_galaxy': is_galaxy})
                         logger.info(event.name + ': Checked if SN for the first time.')
 
+                    # Check target's TNS classification
+                    if 'TNS_name' in event.extra_fields.keys() \
+                        and event.extra_fields['TNS_name'] != 'None':
+                        if event.extra_fields['TNS_class'] == 'None':
+                            parameters = {
+                                'objname': name
+                            }
+                            tns_object = tns.Custom_TNS
+                            tns_class = tns.Custom_TNS.fetch_tns_class(tns_object, parameters)
+
+                            for entry in tns_class:
+                                if entry != None:
+                                    event.extra_fields['TNS_class'] = str(entry)
+                            logger.info(event.name + ': Known TNS, checked TNS class.')
+                    else:
+
+                        parameters = {
+                            'ra': event.ra,
+                            'dec': event.dec,
+                            'radius': 1.0,
+                            'units': 'arcsec',
+                        }
+                        tns_object = tns.Custom_TNS
+                        tns_name = tns.Custom_TNS.fetch_tns_name(tns_object, parameters)
+
+                        logger.info(event.name + ': Unknown TNS, checked TNS name.')
+
+                        for name in tns_name:
+                            parameters = {
+                                'objname' : name
+                            }
+                            tns_class = tns.Custom_TNS.fetch_tns_class(tns_object, parameters)
+                            logger.info(event.name + ': Unknown TNS, checked TNS class.')
+                            if len(tns_name)>1 :
+                                logger.info(event.name + ': More than one TNS entry within 1 arcsec radius.')
+                                if(tns_class != None):
+                                    event.save(extras={'TNS_name' : str(name),
+                                                       'TNS_class' : str(tns_class)})
+                                    logger.info(event.name + ': Saved a classified TNS entry.')
+                            else:
+                                event.save(extras={'TNS_name': str(name),
+                                                   'TNS_class': str(tns_class)})
+                                logger.info(event.name + ': Saved TNS entry.')
+
                     # Save classification based on catalogs and tests
                     if is_YSO:
                         event.save(extras={'Classification': 'Possible YSO'})
                         logger.info(event.name + ': set as a possible YSO')
 
-                    if is_QSO:
+                    if (event.extra_fields['TNS_class'] != 'None' \
+                            and 'Other' not in event.extra_fields['TNS_class']):
+                        # TNS has many classes, many of them related to SN, but not all.
+                        # Classified microlensing events land in class "Other", however
+                        # this class contains events that can have H alpha in emission.
+                        event.save(extras={'Classification': 'Known TNS transient.'})
+                        logger.info(event.name + ': set as a known SN')
+                    elif is_QSO:
                         event.save(extras={'Classification': 'QSO'})
                         logger.info(event.name + ': set as a QSO')
                     elif is_galaxy:
