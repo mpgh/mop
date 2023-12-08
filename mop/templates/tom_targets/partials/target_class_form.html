@@ -12,9 +12,8 @@
       <tr>
         <td>
           <select
-          id="id_text_class"
-          type="text"
-          name="text_class"/>
+          id="id_classification"
+          name="classification"/>
           {% for class in classifications %}
             <option value="{{class}}">{{class}}</option>
           {% endfor %}
@@ -22,9 +21,9 @@
         </td>
         <td>
           <input
-          id="id_classification"
-          type="select"
-          name="classification"/>
+          id="id_text_class"
+          type="text"
+          name="text_class"/>
         </td>
       </tr>
       <tr>
@@ -36,9 +35,8 @@
       <tr>
         <td>
           <select
-          id="id_text_category"
-          type="text"
-          name="text_category"/>
+          id="id_category"
+          name="category"/>
           {% for cat in categories %}
             <option value="{{cat}}">{{cat}}</option>
           {% endfor %}
@@ -46,9 +44,9 @@
         </td>
         <td>
           <input
-          id="id_category"
+          id="id_text_category"
           type="text"
-          name="category"
+          name="text_category"
           value="" />
         </td>
       </tr>

@@ -442,10 +442,7 @@ def classification_form(context, request):
     """Embedded form to enable user to change a Target's classification extra_field parameters"""
 
     target = context['target']
-    class_form = TargetClassificationForm({
-                'classification': target.extra_fields['Classification'],
-                'category': target.extra_fields['Category']
-            })
+    class_form = TargetClassificationForm()
     default_classes = [x[0] for x in class_form.fields['classification'].choices]
     default_categories = [x[0] for x in class_form.fields['category'].choices]
 
@@ -475,15 +472,12 @@ def classification_form(context, request):
                 extras['Category'] = class_form.cleaned_data['text_category']
             elif len(class_form.cleaned_data['category']) > 0:
                 extras['Category'] = class_form.cleaned_data['category']
-
+\
             # Save the updated extra_field parameters
             target.save(extras=extras)
 
             # Return a refreshed, empty form:
-            class_form = TargetClassificationForm({
-                'classification': extras['Classification'],
-                'category': extras['Category']
-            })
+            class_form = TargetClassificationForm()
 
     return {
         'form': class_form,
