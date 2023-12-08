@@ -472,7 +472,7 @@ def classification_form(context, request):
                 extras['Category'] = class_form.cleaned_data['text_category']
             elif len(class_form.cleaned_data['category']) > 0:
                 extras['Category'] = class_form.cleaned_data['category']
-\
+
             # Save the updated extra_field parameters
             target.save(extras=extras)
 
