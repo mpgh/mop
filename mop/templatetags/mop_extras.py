@@ -9,6 +9,7 @@ import plotly.graph_objs as go
 from tom_dataproducts.models import DataProduct, ReducedDatum
 from tom_dataproducts.processors.data_serializers import SpectrumSerializer
 from mop.toolbox import utilities
+from mop.forms import TargetClassificationForm
 from astropy.time import Time
 import numpy as np
 import logging
@@ -422,3 +423,53 @@ def current_timestamp():
     context['jd_now'] = str(np.around(Time(utc_now).jd,3))
 
     return context
+
+@register.inclusion_tag('tom_targets/partials/target_class_form.html', takes_context=True)
+def classification_form(context):
+    """Embedded form to enable user to change a Target's classification extra_field parameters"""
+
+    ### XXXX At the moment this code isn't receiving the request object, which includes the user submission
+    ### needed to fill out the form.  This may be because this templatetag is being called from a templatetag,
+    ### rather than directly from the template.
+    print(context)
+    target = context['target']
+    extra_fields = context['extras']
+    class_form = TargetClassificationForm()
+
+    # If the user has set values for any of the form fields, then populate the class_form with those values
+    if any(request.GET.get(x) for x in ['classification', 'text_class', 'category', 'text_category']):
+        class_form = TargetClassificationForm({
+            'classification': request.GET.get('classification', extra_fields['Classification']),
+            'text_class': request.GET.get('text_class', ''),
+            'category': request.GET.get('category', extra_fields['Category']),
+            'text_category': request.GET.get('text_category', '')
+        })
+
+        if class_form.is_valid():
+            extras = {
+                'Classification': extra_fields['Classification'],
+                'Category': extra_fields['Category']
+            }
+
+            # If the user has entered their own text into the text fields, this takes priority, otherwise
+            # take the option set from the select menu
+            if len(class_form.cleaned_data['text_class']) > 0:
+                extras['Classification'] = class_form.cleaned_data['text_class']
+            elif len(class_form.cleaned_data['classification']) > 0:
+                extras['Classification'] = class_form.cleaned_data['classification']
+
+            if len(class_form.cleaned_data['text_category']) > 0:
+                extras['Category'] = class_form.cleaned_data['text_category']
+            elif len(class_form.cleaned_data['category']) > 0:
+                extras['Category'] = class_form.cleaned_data['category']
+
+            # Save the updated extra_field parameters
+            target.save(extras=extras)
+
+            # Return a refreshed, empty form:
+            class_form = TargetClassificationForm()
+
+    return {
+        'form': class_form,
+        'target': context['object']
+    }

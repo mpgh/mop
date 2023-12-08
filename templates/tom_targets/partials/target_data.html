@@ -1,4 +1,4 @@
-{% load static tom_common_extras targets_extras %}
+{% load static tom_common_extras targets_extras mop_extras %}
 {% if 'Sky_location' in target.tags.keys %}
   {% if target.tags.Sky_location == 'In HCZ' %}
     <h5 style="color: #ffffff; background-color: #690a00">{{ target.tags.Sky_location }}</h5>
@@ -97,6 +97,7 @@
   {% endif %}
 {% endfor %}
 </dl>
+
 <font size="5"><b>Paczy&#324ski parameters</b></font>
 <dl class="row">
 <dt class="col-sm-6">{{ 't0' }}</dt>

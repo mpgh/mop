@@ -8,6 +8,7 @@ from tom_observations.models import ObservationRecord
 from tom_observations.views import ObservationFilter
 from mop.toolbox.TAP import set_target_sky_location
 from mop.toolbox.obs_control import fetch_all_lco_requestgroups, parse_lco_requestgroups
+from mop.forms import TargetClassificationForm
 from django_filters.views import FilterView
 from guardian.mixins import PermissionListMixin
 from guardian.shortcuts import get_objects_for_user
@@ -16,6 +17,17 @@ from django.views.generic.list import ListView
 import numpy as np
 
 class MOPTargetDetailView(TargetDetailView):
+
+    def get_context_data(self, *args, **kwargs):
+        """
+        Adds the ``TargetClassificationForm`` to the context and prepopulates the hidden fields.
+
+        :returns: context object
+        :rtype: dict
+        """
+        context = super().get_context_data(*args, **kwargs)
+        context['class_form'] = TargetClassificationForm()
+        return context
 
     def get(self, request, *args, **kwargs):
         # Ensure that the target's location flag is set

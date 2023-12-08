@@ -1,0 +1,10 @@
+{% load bootstrap4 %}
+<div id="class-form">
+  <form action="{% url 'targets:detail' target.id %}" method="GET" class="form">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    {% buttons %}
+        <input type="submit" class="btn btn-primary" value="Set">
+    {% endbuttons %}
+  </form>
+</div>
