@@ -298,6 +298,15 @@ TOM_ALERT_CLASSES = [
     'tom_alerts.brokers.gaia.GaiaBroker',
 ]
 
+# TNS credentials for broker
+BROKERS = {
+    'TNS': {
+        'api_key': os.environ.get('TNS_API_KEY','dummy'),
+        'bot_id': '164734',
+        'bot_name': 'MOP_Bot',
+    }
+}
+
 #'tom_antares.antares.AntaresBroker',
 #BROKER_CREDENTIALS = {}
 
@@ -391,7 +400,9 @@ EXTRA_FIELDS = [{'name': 'Alive', 'type': 'boolean', 'default':True},
                 {'name': 'Interferometry_interval', 'type': 'number', 'default': 0},
                 {'name': 'is_YSO', 'type': 'string', 'default': 'False'},
                 {'name': 'is_QSO', 'type': 'string', 'default': 'False'},
-                {'name': 'is_galaxy', 'type': 'string', 'default': 'False'}]
+                {'name': 'is_galaxy', 'type': 'string', 'default': 'False'},
+                {'name': 'TNS_name', 'type': 'string', 'default': 'None'},
+                {'name': 'TNS_class', 'type': 'string', 'default': 'None'}]
 
 TARGET_PERMISSIONS_ONLY=True
 
