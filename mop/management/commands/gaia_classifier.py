@@ -113,11 +113,12 @@ class Command(BaseCommand):
                             }
                             tns_object = tns.Custom_TNS
                             tns_class = tns.Custom_TNS.fetch_tns_class(tns_object, parameters)
-
+                            logger.info(event.name + ': Known TNS, checking TNS class.')
                             for entry in tns_class:
                                 if entry != None:
-                                    event.extra_fields['TNS_class'] = str(entry)
-                            logger.info(event.name + ': Known TNS, checked TNS class.')
+                                    event.save(extras={'TNS_class': str(entry)})
+                                    logger.info(event.name + ': Known TNS, updated TNS class.')
+
                     else:
 
                         parameters = {
@@ -150,7 +151,8 @@ class Command(BaseCommand):
 
                     # Save classification based on catalogs and tests
                     if is_YSO:
-                        event.save(extras={'Classification': 'Possible YSO'})
+                        event.save(extras={'Classification': 'Variable star',
+                                           'Category': 'Stellar activity'})
                         logger.info(event.name + ': set as a possible YSO')
 
                     if (event.extra_fields['TNS_class'] != 'None' \
@@ -158,15 +160,18 @@ class Command(BaseCommand):
                         # TNS has many classes, many of them related to SN, but not all.
                         # Classified microlensing events land in class "Other", however
                         # this class contains events that can have H alpha in emission.
-                        event.save(extras={'Classification': 'Known TNS transient.'})
+                        event.save(extras={'Classification': 'Extra-galactic variable',
+                                           'Category': 'Known TNS transient'})
                         logger.info(event.name + ': set as a known SN')
                     elif is_QSO:
-                        event.save(extras={'Classification': 'QSO'})
+                        event.save(extras={'Classification': 'Extra-galactic variable',
+                                           'Category': 'QSO'})
                         logger.info(event.name + ': set as a QSO')
                     elif is_galaxy:
                         # Some QSOs from Miliquas are in GLADE+ catalog,
                         # so we don't want them "misclassified"
-                        event.save(extras={'Classification': 'Possible SN'})
+                        event.save(extras={'Classification': 'Extra-galactic variable',
+                                           'Category': 'Nova/supernova'})
                         logger.info(event.name + ': set as a possible SN')
 
                     # If a target fails all three criteria, set its classification
@@ -174,17 +179,20 @@ class Command(BaseCommand):
                     # observations for any object with 'microlensing' in the
                     # classification
                     if not valid_blend_mag or not valid_u0 or not valid_dmag:
-                        event.save(extras={'Classification': 'Unclassified variable'})
+                        event.save(extras={'Classification': 'Unclassified variable',
+                                           'Category': 'Unclassified'})
                         logger.info(event.name+': Reset as unclassified variable')
                     if 'red_chi2' in event.extra_fields.keys():
                         if not valid_chisq:
-                            event.save(extras={'Classification': 'Unclassified poor fit'})
+                            event.save(extras={'Classification': 'Unclassified poor fit',
+                                               'Category': 'Unclassified'})
                             logger.info(event.name+': Reset as unclassified poor fit')
 
 
         elif classifier == 2:
             for event in targets:
-                event.save(extras={'Classification': 'Unclassified Gaia target'})
+                event.save(extras={'Classification': 'Unclassified Gaia target',
+                                   'Category': 'Unclassified'})
                 logger.info(event.name+': Reset as unclassified Gaia target')
 
 
