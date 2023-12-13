@@ -339,3 +339,15 @@ def sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_p
     logger.info('TAP model parameters sanity check returned ' + repr(sane))
 
     return sane
+
+def TAP_check_baseline(target, t0, tE):
+    """
+    Checks if a baseline exists for a target.
+    """
+    datasets = ReducedDatum.objects.filter(target=target).order_by('timestamp')
+
+    if datasets.count() > 0:
+        for d in datasets:
+            print(d)
+
+    return False

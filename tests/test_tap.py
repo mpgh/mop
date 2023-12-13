@@ -166,6 +166,37 @@ class TestLightcurveData(TestCase):
 
         assert(mag_now == last_dp)
 
+
+class TestCheckBaseline(TestCase):
+    def setUp(self):
+        st1 = SiderealTargetFactory.create()
+        st1.name = 'Gaia23cnu'
+        st1.ra = 36.6441
+        st1.dec = -19.1740
+        cwd = getcwd()
+        lightcurve_file = path.join(cwd, 'tests/data/Gaia23dka.csv')
+        photometry = generate_test_ReducedDatums(st1, lightcurve_file, 'G')
+
+        self.model_params = {
+            't0' : 2460177.02487,
+            'u0' : 0.00233,
+            'tE' : 1973.49932,
+            'Source_magnitude' : 27.069,
+            'Blend_magnitude' : 18.666,
+            'Baseline_magnitude' : 18.666,
+
+        }
+
+        self.params = {
+            'target': st1,
+            'lightcurve_file': lightcurve_file,
+            'photometry': photometry,
+            'Latest_data_HJD': 2460281.0316
+        }
+
+    def test_TAP_baseline(self):
+        TAP.TAP_check_baseline(self.params['target'], self.model_params['t0'], self.model_params['tE'])
+
 def generate_test_lc_model(target):
     """Method generates a lightcurve model and stores it as a ReducedDatum"""
 
@@ -191,5 +222,37 @@ def generate_test_lc_model(target):
     )
 
     rd.save()
+
+    return data
+
+def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
+    """Taken from test_fittools, by R. Street. Modified to match this test case.
+    Method generates a set of ReducedDatums for different telescopes, as is held in the TOM for a
+    single target
+    """
+
+    data = []
+    ts_jds = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=1)
+    mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=2, dtype='str')
+
+    for i in range(len(mags)):
+        if('untrusted' not in mags[i] and 'null' not in mags[i]):
+            jd = Time(float(ts_jds[i]), format='jd', scale='utc')
+            datum = {
+                    'magnitude': float(mags[i]),
+                    'filter': tel_label,
+                    'error': gaia_mop.estimateGaiaError(float(mags[i]))
+                    }
+            rd, created = ReducedDatum.objects.get_or_create(
+                timestamp=jd.to_datetime(timezone=TimezoneInfo()),
+                value=datum,
+                source_name='Gaia',
+                source_location=target.name,
+                data_type='photometry',
+                target=target)
+
+            if created:
+                rd.save()
+                data.append(rd)
 
     return data
