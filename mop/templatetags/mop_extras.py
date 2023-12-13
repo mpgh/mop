@@ -475,8 +475,8 @@ def classification_form(context):
 
     if class_form.is_valid() and request:
         extras = {
-            'Classification': target.extra_fields['Classification'],
-            'Category': target.extra_fields['Category']
+            'Classification': class_data['classification'],
+            'Category': class_data['category']
         }
 
         # If the user has entered their own text into the text fields, this takes priority, otherwise
