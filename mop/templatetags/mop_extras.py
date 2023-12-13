@@ -425,8 +425,8 @@ def current_timestamp():
     return context
 
 
-@register.inclusion_tag('tom_targets/partials/target_data.html')
-def target_data(target, request):
+@register.inclusion_tag('tom_targets/partials/mulens_target_data.html')
+def mulens_target_data(target, request):
     """
     Displays the data of a target.
     """
@@ -438,46 +438,64 @@ def target_data(target, request):
     }
 
 @register.inclusion_tag('tom_targets/partials/target_class_form.html', takes_context=True)
-def classification_form(context, request):
+def classification_form(context):
     """Embedded form to enable user to change a Target's classification extra_field parameters"""
 
     target = context['target']
+    try:
+        request = context['request']
+    except KeyError:
+        request = None
+
     class_form = TargetClassificationForm()
     default_classes = [x[0] for x in class_form.fields['classification'].choices]
     default_categories = [x[0] for x in class_form.fields['category'].choices]
 
+    # If there is no request associated with the call to this function, try and extract the classification
+    # parameters from the target extras
+    class_data = {'classification': None, 'text_class': None, 'category': None, 'text_category': None}
+    if not request:
+        for key in ['Classification', 'Category']:
+            if key in context['extras'].keys():
+                class_data[key.lower()] = context['extras'][key]
+
     # If the user has set values for any of the form fields, then populate the class_form with those values
-    if any(request.GET.get(x) for x in ['classification', 'text_class', 'category', 'text_category']):
-        class_form = TargetClassificationForm({
-            'classification': request.GET.get('classification', target.extra_fields['Classification']),
-            'text_class': request.GET.get('text_class', ''),
-            'category': request.GET.get('category', target.extra_fields['Category']),
-            'text_category': request.GET.get('text_category', '')
-        })
+    else:
+        if any(request.GET.get(x) for x in class_data.keys()):
+            class_data['classification'] = request.GET.get('classification', target.extra_fields['Classification'])
+            class_data['text_class'] = request.GET.get('text_class', '')
+            class_data['category'] = request.GET.get('category', target.extra_fields['Category'])
+            class_data['text_category'] = request.GET.get('text_category', '')
+        else:
+            for key in ['Classification', 'Category']:
+                if key in context['extras'].keys():
+                    class_data[key.lower()] = context['extras'][key]
 
-        if class_form.is_valid():
-            extras = {
-                'Classification': target.extra_fields['Classification'],
-                'Category': target.extra_fields['Category']
-            }
+    class_form = TargetClassificationForm(class_data)
 
-            # If the user has entered their own text into the text fields, this takes priority, otherwise
-            # take the option set from the select menu
-            if len(class_form.cleaned_data['text_class']) > 0:
-                extras['Classification'] = class_form.cleaned_data['text_class']
-            elif len(class_form.cleaned_data['classification']) > 0:
-                extras['Classification'] = class_form.cleaned_data['classification']
+    if class_form.is_valid() and request:
+        extras = {
+            'Classification': target.extra_fields['Classification'],
+            'Category': target.extra_fields['Category']
+        }
 
-            if len(class_form.cleaned_data['text_category']) > 0:
-                extras['Category'] = class_form.cleaned_data['text_category']
-            elif len(class_form.cleaned_data['category']) > 0:
-                extras['Category'] = class_form.cleaned_data['category']
+        # If the user has entered their own text into the text fields, this takes priority, otherwise
+        # take the option set from the select menu
+        if len(class_form.cleaned_data['text_class']) > 0:
+            extras['Classification'] = class_form.cleaned_data['text_class']
+        elif len(class_form.cleaned_data['classification']) > 0:
+            extras['Classification'] = class_form.cleaned_data['classification']
 
-            # Save the updated extra_field parameters
-            target.save(extras=extras)
+        if len(class_form.cleaned_data['text_category']) > 0:
+            extras['Category'] = class_form.cleaned_data['text_category']
+        elif len(class_form.cleaned_data['category']) > 0:
+            extras['Category'] = class_form.cleaned_data['category']
 
-            # Return a refreshed, empty form:
-            class_form = TargetClassificationForm()
+        # Save the updated extra_field parameters
+        target.save(extras=extras)
+
+        # Return a refreshed, empty form:
+        class_form = TargetClassificationForm()
 
     result = {
         'form': class_form,

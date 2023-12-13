@@ -92,6 +92,54 @@
 {% endfor %}
 </dl>
 
+{% classification_form %}
+
+<font size="5"><b>Paczy&#324ski parameters</b></font>
+<dl class="row">
+<dt class="col-sm-6">{{ 't0' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.t0 }}&#8723;{{ target.extra_fields.t0_error }}</dd>
+<dt class="col-sm-6">{{ 'u0' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.u0 }}&#8723;{{ target.extra_fields.u0_error }}</dd>
+<dt class="col-sm-6">{{ 'tE' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.tE }}&#8723;{{ target.extra_fields.tE_error }}</dd>
+<dt class="col-sm-6">{{ 'piEN' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.piEN }}&#8723;{{ target.extra_fields.piEN_error }}</dd>
+<dt class="col-sm-6">{{ 'piEE' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.piEE }}&#8723;{{ target.extra_fields.piEE_error }}</dd>
+<dt class="col-sm-6">{{ 'rho' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.rho }}&#8723;{{ target.extra_fields.rho_error }}</dd>
+<dt class="col-sm-6">{{ 's' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.s }}&#8723;{{ target.extra_fields.s_error }}</dd>
+<dt class="col-sm-6">{{ 'q' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.q }}&#8723;{{ target.extra_fields.q_error }}</dd>
+<dt class="col-sm-6">{{ 'alpha' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.alpha }}&#8723;{{ target.extra_fields.alpha_error }}</dd>
+<dt class="col-sm-6">{{ 'Source_magnitude' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.Source_magnitude }}&#8723;{{ target.extra_fields.Source_mag_error }}</dd>
+<dt class="col-sm-6">{{ 'Blend_magnitude' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.Blend_magnitude }}&#8723;{{ target.extra_fields.Blend_mag_error }}</dd>
+<dt class="col-sm-6">{{ 'Baseline_magnitude' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.Baseline_magnitude }}&#8723;{{ target.extra_fields.Baseline_mag_error }}</dd>
+<dt class="col-sm-6">{{ 'Mag_now' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.Mag_now }}</dd>
+<dt class="col-sm-6">{{ 'chi2' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.chi2 }}</dd>
+<dt class="col-sm-6">{{ 'red_chi2' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.red_chi2 }}</dd>
+<dt class="col-sm-6">{{ 'KS_test' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.KS_test }}</dd>
+<dt class="col-sm-6">{{ 'SW_test' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.SW_test }}</dd>
+<dt class="col-sm-6">{{ 'AD_test' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.AD_test }}</dd>
+<dt class="col-sm-6">{{ 'Latest_data_HJD' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.Latest_data_HJD }}</dd>
+<dt class="col-sm-6">{{ 'Latest_data_UTC' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.Latest_data_UTC }}</dd>
+<dt class="col-sm-6">{{ 'Last_fit_JD' }}</dt>
+<dd class="col-sm-6">{{ target.extra_fields.Last_fit }}</dd>
+
+</dl>
 <h4>Tags</h4>
 <dl class="row">
 {% for key, value in target.tags.items %}
