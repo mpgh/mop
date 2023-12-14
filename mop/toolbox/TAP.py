@@ -348,6 +348,10 @@ def TAP_check_baseline(target, t0, tE):
 
     if datasets.count() > 0:
         for d in datasets:
-            print(d)
+            if d.data_type == 'photometry':
+                time = Time(d.timestamp, format='datetime').jd
+                if(time < t0 - tE):
+                    logger.info('Baseline data prior to an event found.')
+                    return True
 
     return False

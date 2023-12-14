@@ -8,6 +8,10 @@ from astropy import units as u
 import numpy as np
 from datetime import datetime
 
+from os import getcwd, path
+from mop.brokers import gaia as gaia_mop
+from astropy.time import Time, TimezoneInfo
+
 class TestObservingMode(TestCase):
     def setUp(self):
         self.params = [{
@@ -167,12 +171,10 @@ class TestLightcurveData(TestCase):
         assert(mag_now == last_dp)
 
 
-class TestCheckBaseline(TestCase):
+class TestCheckBaselineSN(TestCase):
     def setUp(self):
         st1 = SiderealTargetFactory.create()
         st1.name = 'Gaia23cnu'
-        st1.ra = 36.6441
-        st1.dec = -19.1740
         cwd = getcwd()
         lightcurve_file = path.join(cwd, 'tests/data/Gaia23dka.csv')
         photometry = generate_test_ReducedDatums(st1, lightcurve_file, 'G')
@@ -195,7 +197,39 @@ class TestCheckBaseline(TestCase):
         }
 
     def test_TAP_baseline(self):
-        TAP.TAP_check_baseline(self.params['target'], self.model_params['t0'], self.model_params['tE'])
+        baseline_exist = TAP.TAP_check_baseline(self.params['target'], self.model_params['t0'], self.model_params['tE'])
+        assert (type(baseline_exist) == type(True))
+        assert (baseline_exist == False)
+
+class TestCheckBaselineUlens(TestCase):
+    def setUp(self):
+        st1 = SiderealTargetFactory.create()
+        st1.name = 'Gaia23dau'
+        cwd = getcwd()
+        lightcurve_file = path.join(cwd, 'tests/data/Gaia23dau.csv')
+        photometry = generate_test_ReducedDatums(st1, lightcurve_file, 'G')
+
+        self.model_params = {
+            't0': 2460237.97106,
+            'u0': 0.33528,
+            'tE': 136.26916,
+            'Source_magnitude': 19.964,
+            'Blend_magnitude': 17.476,
+            'Baseline_magnitude': 17.371,
+
+        }
+
+        self.params = {
+            'target': st1,
+            'lightcurve_file': lightcurve_file,
+            'photometry': photometry,
+            'Latest_data_HJD': 2460248.3823
+        }
+
+    def test_TAP_baseline(self):
+        baseline_exist = TAP.TAP_check_baseline(self.params['target'], self.model_params['t0'], self.model_params['tE'])
+        assert (type(baseline_exist) == type(True))
+        assert (baseline_exist == True)
 
 def generate_test_lc_model(target):
     """Method generates a lightcurve model and stores it as a ReducedDatum"""
