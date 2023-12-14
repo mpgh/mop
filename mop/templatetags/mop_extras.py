@@ -462,9 +462,9 @@ def classification_form(context):
     # If the user has set values for any of the form fields, then populate the class_form with those values
     else:
         if any(request.GET.get(x) for x in class_data.keys()):
-            class_data['classification'] = request.GET.get('classification', target.extra_fields['Classification'])
+            class_data['classification'] = get_request_param('classification', 'Classification', request, context['extras'])
             class_data['text_class'] = request.GET.get('text_class', '')
-            class_data['category'] = request.GET.get('category', target.extra_fields['Category'])
+            class_data['category'] = get_request_param('category', 'Category', request, context['extras'])
             class_data['text_category'] = request.GET.get('text_category', '')
         else:
             for key in ['Classification', 'Category']:
@@ -510,3 +510,12 @@ def classification_form(context):
 
     return result
 
+def get_request_param(request_key, extras_key, request, extras):
+    """Fetch a parameter value from the request object, but fall back to the already-set extra-parameter
+    value if the result is an empty string"""
+
+    request_value = request.GET.get(request_key, '')
+    if len(request_value) == 0:
+        request_value = extras[extras_key]
+
+    return request_value
