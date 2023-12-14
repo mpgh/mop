@@ -94,6 +94,9 @@ class Command(BaseCommand):
                         # Categorize the event based on event timescale
                         category = TAP.categorize_event_timescale(event)
 
+                        # Check if baseline exists prior to identified event
+
+
                         # Calculate the priority of this event for different science goals
                         planet_priority = TAP_priority.TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl)
                         planet_priority_error = TAP_priority.TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance)
