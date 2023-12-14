@@ -95,7 +95,11 @@ class Command(BaseCommand):
                         category = TAP.categorize_event_timescale(event)
 
                         # Check if baseline exists prior to identified event
-
+                        baseline_exists = TAP.TAP_check_baseline(event, t0_pspl, tE_pspl)
+                        logger.info("runTAP: %s baseline exists - %s." % (event.name, baseline_exists))
+                        if not baseline_exists:
+                            logger.info("runTAP: No baseline data detected for %s prior to peak."%(event.name))
+                            continue
 
                         # Calculate the priority of this event for different science goals
                         planet_priority = TAP_priority.TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl)

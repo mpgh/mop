@@ -177,7 +177,7 @@ class TestCheckBaselineSN(TestCase):
         st1.name = 'Gaia23cnu'
         cwd = getcwd()
         lightcurve_file = path.join(cwd, 'tests/data/Gaia23dka.csv')
-        photometry = generate_test_ReducedDatums(st1, lightcurve_file, 'G')
+        photometry = generate_gaia_ReducedDatums(st1, lightcurve_file, 'G')
 
         self.model_params = {
             't0' : 2460177.02487,
@@ -207,7 +207,7 @@ class TestCheckBaselineUlens(TestCase):
         st1.name = 'Gaia23dau'
         cwd = getcwd()
         lightcurve_file = path.join(cwd, 'tests/data/Gaia23dau.csv')
-        photometry = generate_test_ReducedDatums(st1, lightcurve_file, 'G')
+        photometry = generate_gaia_ReducedDatums(st1, lightcurve_file, 'G')
 
         self.model_params = {
             't0': 2460237.97106,
@@ -259,7 +259,7 @@ def generate_test_lc_model(target):
 
     return data
 
-def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
+def generate_gaia_ReducedDatums(target, lightcurve_file, tel_label):
     """Taken from test_fittools, by R. Street. Modified to match this test case.
     Method generates a set of ReducedDatums for different telescopes, as is held in the TOM for a
     single target
