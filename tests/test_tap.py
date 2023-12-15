@@ -8,6 +8,10 @@ from astropy import units as u
 import numpy as np
 from datetime import datetime
 
+from os import getcwd, path
+from mop.brokers import gaia as gaia_mop
+from astropy.time import Time, TimezoneInfo
+
 class TestObservingMode(TestCase):
     def setUp(self):
         self.params = [{
@@ -166,6 +170,67 @@ class TestLightcurveData(TestCase):
 
         assert(mag_now == last_dp)
 
+
+class TestCheckBaselineSN(TestCase):
+    def setUp(self):
+        st1 = SiderealTargetFactory.create()
+        st1.name = 'Gaia23cnu'
+        cwd = getcwd()
+        lightcurve_file = path.join(cwd, 'tests/data/Gaia23dka.csv')
+        photometry = generate_gaia_ReducedDatums(st1, lightcurve_file, 'G')
+
+        self.model_params = {
+            't0' : 2460177.02487,
+            'u0' : 0.00233,
+            'tE' : 1973.49932,
+            'Source_magnitude' : 27.069,
+            'Blend_magnitude' : 18.666,
+            'Baseline_magnitude' : 18.666,
+
+        }
+
+        self.params = {
+            'target': st1,
+            'lightcurve_file': lightcurve_file,
+            'photometry': photometry,
+            'Latest_data_HJD': 2460281.0316
+        }
+
+    def test_TAP_baseline(self):
+        baseline_exist = TAP.TAP_check_baseline(self.params['target'], self.model_params['t0'], self.model_params['tE'])
+        assert (type(baseline_exist) == type(True))
+        assert (baseline_exist == False)
+
+class TestCheckBaselineUlens(TestCase):
+    def setUp(self):
+        st1 = SiderealTargetFactory.create()
+        st1.name = 'Gaia23dau'
+        cwd = getcwd()
+        lightcurve_file = path.join(cwd, 'tests/data/Gaia23dau.csv')
+        photometry = generate_gaia_ReducedDatums(st1, lightcurve_file, 'G')
+
+        self.model_params = {
+            't0': 2460237.97106,
+            'u0': 0.33528,
+            'tE': 136.26916,
+            'Source_magnitude': 19.964,
+            'Blend_magnitude': 17.476,
+            'Baseline_magnitude': 17.371,
+
+        }
+
+        self.params = {
+            'target': st1,
+            'lightcurve_file': lightcurve_file,
+            'photometry': photometry,
+            'Latest_data_HJD': 2460248.3823
+        }
+
+    def test_TAP_baseline(self):
+        baseline_exist = TAP.TAP_check_baseline(self.params['target'], self.model_params['t0'], self.model_params['tE'])
+        assert (type(baseline_exist) == type(True))
+        assert (baseline_exist == True)
+
 def generate_test_lc_model(target):
     """Method generates a lightcurve model and stores it as a ReducedDatum"""
 
@@ -191,5 +256,37 @@ def generate_test_lc_model(target):
     )
 
     rd.save()
+
+    return data
+
+def generate_gaia_ReducedDatums(target, lightcurve_file, tel_label):
+    """Taken from test_fittools, by R. Street. Modified to match this test case.
+    Method generates a set of ReducedDatums for different telescopes, as is held in the TOM for a
+    single target
+    """
+
+    data = []
+    ts_jds = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=1)
+    mags = np.loadtxt(lightcurve_file, delimiter=',', skiprows=2, usecols=2, dtype='str')
+
+    for i in range(len(mags)):
+        if('untrusted' not in mags[i] and 'null' not in mags[i]):
+            jd = Time(float(ts_jds[i]), format='jd', scale='utc')
+            datum = {
+                    'magnitude': float(mags[i]),
+                    'filter': tel_label,
+                    'error': gaia_mop.estimateGaiaError(float(mags[i]))
+                    }
+            rd, created = ReducedDatum.objects.get_or_create(
+                timestamp=jd.to_datetime(timezone=TimezoneInfo()),
+                value=datum,
+                source_name='Gaia',
+                source_location=target.name,
+                data_type='photometry',
+                target=target)
+
+            if created:
+                rd.save()
+                data.append(rd)
 
     return data
