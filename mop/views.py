@@ -163,10 +163,30 @@ class PriorityTargetsView(ListView):
         if self.request.user.is_authenticated:
 
             # Query for matching TargetExtra entries returns a list of Target PKs
-            qs_stars = TargetExtra.objects.filter(key='TAP_priority', float_value__gt=10.0).exclude(value=np.nan).exclude(value__exact='').exclude(value__exact='None').values_list('target').distinct()
-            qs_bh = TargetExtra.objects.filter(key='TAP_priority_longtE', float_value__gt=10.0).exclude(value=np.nan).exclude(value__exact='').exclude(value__exact='None').values_list('target').distinct()
+            qs_stars = TargetExtra.objects.filter(
+                key='TAP_priority', float_value__gt=10.0
+            ).exclude(
+                value=np.nan
+            ).exclude(
+                value__exact=''
+            ).exclude(
+                value__exact='None'
+            ).values_list('target').distinct()
+            qs_bh = TargetExtra.objects.filter(
+                key='TAP_priority_longtE', float_value__gt=10.0
+            ).exclude(
+                value=np.nan
+            ).exclude(
+                value__exact=''
+            ).exclude(
+                value__exact='None'
+            ).filter(
+                key='Alive', bool_value=True
+            ).values_list('target').distinct()
 
-            # Repackage the two lists to extract the parameters to display in the table
+            # Repackage the two lists to extract the parameters to display in the table.
+            # This also checks to see if a Target is alive and not flagged as a known
+            # variable before including it
             context['stellar_targets'] = self.extract_target_parameters(qs_stars, 'stellar')
             context['bh_targets'] = self.extract_target_parameters(qs_bh, 'bh')
 
@@ -186,7 +206,7 @@ class PriorityTargetsView(ListView):
         for target_id in qs:
             target = Target.objects.filter(pk=target_id[0])[0]
             target_info = {'name': target.name, 'id': target_id[0]}
-            if self.check_classification(target):
+            if self.check_classification(target) and self.check_valid_target(target):
                 if target_category == 'stellar':
                     target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
                     # Not all entries have an uncertainty set, due to older versions of the code not storing it
@@ -260,3 +280,32 @@ class PriorityTargetsView(ListView):
                 criteria.append(value)
 
         return all(criteria)
+
+    def check_valid_target(self, target):
+        """
+        Method to verify that a Target is Alive and not flagged as a known variable before it is
+        included in the Priority Targets table
+        """
+
+        if 'Alive' not in target.extra_fields.keys():
+            return False
+
+        if not target.extra_fields['Alive']:
+            return False
+
+        if 'is_YSO' in target.extra_fields.keys() and target.extra_fields['is_YSO']:
+            return False
+
+        if 'is_QSO' in target.extra_fields.keys() and target.extra_fields['is_QSO']:
+            return False
+
+        if 'is_galaxy' in target.extra_fields.keys() and target.extra_fields['is_galaxy']:
+            return False
+
+        if 'TNS_name' in target.extra_fields.keys() and len(target.extra_fields['TNS_name']) > 0:
+            return False
+
+        if 'TNS_class' in target.extra_fields.keys() and len(target.extra_fields['TNS_class']) > 0:
+            return False
+
+        return True
