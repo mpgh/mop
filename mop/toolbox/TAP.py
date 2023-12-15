@@ -339,3 +339,19 @@ def sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_p
     logger.info('TAP model parameters sanity check returned ' + repr(sane))
 
     return sane
+
+def TAP_check_baseline(target, t0, tE):
+    """
+    Checks if a baseline exists for a target.
+    """
+    datasets = ReducedDatum.objects.filter(target=target).order_by('timestamp')
+
+    if datasets.count() > 0:
+        for d in datasets:
+            if d.data_type == 'photometry':
+                time = Time(d.timestamp, format='datetime').jd
+                if(time < t0 - tE):
+                    logger.info('Baseline data prior to an event found.')
+                    return True
+
+    return False
