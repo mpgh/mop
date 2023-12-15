@@ -302,10 +302,14 @@ class PriorityTargetsView(ListView):
         if 'is_galaxy' in target.extra_fields.keys() and target.extra_fields['is_galaxy']:
             return False
 
-        if 'TNS_name' in target.extra_fields.keys() and len(target.extra_fields['TNS_name']) > 0:
+        if 'TNS_name' in target.extra_fields.keys() \
+                and len(target.extra_fields['TNS_name']) > 0 \
+                and 'none' not in (target.extra_fields['TNS_name']).lower():
             return False
 
-        if 'TNS_class' in target.extra_fields.keys() and len(target.extra_fields['TNS_class']) > 0:
+        if 'TNS_class' in target.extra_fields.keys() \
+                and len(target.extra_fields['TNS_class']) > 0 \
+                and 'none' not in (target.extra_fields['TNS_class']).lower():
             return False
 
         return True
