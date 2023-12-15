@@ -287,25 +287,34 @@ class PriorityTargetsView(ListView):
         included in the Priority Targets table
         """
 
+        print('CHECK VALID: ', target, target.extra_fields.keys())
         if 'Alive' not in target.extra_fields.keys():
+            print('-> No alive flag')
             return False
 
         if not target.extra_fields['Alive']:
+            print('-> Not alive ', target.extra_fields['Alive'])
             return False
 
         if 'is_YSO' in target.extra_fields.keys() and target.extra_fields['is_YSO']:
+            print('-> YSO')
             return False
 
         if 'is_QSO' in target.extra_fields.keys() and target.extra_fields['is_QSO']:
+            print('-> QSO')
             return False
 
         if 'is_galaxy' in target.extra_fields.keys() and target.extra_fields['is_galaxy']:
+            print('-> Galaxy')
             return False
 
         if 'TNS_name' in target.extra_fields.keys() and len(target.extra_fields['TNS_name']) > 0:
+            print('-> TNS target')
             return False
 
         if 'TNS_class' in target.extra_fields.keys() and len(target.extra_fields['TNS_class']) > 0:
+            print('-> TNS target')
             return False
+        print('-> Target valid')
 
         return True
