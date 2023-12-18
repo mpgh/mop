@@ -162,7 +162,7 @@ def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, 
         return False
 
 def check_long_priority(long_priority, long_priority_error,
-                        t_E, t_E_error, mag_baseline, red_chi2):
+                        t_E, t_E_error, mag_now, red_chi2):
     '''
     This function checks if the event status should be changed to priority stellar event.
 
@@ -171,11 +171,11 @@ def check_long_priority(long_priority, long_priority_error,
     :param t_E: Einstein timescale of the best fitting model
     :param t_E: uncertianity of the Einstein timescale of the best fitting model
     :param red_chi2: chi2 over degrees of freedom of the best fitting model
-    :param mag_baseline: baseline magnitude of the event
+    :param mag_now: current magnitude of the event
     '''
     if (long_priority > 10.
         and(long_priority / long_priority_error > 3.)
-        and (t_E / t_E_error > 3.) and (mag_baseline < 17.5)
+        and (t_E / t_E_error > 3.) and (mag_now < 17.5)
         and red_chi2 < 20.):
         # and (((t_0 - t_now - (3. * (t_0_error + t_E_error))) / t_E) < 1.2)): # turning off events should be handled by Alive status
         if(long_priority > 50.):
