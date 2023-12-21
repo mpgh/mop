@@ -285,16 +285,31 @@ class PriorityTargetsView(ListView):
             print('Target dead')
             return False
 
-        if 'is_YSO' in target.extra_fields.keys() and target.extra_fields['is_YSO']:
-            print('is YSO')
-            return False
+        if 'is_YSO' in target.extra_fields.keys() and type(target.extra_fields['is_YSO']) == type(True):
+            if target.extra_fields['is_YSO']:
+                print('is YSO')
+                return False
+        elif 'is_YSO' in target.extra_fields.keys() and type(target.extra_fields['is_YSO']) == type('str'):
+            if 'true' in str(target.extra_fields['is_YSO']).lower():
+                print('is YSO string')
+                return False
 
-        if 'is_QSO' in target.extra_fields.keys() and target.extra_fields['is_QSO']:
-            print('is QSO')
-            return False
+        if 'is_QSO' in target.extra_fields.keys() and type(target.extra_fields['is_QSO']) == type(True):
+            if target.extra_fields['is_QSO']:
+                print('is QSO')
+                return False
+        elif 'is_QSO' in target.extra_fields.keys() and type(target.extra_fields['is_QSO']) == type('str'):
+            if 'true' in str(target.extra_fields['is_QSO']).lower():
+                print('is QSO string')
+                return False
 
-        if 'is_galaxy' in target.extra_fields.keys() and target.extra_fields['is_galaxy']:
-            print('is galaxy')
-            return False
+        if 'is_galaxy' in target.extra_fields.keys() and type(target.extra_fields['is_galaxy']) == type(True):
+            if target.extra_fields['is_galaxy']:
+                print('is galaxy')
+                return False
+        elif 'is_galaxy' in target.extra_fields.keys() and type(target.extra_fields['is_galaxy']) == type('str'):
+            if target.extra_fields['is_galaxy']:
+                print('is galaxy string')
+                return False
 
         return True
