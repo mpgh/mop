@@ -129,6 +129,7 @@ class TestTAPLongEventPriority(TestCase):
         self.assertAlmostEqual(result, 1.53, places=1)
 
     def test_check_long_priority(self):
+        mag_now = 15.35
         long_priority = TAP_priority.TAP_long_event_priority(self.model_params['t'],
                                                              self.params['Latest_data_HJD'],
                                                              self.model_params['te'])
@@ -142,7 +143,7 @@ class TestTAPLongEventPriority(TestCase):
                                                   long_priority_error,
                                                   self.model_params['te'],
                                                   t_E_error,
-                                                  self.model_params['Baseline_magnitude'],
+                                                  mag_now,
                                                   self.model_params['red_chi2'])
 
         assert (type(result) == type('regular'))
