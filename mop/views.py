@@ -308,7 +308,7 @@ class PriorityTargetsView(ListView):
                 print('is galaxy')
                 return False
         elif 'is_galaxy' in target.extra_fields.keys() and type(target.extra_fields['is_galaxy']) == type('str'):
-            if target.extra_fields['is_galaxy']:
+            if 'true' in str(target.extra_fields['is_galaxy']).lower():
                 print('is galaxy string')
                 return False
 
