@@ -269,16 +269,6 @@ class PriorityTargetsView(ListView):
                 value = True
             criteria.append(value)
 
-        # Check for a TNS classification or name
-        keys = ['TNS_name', 'TNS_class']
-        for key in keys:
-            if key in target.extra_fields.keys():
-                if len(str(target.extra_fields[key]).lower().replace(' ','')) > 0:
-                    value = True
-                else:
-                    value = False
-                criteria.append(value)
-
         return all(criteria)
 
     def check_valid_target(self, target):
