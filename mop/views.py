@@ -180,8 +180,6 @@ class PriorityTargetsView(ListView):
                 value__exact=''
             ).exclude(
                 value__exact='None'
-            ).filter(
-                key='Alive', bool_value=True
             ).values_list('target').distinct()
 
             # Repackage the two lists to extract the parameters to display in the table.
