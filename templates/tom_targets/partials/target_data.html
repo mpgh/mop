@@ -32,11 +32,11 @@
         <h5 style="color: #016603">{{ target.extra_fields.TNS_name }} {{ target.extra_fields.TNS_class }}</h5>
     {% endif %}
 {% elif 'TNS_name' in target.extra_fields.keys %}
-    {% if target.extra_fields.TNS_name != 'None' %}
+    {% if target.extra_fields.TNS_name != 'None' and target.extra_fields.TNS_name != None %}
         <h5 style="color: #016603">{{ target.extra_fields.TNS_name }}</h5>
     {% endif %}
 {5 elif 'TNS_class' in target.extra_fields.keys %}
-    {% if target.extra_fields.TNS_class != 'None' %}
+    {% if target.extra_fields.TNS_class != 'None' and target.extra_fields.TNS_class != None %}
         <h5 style="color: #016603">{{ target.extra_fields.TNS_class }}</h5>
     {% endif %}
 {% endif %}
