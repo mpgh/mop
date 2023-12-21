@@ -181,6 +181,7 @@ class PriorityTargetsView(ListView):
             ).exclude(
                 value__exact='None'
             ).values_list('target').distinct()
+            print(qs_bh)
 
             # Repackage the two lists to extract the parameters to display in the table.
             # This also checks to see if a Target is alive and not flagged as a known
@@ -204,6 +205,7 @@ class PriorityTargetsView(ListView):
         for target_id in qs:
             target = Target.objects.filter(pk=target_id[0])[0]
             target_info = {'name': target.name, 'id': target_id[0]}
+            print(target.name, self.check_classification(target), self.check_valid_target(target))
             if self.check_classification(target) and self.check_valid_target(target):
                 if target_category == 'stellar':
                     target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
@@ -276,18 +278,23 @@ class PriorityTargetsView(ListView):
         """
 
         if 'Alive' not in target.extra_fields.keys():
+            print('No alive status')
             return False
 
         if not target.extra_fields['Alive']:
+            print('Target dead')
             return False
 
         if 'is_YSO' in target.extra_fields.keys() and target.extra_fields['is_YSO']:
+            print('is YSO')
             return False
 
         if 'is_QSO' in target.extra_fields.keys() and target.extra_fields['is_QSO']:
+            print('is QSO')
             return False
 
         if 'is_galaxy' in target.extra_fields.keys() and target.extra_fields['is_galaxy']:
+            print('is galaxy')
             return False
 
         return True
