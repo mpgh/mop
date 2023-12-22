@@ -205,7 +205,6 @@ class PriorityTargetsView(ListView):
         for target_id in qs:
             target = Target.objects.filter(pk=target_id[0])[0]
             target_info = {'name': target.name, 'id': target_id[0]}
-            print(target.name, self.check_classification(target), self.check_valid_target(target))
             if self.check_classification(target) and self.check_valid_target(target):
                 if target_category == 'stellar':
                     target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
@@ -278,38 +277,30 @@ class PriorityTargetsView(ListView):
         """
 
         if 'Alive' not in target.extra_fields.keys():
-            print('No alive status')
             return False
 
         if not target.extra_fields['Alive']:
-            print('Target dead')
             return False
 
         if 'is_YSO' in target.extra_fields.keys() and type(target.extra_fields['is_YSO']) == type(True):
             if target.extra_fields['is_YSO']:
-                print('is YSO')
                 return False
         elif 'is_YSO' in target.extra_fields.keys() and type(target.extra_fields['is_YSO']) == type('str'):
             if 'true' in str(target.extra_fields['is_YSO']).lower():
-                print('is YSO string')
                 return False
 
         if 'is_QSO' in target.extra_fields.keys() and type(target.extra_fields['is_QSO']) == type(True):
             if target.extra_fields['is_QSO']:
-                print('is QSO')
                 return False
         elif 'is_QSO' in target.extra_fields.keys() and type(target.extra_fields['is_QSO']) == type('str'):
             if 'true' in str(target.extra_fields['is_QSO']).lower():
-                print('is QSO string')
                 return False
 
         if 'is_galaxy' in target.extra_fields.keys() and type(target.extra_fields['is_galaxy']) == type(True):
             if target.extra_fields['is_galaxy']:
-                print('is galaxy')
                 return False
         elif 'is_galaxy' in target.extra_fields.keys() and type(target.extra_fields['is_galaxy']) == type('str'):
             if 'true' in str(target.extra_fields['is_galaxy']).lower():
-                print('is galaxy string')
                 return False
 
         return True
