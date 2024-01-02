@@ -16,7 +16,7 @@ if they have a non-microlensing classification, or are flagged as a known galaxy
         <div class="col">
             <h4>Stellar/planetary Targets</h4>
             {% if stellar_targets|length == 20 %}
-              <p>Warning: Number of candidate targets returned equals or exceeds the maximum allowed</p>
+              <p style="color: red">Warning: Number of candidate targets returned equals or exceeds the maximum allowed</p>
             {% endif %}
             <table class="table" style="overflow: scroll">
                 <thead>
