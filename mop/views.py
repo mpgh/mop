@@ -15,6 +15,9 @@ from guardian.shortcuts import get_objects_for_user
 from datetime import datetime, timedelta
 from django.views.generic.list import ListView
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MOPTargetDetailView(TargetDetailView):
 
@@ -181,13 +184,20 @@ class PriorityTargetsView(ListView):
             ).exclude(
                 value__exact='None'
             ).values_list('target').distinct()
-            print(qs_bh)
+
+            logger.info('Priority querysets initially find ' \
+                        + str(len(qs_stars)) + ' stellar candidate events and ' \
+                        + str(len(qs_bh)) + ' BH candidate events')
 
             # Repackage the two lists to extract the parameters to display in the table.
             # This also checks to see if a Target is alive and not flagged as a known
             # variable before including it
             context['stellar_targets'] = self.extract_target_parameters(qs_stars, 'stellar')
             context['bh_targets'] = self.extract_target_parameters(qs_bh, 'bh')
+
+            logger.info('After filtering priority targets, returning '\
+                        + str(len(context['stellar_targets'])) + ' stellar candidate events and '\
+                        + str(len(context['bh_targets'])) + ' BH candidate events')
 
         # If user is not logged in, return empty lists:
         else:
@@ -240,10 +250,13 @@ class PriorityTargetsView(ListView):
                     target_data.append(target_info)
                     priority.append(target_info['priority'])
 
-        # Sort the returned list
+        # Sort the returned list and cap it at a maximum of 20 events per table to avoid bad gateway errors
+        max_entries = 20
         priority = np.array(priority)
         idx = np.argsort(priority)[::-1]
         sorted_targets = [target_data[x] for x in idx]
+        if len(sorted_targets) > max_entries:
+            sorted_targets = sorted_targets[0:max_entries]
 
         return sorted_targets
 
