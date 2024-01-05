@@ -29,12 +29,12 @@ class Command(BaseCommand):
         target, created = Target.objects.get_or_create(name= options['target_name'])
         logger.info('Fitting single event: '+target.name)
 
-        #try:
+        try:
 
-        if 'Gaia' in target.name:
-            gaia_mop.update_gaia_errors(target)
+            if 'Gaia' in target.name:
+                gaia_mop.update_gaia_errors(target)
 
-        result = run_fit(target, cores=options['cores'])
+            result = run_fit(target, cores=options['cores'])
 
-        #except:
-         #   logger.warning('Fitting event '+target.name+' hit an exception')
+        except:
+            logger.warning('Fitting event '+target.name+' hit an exception')
