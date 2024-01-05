@@ -9,6 +9,7 @@ from pyLIMA.models import PSPL_model
 from pyLIMA.outputs import pyLIMA_plots
 from astropy import units as unit
 from astropy.time import Time
+from scipy import stats
 import logging
 from datetime import datetime
 from tom_dataproducts.models import ReducedDatum
@@ -136,10 +137,25 @@ def fit_pspl_omega2(ra, dec, datasets, emag_limit=None):
         model2_params = evaluate_model(model2_params)
         if verbose: logger.info('FITTOOLS: model 2 evaluated parameters ' + repr(model2_params))
 
-        # Decide which fit to accept based on the fitted chi2 in each case:
-        if model2_params['chi2'] <= model1_params['chi2']:
-            best_model = model2_params
-            if verbose: logger.info('FITTOOLS: Using model 2 as best-fit model')
+        # Decide which fit to accept based on the fitted chi2 in each case.
+        # Ordinarily, model1 (with blending, parallax) should produce a lower chi2 because it has more parameters.
+        # This test is designed to require evidence that these extra parameters are justified.
+        # It should also catch cases where for some reason this fit fails, and the simpler model 2
+        # (no blending or parallax) is more reliable.
+        # This delta_chi2 will be positive if model 1 is a better fit than model 2.
+        # The threshold is calculated assuming a 3-sigma distribution.
+        best_model = model2_params
+        delta_chi2 = model2_params['chi2'] - model1_params['chi2']
+        dchi2_threshold = stats.chi2.ppf(0.9973, len(tel_list))
+        if verbose: logger.info('FITTOOLS: Model 1 chi2 = ' + str(model1_params['chi2']) \
+                                + ', model 2 chi2 = ' + str(model2_params['chi2']) \
+                                + ', delta_chi2 = ' + str(delta_chi2) \
+                                + ', threshold dchi2 = ' + str(dchi2_threshold))
+        if delta_chi2 >= dchi2_threshold:
+            best_model = model1_params
+            if verbose: logger.info('FITTOOLS: Using model 1 (with blending and parallax) as best-fit model')
+        else:
+            if verbose: logger.info('FITTOOLS: Using model 2 (no blending or parallax) as best-fit model')
 
     # Generate the model lightcurve timeseries with the fitted parameters
     if not np.isnan(best_model['tE']):
