@@ -75,30 +75,45 @@ class Command(BaseCommand):
                     is_YSO, is_QSO, is_galaxy = False, False, False
 
                     if 'is_YSO' in event.extra_fields.keys():
-                        if event.extra_fields['is_YSO'] == "True":
-                            is_YSO = True
-                        elif event.extra_fields['is_YSO'] == "False":
-                            is_YSO = False
+                        if (len(event.extra_fields['is_YSO']) > 0):
+                            if event.extra_fields['is_YSO'] == "True":
+                                is_YSO = True
+                            elif event.extra_fields['is_YSO'] == "False":
+                                is_YSO = False
+                        else:
+                            is_YSO = classifier_tools.check_YSO(coord)
+                            event.save(extras={'is_YSO': is_YSO})
+                            logger.info(event.name + ': Checked if YSO for the first time.')
                     else:
                         is_YSO = classifier_tools.check_YSO(coord)
                         event.save(extras={'is_YSO': is_YSO})
                         logger.info(event.name + ': Checked if YSO for the first time.')
 
                     if 'is_QSO' in event.extra_fields.keys():
-                        if event.extra_fields['is_QSO'] == "True":
-                            is_QSO = True
-                        if event.extra_fields['is_QSO'] == "False":
-                            is_QSO = False
+                        if(len(event.extra_fields['is_QSO']) > 0):
+                            if event.extra_fields['is_QSO'] == "True":
+                                is_QSO = True
+                            if event.extra_fields['is_QSO'] == "False":
+                                is_QSO = False
+                        else:
+                            is_QSO = classifier_tools.check_QSO(coord)
+                            event.save(extras={'is_QSO': is_QSO})
+                            logger.info(event.name + ': Checked if QSO for the first time.')
                     else:
                         is_QSO = classifier_tools.check_QSO(coord)
                         event.save(extras={'is_QSO': is_QSO})
                         logger.info(event.name + ': Checked if QSO for the first time.')
 
                     if 'is_galaxy' in event.extra_fields.keys():
-                        if event.extra_fields['is_galaxy'] == "True":
-                            is_galaxy = True
-                        if event.extra_fields['is_galaxy'] == "False":
-                            is_galaxy = False
+                        if (len(event.extra_fields['is_galaxy']) > 0):
+                            if event.extra_fields['is_galaxy'] == "True":
+                                is_galaxy = True
+                            if event.extra_fields['is_galaxy'] == "False":
+                                is_galaxy = False
+                        else:
+                            is_galaxy = classifier_tools.check_galaxy(coord)
+                            event.save(extras={'is_galaxy': is_galaxy})
+                            logger.info(event.name + ': Checked if SN for the first time.')
                     else:
                         is_galaxy = classifier_tools.check_galaxy(coord)
                         event.save(extras={'is_galaxy': is_galaxy})
@@ -109,15 +124,16 @@ class Command(BaseCommand):
                         and event.extra_fields['TNS_name'] != 'None':
                         if event.extra_fields['TNS_class'] == 'None':
                             parameters = {
-                                'objname': name
+                                'objname': event.extra_fields['TNS_name']
                             }
                             tns_object = tns.Custom_TNS
                             tns_class = tns.Custom_TNS.fetch_tns_class(tns_object, parameters)
                             logger.info(event.name + ': Known TNS, checking TNS class.')
-                            for entry in tns_class:
-                                if entry != None:
-                                    event.save(extras={'TNS_class': str(entry)})
-                                    logger.info(event.name + ': Known TNS, updated TNS class.')
+                            if(tns_class != None):
+                                for entry in tns_class:
+                                    if entry != None:
+                                        event.save(extras={'TNS_class': str(entry)})
+                                        logger.info(event.name + ': Known TNS, updated TNS class.')
 
                     else:
 
