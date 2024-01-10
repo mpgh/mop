@@ -136,7 +136,7 @@ class Command(BaseCommand):
                                             event.save(extras={'TNS_class': str(entry)})
                                             logger.info(event.name + ': Known TNS, updated TNS class.')
                             except Exception as err:
-                                logger.error("Known TNS name, error: " + err)
+                                logger.error("Known TNS name, error: " + str(err))
 
                     else:
                         try:
@@ -168,7 +168,7 @@ class Command(BaseCommand):
                                                        'TNS_class': str(tns_class)})
                                     logger.info(event.name + ': Saved TNS entry.')
                         except Exception as err:
-                            logger.error("Unknown TNS name, error: " + err)
+                            logger.error("Unknown TNS name, error: " + str(err))
 
                     # Save classification based on catalogs and tests
                     if is_YSO:
