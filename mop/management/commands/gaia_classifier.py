@@ -123,47 +123,52 @@ class Command(BaseCommand):
                     if 'TNS_name' in event.extra_fields.keys() \
                         and event.extra_fields['TNS_name'] != 'None':
                         if event.extra_fields['TNS_class'] == 'None':
-                            parameters = {
-                                'objname': event.extra_fields['TNS_name']
-                            }
-                            tns_object = tns.Custom_TNS
-                            tns_class = tns.Custom_TNS.fetch_tns_class(tns_object, parameters)
-                            logger.info(event.name + ': Known TNS, checking TNS class.')
-                            if(tns_class != None):
-                                for entry in tns_class:
-                                    if entry != None:
-                                        event.save(extras={'TNS_class': str(entry)})
-                                        logger.info(event.name + ': Known TNS, updated TNS class.')
+                            try:
+                                parameters = {
+                                    'objname': event.extra_fields['TNS_name']
+                                }
+                                tns_object = tns.Custom_TNS
+                                tns_class = tns.Custom_TNS.fetch_tns_class(tns_object, parameters)
+                                logger.info(event.name + ': Known TNS, checking TNS class.')
+                                if(tns_class != None):
+                                    for entry in tns_class:
+                                        if entry != None:
+                                            event.save(extras={'TNS_class': str(entry)})
+                                            logger.info(event.name + ': Known TNS, updated TNS class.')
+                            except Exception as err:
+                                logger.error("Known TNS name, error: " + err)
 
                     else:
-
-                        parameters = {
-                            'ra': event.ra,
-                            'dec': event.dec,
-                            'radius': 1.0,
-                            'units': 'arcsec',
-                        }
-                        tns_object = tns.Custom_TNS
-                        tns_name = tns.Custom_TNS.fetch_tns_name(tns_object, parameters)
-
-                        logger.info(event.name + ': Unknown TNS, checked TNS name.')
-
-                        for name in tns_name:
+                        try:
                             parameters = {
-                                'objname' : name
+                                'ra': event.ra,
+                                'dec': event.dec,
+                                'radius': 1.0,
+                                'units': 'arcsec',
                             }
-                            tns_class = tns.Custom_TNS.fetch_tns_class(tns_object, parameters)
-                            logger.info(event.name + ': Unknown TNS, checked TNS class.')
-                            if len(tns_name)>1 :
-                                logger.info(event.name + ': More than one TNS entry within 1 arcsec radius.')
-                                if(tns_class != None):
-                                    event.save(extras={'TNS_name' : str(name),
-                                                       'TNS_class' : str(tns_class)})
-                                    logger.info(event.name + ': Saved a classified TNS entry.')
-                            else:
-                                event.save(extras={'TNS_name': str(name),
-                                                   'TNS_class': str(tns_class)})
-                                logger.info(event.name + ': Saved TNS entry.')
+                            tns_object = tns.Custom_TNS
+                            tns_name = tns.Custom_TNS.fetch_tns_name(tns_object, parameters)
+
+                            logger.info(event.name + ': Unknown TNS, checked TNS name.')
+
+                            for name in tns_name:
+                                parameters = {
+                                    'objname' : name
+                                }
+                                tns_class = tns.Custom_TNS.fetch_tns_class(tns_object, parameters)
+                                logger.info(event.name + ': Unknown TNS, checked TNS class.')
+                                if len(tns_name)>1 :
+                                    logger.info(event.name + ': More than one TNS entry within 1 arcsec radius.')
+                                    if(tns_class != None):
+                                        event.save(extras={'TNS_name' : str(name),
+                                                           'TNS_class' : str(tns_class)})
+                                        logger.info(event.name + ': Saved a classified TNS entry.')
+                                else:
+                                    event.save(extras={'TNS_name': str(name),
+                                                       'TNS_class': str(tns_class)})
+                                    logger.info(event.name + ': Saved TNS entry.')
+                        except Exception as err:
+                            logger.error("Unknown TNS name, error: " + err)
 
                     # Save classification based on catalogs and tests
                     if is_YSO:
