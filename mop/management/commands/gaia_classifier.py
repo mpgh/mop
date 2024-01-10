@@ -176,14 +176,15 @@ class Command(BaseCommand):
                                            'Category': 'Stellar activity'})
                         logger.info(event.name + ': set as a possible YSO')
 
-                    if (event.extra_fields['TNS_class'] != 'None' \
-                            and 'Other' not in event.extra_fields['TNS_class']):
-                        # TNS has many classes, many of them related to SN, but not all.
-                        # Classified microlensing events land in class "Other", however
-                        # this class contains events that can have H alpha in emission.
-                        event.save(extras={'Classification': 'Extra-galactic variable',
-                                           'Category': 'Known TNS transient'})
-                        logger.info(event.name + ': set as a known SN')
+                    if('TNS_class' in event.extra_fields.keys()):
+                        if (event.extra_fields['TNS_class'] != 'None' \
+                                and 'Other' not in event.extra_fields['TNS_class']):
+                            # TNS has many classes, many of them related to SN, but not all.
+                            # Classified microlensing events land in class "Other", however
+                            # this class contains events that can have H alpha in emission.
+                            event.save(extras={'Classification': 'Extra-galactic variable',
+                                               'Category': 'Known TNS transient'})
+                            logger.info(event.name + ': set as a known SN')
                     elif is_QSO:
                         event.save(extras={'Classification': 'Extra-galactic variable',
                                            'Category': 'QSO'})
