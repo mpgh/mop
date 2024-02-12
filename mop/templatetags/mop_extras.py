@@ -11,6 +11,7 @@ from tom_dataproducts.processors.data_serializers import SpectrumSerializer
 from mop.toolbox import utilities
 from mop.forms import TargetClassificationForm
 from astropy.time import Time
+from datetime import datetime
 import numpy as np
 import logging
 
@@ -25,9 +26,12 @@ def mop_photometry(target):
     This templatetag requires all ``ReducedDatum`` objects with a data_type of ``photometry`` to be structured with the
     following keys in the JSON representation: magnitude, error, filter
     """
+    t1 = datetime.utcnow()
     photometry_data = {}
     qs = ReducedDatum.objects.filter(target=target, data_type=settings.DATA_PRODUCT_TYPES['photometry'][0])
-    logger.info('MOP PHOTOMETRY: Got ' + str(qs.count()) + ' datasets for target ' + target.name)
+    t2 = datetime.utcnow()
+    logger.info('MOP PHOTOMETRY: Got ' + str(qs.count()) + ' datasets for target ' + target.name
+                + ' in ' + str((t2-t1)) )
     for datum in qs:
         values = datum.value
 
@@ -39,6 +43,9 @@ def mop_photometry(target):
 
         except:
             pass
+
+    t3 = datetime.utcnow()
+    logger.info('MOP PHOTOMETRY: Extracted photometry in ' + str((t3-t2)) )
 
     plot_data = [
         go.Scatter(
@@ -114,6 +121,9 @@ def mop_photometry(target):
              xaxis_title="HJD-2450000",
              yaxis_title="Mag",
     )
+
+    t4 = datetime.utcnow()
+    logger.info('MOP PHOTOMETRY: Generated plot in ' + str((t4-t3)) )
 
     return {
         'target': target,

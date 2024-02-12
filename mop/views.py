@@ -28,30 +28,45 @@ class MOPTargetDetailView(TargetDetailView):
         :returns: context object
         :rtype: dict
         """
+        t1 = datetime.utcnow()
         context = super().get_context_data(*args, **kwargs)
         context['class_form'] = TargetClassificationForm()
+        t2 = datetime.utcnow()
+        print('Got context in ',(t2-t1))
         return context
 
     def get(self, request, *args, **kwargs):
+        t1 = datetime.utcnow()
         # Ensure that the target's location flag is set
         target = self.get_object()
-        set_target_sky_location(target)
+        if 'Sky_location' not in target.extra_fields.keys():
+            set_target_sky_location(target)
+            t2 = datetime.utcnow()
+            print('Set sky location in ', (t2-t1))
 
         fit_event = request.GET.get('fit_event', False)
+        t2 = datetime.utcnow()
         if fit_event:
+            print('Running event fit')
             target_id = self.get_object().id
             target_name = self.get_object().name
             out = StringIO()
             call_command('fit_event_PSPL', target_name, cores=0, stdout=out)
+            print('Completed event fit ', (t2-t1))
             return redirect(reverse('tom_targets:detail', args=(target_id,)))
 
         TAP_event = request.GET.get('tap_event', False)
+        t2 = datetime.utcnow()
         if TAP_event:
+            print('Running TAP')
             target_id = self.get_object().id
             target_name = self.get_object().name
             out = StringIO()
             call_command('run_TAP', target_name, stdout=out)
+            print('Completed TAP for event ', (t2-t1))
             return redirect(reverse('tom_targets:detail', args=(target_id,)))
+        t2 = datetime.utcnow()
+        print('Finished ', (t2-t1))
 
         return super().get(request, *args, **kwargs)
 
@@ -210,11 +225,12 @@ class PriorityTargetsView(ListView):
 
         key_list = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error', 'Mag_now', 'Baseline_magnitude']
 
+        selected_targets = Target.objects.filter(pk__in=qs)
+
         target_data = []
         priority = []
-        for target_id in qs:
-            target = Target.objects.filter(pk=target_id[0])[0]
-            target_info = {'name': target.name, 'id': target_id[0]}
+        for target in selected_targets:
+            target_info = {'name': target.name, 'id': target.id}
             if self.check_classification(target) and self.check_valid_target(target):
                 if target_category == 'stellar':
                     target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
