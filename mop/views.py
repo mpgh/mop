@@ -208,7 +208,7 @@ class PriorityTargetsView(ListView):
         return context
 
     def extract_target_parameters(self, qs, target_category):
-
+        t1 = datetime.utcnow()
         key_list = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error', 'Mag_now', 'Baseline_magnitude']
 
         selected_targets = Target.objects.filter(pk__in=qs)
@@ -217,41 +217,41 @@ class PriorityTargetsView(ListView):
         priority = []
         for target in selected_targets:
             target_info = {'name': target.name, 'id': target.id}
-            if self.check_classification(target) and self.check_valid_target(target):
-                if target_category == 'stellar':
-                    target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
-                    # Not all entries have an uncertainty set, due to older versions of the code not storing it
-                    try:
-                        target_info['priority_error'] = round(target.extra_fields['TAP_priority_error'],3)
-                    except KeyError:
-                        target_info['priority_error'] = np.nan
-                else:
-                    target_info['priority'] = round(target.extra_fields['TAP_priority_longtE'],3)
-                    try:
-                        target_info['priority_error'] = round(target.extra_fields['TAP_priority_longtE_error'],3)
-                    except KeyError:
-                        target_info['priority_error'] = np.nan
-
-                for key in key_list:
-                    try:
-                        target_info[key] = target.extra_fields[key]
-                    except KeyError:
-                        target_info[key] = np.nan
-                    if key == 't0':
-                        target_info[key] = round((target_info[key] - 2460000.0), 3)
-                    else:
-                        # Round floating point values where possible to save space in the table, catching
-                        # NaN entries.  Skip in the event that the value is None or a string.
+            if 'Outside HCZ' in target.extra_fields['Sky_location'] and \
+                self.check_classification(target) and self.check_valid_target(target):
+                    if target_category == 'stellar':
+                        target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
+                        # Not all entries have an uncertainty set, due to older versions of the code not storing it
                         try:
-                            if not np.isnan(target_info[key]):
-                                target_info[key] = round(target_info[key], 3)
-                        except:
-                            pass
+                            target_info['priority_error'] = round(target.extra_fields['TAP_priority_error'],3)
+                        except KeyError:
+                            target_info['priority_error'] = np.nan
+                    else:
+                        target_info['priority'] = round(target.extra_fields['TAP_priority_longtE'],3)
+                        try:
+                            target_info['priority_error'] = round(target.extra_fields['TAP_priority_longtE_error'],3)
+                        except KeyError:
+                            target_info['priority_error'] = np.nan
 
-                if 'Outside HCZ' in target.extra_fields['Sky_location']:
+                    for key in key_list:
+                        try:
+                            target_info[key] = target.extra_fields[key]
+                        except KeyError:
+                            target_info[key] = np.nan
+                        if key == 't0':
+                            target_info[key] = round((target_info[key] - 2460000.0), 3)
+                        else:
+                            # Round floating point values where possible to save space in the table, catching
+                            # NaN entries.  Skip in the event that the value is None or a string.
+                            try:
+                                if not np.isnan(target_info[key]):
+                                    target_info[key] = round(target_info[key], 3)
+                            except:
+                                pass
+
                     target_data.append(target_info)
                     priority.append(target_info['priority'])
-
+                
         # Sort the returned list and cap it at a maximum of 20 events per table to avoid bad gateway errors
         max_entries = 20
         priority = np.array(priority)
@@ -259,6 +259,9 @@ class PriorityTargetsView(ListView):
         sorted_targets = [target_data[x] for x in idx]
         if len(sorted_targets) > max_entries:
             sorted_targets = sorted_targets[0:max_entries]
+
+        t2 = datetime.utcnow()
+        logger.info('Complete extract function took ' + str(t2-t1))
 
         return sorted_targets
 
