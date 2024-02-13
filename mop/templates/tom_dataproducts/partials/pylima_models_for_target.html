@@ -1,0 +1,15 @@
+<div class="row">
+  <div class="col-md-8">
+    <h4>Select a pyLIMA model to display:</h4>
+  </div>
+  <div class="col-md-12">
+        {% for product in pylima_model_products %}
+        <li>
+          <a href="/data/{{ product.data.name }}" target="_blank">{{ product.get_file_name }}</a> (Created on: {{ product.created.date|date:"N j, Y" }})
+        </li>
+      {% empty %}
+        <li>No pyLIMA models available for this target.</li>
+      {% endfor %}  
+  </div>
+</div>
+
