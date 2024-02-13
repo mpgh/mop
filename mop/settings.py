@@ -275,6 +275,7 @@ DATA_PRODUCT_TYPES = {
     'TAP_priority': ('TAP_priority', 'TAP Priority'),
     'TAP_priority_longtE': ('TAP_priority_longtE', 'TAP Priority Long-tE'),
     'lc_model': ('lc_model', 'Model'),
+    'pylima_model': ('pylima_model', 'pyLIMA Model'),
     'tabular': ('tabular', 'Tabular'),
 }
 
