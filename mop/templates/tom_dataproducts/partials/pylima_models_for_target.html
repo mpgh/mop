@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div class="row">
   <div class="col-md-8">
     <h4>Select a pyLIMA model to display:</h4>
@@ -12,4 +13,20 @@
       {% endfor %}  
   </div>
 </div>
+=======
+{% if pylima_model_products %}
+    <div class="pylima-models-list">
+        <h3>pyLIMA Models</h3>
+        <ul>
+            {% for product in pylima_model_products %}
+                <li>
+                    <a href="{{ product.data.url }}" target="_blank">{{ product.get_file_name }}</a> (uploaded: {{ product.created|date:"D, d M Y" }})
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% else %}
+    <p>No pyLIMA Model data products available for this target.</p>
+{% endif %}
+>>>>>>> master
 
