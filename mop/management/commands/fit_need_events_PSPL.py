@@ -94,19 +94,6 @@ class Command(BaseCommand):
         parser.add_argument('--run-every', help='Run each Fit every N hours', default=4, type=int)
 
     def handle(self, *args, **options):
-        # The TOM Toolkit project does not automatically create key/value pairs
-        # in the "Extra Fields" during a database migration. We use this silly
-        # method to automatically add this field to any Target objects which were
-        # created before this field was added to the database.
-        # Adding Last_fit if dos not exist
-        list_of_targets = Target.objects.filter()
-        for target in list_of_targets:
-            try:
-                last_fit = target.extra_fields['Last_fit']
-            except:
-                last_fit = 2446756.50000
-                extras = {'Last_fit':last_fit}
-                target.save(extras = extras)
 
         # Run until all objects which need processing have been processed
         while True:
@@ -133,9 +120,27 @@ class Command(BaseCommand):
 
                 # Find any objects which need to be run
                 # https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-for-update
-                queryset = Target.objects.select_for_update(skip_locked=True)
-                queryset = queryset.filter(targetextra__in=TargetExtra.objects.filter(key='Last_fit', value__lte=cutoff))
-                queryset = queryset.filter(targetextra__in=TargetExtra.objects.filter(key='Alive', value=True))
+                #t1 = datetime.datetime.utcnow()
+                #queryset = Target.objects.select_for_update(skip_locked=True).filter(
+                #    targetextra__in=TargetExtra.objects.filter(key='Last_fit', value__lte=cutoff)
+                #    ).filter(
+                #    targetextra__in=TargetExtra.objects.filter(key='Alive', value=True)
+                #)
+                t2 = datetime.datetime.utcnow()
+                #print('Time for chained queries on Target table: ' + str(t2 - t1))
+                #print(queryset.count())
+
+                target_ids = TargetExtra.objects.filter(
+                    key='Last_fit', value__lte=cutoff
+                ).filter(
+                    key='Alive', value=True
+                ).values_list('target').distinct()
+                print(target_ids)
+                selected_targets = Target.objects.select_for_update(skip_locked=True).filter(pk__in=target_ids)
+                t3 = datetime.datetime.utcnow()
+                print('Time for queries on TargetExtras: ' + str(t3 - t2))
+                print(selected_targets.count())
+                exit()
 
                 # Inform the user how much work is left in the queue
                 logger.info('Target(s) remaining in processing queue: '+str(queryset.count()))
@@ -150,7 +155,10 @@ class Command(BaseCommand):
                     datasets = ReducedDatum.objects.filter(target=element)
                     time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
                     last_observation = max(time)
-                    existing_model = ReducedDatum.objects.filter(source_name='MOP',data_type='lc_model',source_location=element.name)
+
+                    existing_model = ReducedDatum.objects.filter(
+                        source_name='MOP',data_type='lc_model',source_location=element.name
+                    )
 
                     if (last_observation<last_fit) & (existing_model.count() != 0) :
                         need_to_fit = False
