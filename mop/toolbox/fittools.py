@@ -295,30 +295,6 @@ def store_model_lightcurve(target, model):
         rd.save()
     connection.close()
 
-def store_model_parameters(target, model_params, event_alive):
-    """Function to store the fitted model parameters in the TOM"""
-
-    last_fit = Time(datetime.utcnow()).jd
-
-    extras = {'Alive': event_alive, 'Last_fit': last_fit}
-
-    parameters = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error',
-                  'piEN', 'piEN_error', 'piEE', 'piEE_error',
-                  'Source_magnitude', 'Source_mag_error',
-                  'Blend_magnitude', 'Blend_mag_error',
-                  'Baseline_magnitude', 'Baseline_mag_error',
-                  'Fit_covariance', 'chi2', 'red_chi2',
-                  'KS_test', 'AD_test', 'SW_test']
-    for key in parameters:
-        if key == 'Fit_covariance':
-            data = json.dumps(model_params['Fit_covariance'].tolist())
-        else:
-            data = model_params[key]
-        extras[key] = data
-
-    target.save(extras=extras)
-    connection.close()
-
 def check_event_alive(t0_fit, tE_fit):
     """Function to evaluate whether or not an event is still actively going on, based on the current time
     relative to the model fit t0 and tE"""

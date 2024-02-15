@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from tom_dataproducts.models import ReducedDatum
-from tom_targets.models import Target
+from tom_targets.models import Target, TargetExtra
 from astropy.time import Time
-from mop.toolbox import fittools
+from mop.toolbox.mop_classes import MicrolensingEvent
 from mop.brokers import gaia as gaia_mop
 
 import json
@@ -27,20 +27,23 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        target, created = Target.objects.get_or_create(name= options['target_name'])
-        logger.info('Fitting single event: '+target.name)
+        tstart = datetime.datetime.utcnow()
+        t, created = Target.objects.get_or_create(name= options['target_name'])
+        logger.info('Fitting single event: '+t.name)
 
-        #try:
+        try:
+            mulens = MicrolensingEvent(t)
+            mulens.set_extra_params(TargetExtra.objects.filter(target=t))
+            mulens.set_reduced_data(
+                ReducedDatum.objects.filter(target=t).order_by("timestamp")
+            )
 
-        if 'Gaia' in target.name:
-            gaia_mop.update_gaia_errors(target)
+            if len(mulens.red_data) > 0:
+                result = run_fit(mulens, cores=options['cores'])
 
-        red_data = ReducedDatum.objects.filter(target=target).order_by("timestamp")
-
-        if len(red_data) > 0:
-            result = run_fit(target, red_data, cores=options['cores'])
-
-        #except:
-        #    logger.warning('Fitting event '+target.name+' hit an exception')
+        except:
+            logger.warning('Fitting event '+target.name+' hit an exception')
 
         connection.close()
+        tend = datetime.datetime.utcnow()
+        print('Total time for single target model fit: ' + str(tend - tstart))
