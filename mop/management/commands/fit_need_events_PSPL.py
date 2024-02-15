@@ -18,73 +18,99 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def run_fit(target, cores=0):
+from django.db import connection
+from django.db.models import prefetch_related_objects
+
+def run_fit(target, red_data, cores=0):
+    """
+    Function to perform a microlensing model fit to timeseries photometry.
+
+    Parameters:
+        target   Target object
+        red_data QuerySet of ReducedDatums for the target
+        cores integer, optional number of processing cores to use
+    """
+
     logger.info('Fitting event: '+target.name)
 
-    try:
-        if 'Gaia' in target.name:
+    t5 = datetime.datetime.utcnow()
+    print('N DB connections run_fit 1: ' + str(len(connection.queries)))
 
-            gaia_mop.update_gaia_errors(target)
+#try:
+    t6 = datetime.datetime.utcnow()
+    print('N DB connections run_fit 2: ' + str(len(connection.queries)))
+    print('Time taken: ' + str(t6 - t5))
 
-        # Add photometry model
+    # Retrieve all available ReducedDatum entries for this target.  Note that this may include data
+    # other than lightcurve photometry, so the data are then filtered and repackaged for later
+    # convenience
+    (datasets, ndata) = fittools.repackage_lightcurves(red_data)
 
-        if 'Microlensing' not in target.extra_fields['Classification']:
-            alive = False
+    logger.info('FIT: Found '+str(len(datasets))+' datasets and a total of '
+                +str(ndata)+' datapoints to model for event '+target.name)
 
-            extras = {'Alive':alive}
-            target.save(extras = extras)
+    t7 = datetime.datetime.utcnow()
+    print('N DB connections run_fit 3: ' + str(len(connection.queries)))
+    print('Time taken: ' + str(t7 - t6))
 
+    if ndata > 10:
+        (model_params, model_telescope) = fittools.fit_pspl_omega2(target.ra, target.dec, datasets)
+        logger.info('FIT: completed modeling process for '+target.name)
+
+        t8 = datetime.datetime.utcnow()
+        print('N DB connections run_fit 3: ' + str(len(connection.queries)))
+        print('Time taken: ' + str(t8 - t7))
+
+        # Store model lightcurve
+        if model_telescope:
+            fittools.store_model_lightcurve(target, model_telescope)
+            logger.info('FIT: Stored model lightcurve for event '+target.name)
         else:
+            logger.warning('FIT: No valid model fit produced so not model lightcurve for event '+target.name)
 
-            # Retrieve all available ReducedDatum entries for this target.  Note that this may include data
-            # other than lightcurve photometry, so the data are then filtered and repackaged for later
-            # convenience
-            red_data = ReducedDatum.objects.filter(target=target).order_by("timestamp")
+        t9 = datetime.datetime.utcnow()
+        print('N DB connections run_fit 4: ' + str(len(connection.queries)))
+        print('Time taken: ' + str(t9 - t8))
 
-            (datasets, ndata) = fittools.repackage_lightcurves(red_data)
+        # Determine whether or not an event is still active based on the
+        # current time relative to its t0 and tE
+        alive = fittools.check_event_alive(model_params['t0'], model_params['tE'])
 
-            logger.info('FIT: Found '+str(len(datasets))+' datasets and a total of '
-                        +str(ndata)+' datapoints to model for event '+target.name)
+        t10 = datetime.datetime.utcnow()
+        print('N DB connections run_fit 5: ' + str(len(connection.queries)))
+        print('Time taken: ' + str(t10 - t9))
 
-            if ndata > 10:
-                (model_params, model_telescope) = fittools.fit_pspl_omega2(target.ra, target.dec, datasets)
-                logger.info('FIT: completed modeling process for '+target.name)
+        # Store model parameters
+        last_fit = Time(datetime.datetime.utcnow()).jd
 
-                # Store model lightcurve
-                if model_telescope:
-                    fittools.store_model_lightcurve(target, model_telescope)
-                    logger.info('FIT: Stored model lightcurve for event '+target.name)
-                else:
-                    logger.warning('FIT: No valid model fit produced so not model lightcurve for event '+target.name)
+        extras = {'Alive':alive, 'Last_fit': last_fit}
+        store_keys = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error',
+                      'piEN', 'piEN_error', 'piEE', 'piEE_error',
+                      'Source_magnitude', 'Source_mag_error',
+                      'Blend_magnitude', 'Blend_mag_error',
+                      'Baseline_magnitude', 'Baseline_mag_error',
+                      'Fit_covariance', 'chi2', 'red_chi2',
+                      'KS_test', 'AD_test', 'SW_test']
+        for key in store_keys:
+            extras[key] = model_params[key]
+        logger.info('Fitted parameters for '+target.name+': '+repr(extras))
 
-                # Determine whether or not an event is still active based on the
-                # current time relative to its t0 and tE
-                alive = fittools.check_event_alive(model_params['t0'], model_params['tE'])
+        target.save(extras = extras)
+        logger.info('FIT: Stored model parameters for event ' + target.name)
 
-                # Store model parameters
-                last_fit = Time(datetime.datetime.utcnow()).jd
+        t11 = datetime.datetime.utcnow()
+        print('N DB connections run_fit 6: ' + str(len(connection.queries)))
+        print('Time taken: ' + str(t11 - t10))
 
-                extras = {'Alive':alive, 'Last_fit': last_fit}
-                store_keys = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error',
-                              'piEN', 'piEN_error', 'piEE', 'piEE_error',
-                              'Source_magnitude', 'Source_mag_error',
-                              'Blend_magnitude', 'Blend_mag_error',
-                              'Baseline_magnitude', 'Baseline_mag_error',
-                              'Fit_covariance', 'chi2', 'red_chi2',
-                              'KS_test', 'AD_test', 'SW_test']
-                for key in store_keys:
-                    extras[key] = model_params[key]
-                logger.info('Fitted parameters for '+target.name+': '+repr(extras))
+    else:
+        logger.info('Insufficient lightcurve data available to model event '+target.name)
 
-                target.save(extras = extras)
-                logger.info('FIT: Stored model parameters for event ' + target.name)
+        # Return True because no further processing is required
+        return True
 
-            else:
-                logger.info('Insufficient lightcurve data available to model event '+target.name)
-
-    except:
-        logger.error('Job failed: '+target.name)
-        return None
+    #except:
+    #    logger.error('Job failed: '+target.name)
+    #    return False
 
 class Command(BaseCommand):
     help = 'Fit events with PSPL and parallax, then ingest fit parameters in the db'
@@ -95,76 +121,85 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        # Run until all objects which need processing have been processed
-        while True:
-            # One instance of our database model to process (if found)
-            element = None
+        with transaction.atomic():
 
-            # Select the first available un-claimed object for processing. We indicate
-            # ownership of the job by advancing the timestamp to the current time. This
-            # ensures that we don't have two workers running the same job. A beneficial
-            # side effect of this implementation is that a job which crashes isn't retried
-            # for another N hours, which limits the potential impact.
-            #
-            # The only time this system breaks down is if a single processing fit takes
-            # more than N hours. We'll instruct Kubernetes that no data processing Pod
-            # should run for that long. That'll protect us against that overrun scenario.
-            #
-            # The whole thing is wrapped in a database transaction to protect against
-            # collisions by two workers. Very unlikely, but we're good software engineers
-            # and will protect against that.
-            with transaction.atomic():
+            t1 = datetime.datetime.utcnow()
+            print('N DB connections 1: ' + str(len(connection.queries)))
 
-                # Cutoff date: N hours ago (from the "--run-every=N" hours command line argument)
-                cutoff = Time(datetime.datetime.utcnow() - datetime.timedelta(hours=options['run_every'])).jd
+            # Cutoff date: N hours ago (from the "--run-every=N" hours command line argument)
+            cutoff = Time(datetime.datetime.utcnow() - datetime.timedelta(hours=options['run_every'])).jd
+            print(cutoff)
+            # Find alive microlensing targets for which the fits need to be updated
+            # https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-for-update
 
-                # Find any objects which need to be run
-                # https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-for-update
-                #t1 = datetime.datetime.utcnow()
-                #queryset = Target.objects.select_for_update(skip_locked=True).filter(
-                #    targetextra__in=TargetExtra.objects.filter(key='Last_fit', value__lte=cutoff)
-                #    ).filter(
-                #    targetextra__in=TargetExtra.objects.filter(key='Alive', value=True)
-                #)
-                t2 = datetime.datetime.utcnow()
-                #print('Time for chained queries on Target table: ' + str(t2 - t1))
-                #print(queryset.count())
+            # Prefetch allows us to load data from other tables related to the queryset results, by reversing
+            # a foreign key.  TargetExtras have Targets as a foreign key, but Targets don't have TargetExtras, so this
+            # query has to search first on the TargetExtras table.
 
-                target_ids = TargetExtra.objects.filter(
-                    key='Last_fit', value__lte=cutoff
+            t = Target.objects.get(name='Gaia23aiy')
+            print('Extra fields for ' + t.name + ' include classification='
+                  + t.extra_fields['Classification'] + ' and Alive='
+                  + repr(t.extra_fields['Alive']))
+
+            ts = TargetExtra.objects.filter(
+                key='Classification', value__icontains='Microlensing binary'
                 ).filter(
-                    key='Alive', value=True
-                ).values_list('target').distinct()
-                print(target_ids)
-                selected_targets = Target.objects.select_for_update(skip_locked=True).filter(pk__in=target_ids)
-                t3 = datetime.datetime.utcnow()
-                print('Time for queries on TargetExtras: ' + str(t3 - t2))
-                print(selected_targets.count())
-                exit()
+                key='Alive', value=True
+                )
+            print(ts)
 
-                # Inform the user how much work is left in the queue
-                logger.info('Target(s) remaining in processing queue: '+str(queryset.count()))
+            # ADD BACK CUTOFF CRITERION
+            #targetset = Target.objects.select_for_update(skip_locked=True).select_related('extra_field','reduceddatum')
+            #targetset.filter(
+            #    targetextra__in=TargetExtra.objects.filter(key='Last_fit', value__lte=cutoff)
+            #    )
+            #targetset.filter(
+            #    targetextra__in=TargetExtra.objects.filter(key='Alive', value=True)
+            #)
+            #targetset.filter(
+            #    targetextra__in=TargetExtra.objects.filter(key='Classification', value__icontains='microlensing')
+            #)
 
-                # Retrieve the first element which meets the condition
-                element = queryset.first()
+            #print(targetset)
+            print('N DB connections 2: ' + str(len(connection.queries)))
+            #print(ts[0].extra_fields)
+            print('N DB connections 2: ' + str(len(connection.queries)))
+            exit()
+
+            t2 = datetime.datetime.utcnow()
+            print('N DB connections 2: ' + str(len(connection.queries)))
+            print('Time for targets query: ' + str(t2 - t1))
+
+            # Inform the user how much work is left in the queue
+            logger.info('Target(s) remaining in processing queue: '+str(targetset.count()))
+
+            # Loop through all targets in the set
+            for element in targetset:
 
                 need_to_fit = True
 
                 try:
                     last_fit = element.extra_fields['Last_fit']
-                    datasets = ReducedDatum.objects.filter(target=element)
-                    time = [Time(i.timestamp).jd for i in datasets if i.data_type == 'photometry']
+                    red_data = ReducedDatum.objects.filter(target=element).order_by("timestamp")
+                    time = [Time(i.timestamp).jd for i in red_data if i.data_type == 'photometry']
                     last_observation = max(time)
 
-                    existing_model = ReducedDatum.objects.filter(
-                        source_name='MOP',data_type='lc_model',source_location=element.name
-                    )
+                    existing_model = None
+                    for dset in red_data:
+                        if dset.data_type == 'lc_model':
+                            existing_model = dset
+                            break
 
                     if (last_observation<last_fit) & (existing_model.count() != 0) :
                         need_to_fit = False
                 except:
 
                     pass
+
+
+                t3 = datetime.datetime.utcnow()
+                print('N DB connections 3: ' + str(len(connection.queries)))
+                print('Time for ReducedDatums query for 1 target: ' + str(t3 - t2))
 
                 # Element was found. Claim the element for this worker (mark the fit as in
                 # the "RUNNING" state) by setting the Last_fit timestamp. This method has
@@ -187,9 +222,12 @@ class Command(BaseCommand):
 
             # Check if the fit is really needed, i.e. is there new data since the last fit?
 
+            t4 = datetime.datetime.utcnow()
+            print('N DB connections 4: ' + str(len(connection.queries)))
+            print('Time for storing Last_fit timestamp: ' + str(t4 - t3))
 
             if need_to_fit:
-                result = run_fit(element, cores=options['cores'])
+                result = run_fit(element, red_data, cores=options['cores'])
 
 
 if __name__ == '__main__':

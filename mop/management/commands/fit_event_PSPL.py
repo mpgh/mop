@@ -11,6 +11,7 @@ import datetime
 import os
 import logging
 from mop.management.commands.fit_need_events_PSPL import run_fit
+from django.db import connection
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +30,17 @@ class Command(BaseCommand):
         target, created = Target.objects.get_or_create(name= options['target_name'])
         logger.info('Fitting single event: '+target.name)
 
-        try:
+        #try:
 
-            if 'Gaia' in target.name:
-                gaia_mop.update_gaia_errors(target)
+        if 'Gaia' in target.name:
+            gaia_mop.update_gaia_errors(target)
 
-            result = run_fit(target, cores=options['cores'])
+        red_data = ReducedDatum.objects.filter(target=target).order_by("timestamp")
 
-        except:
-            logger.warning('Fitting event '+target.name+' hit an exception')
+        if len(red_data) > 0:
+            result = run_fit(target, red_data, cores=options['cores'])
+
+        #except:
+        #    logger.warning('Fitting event '+target.name+' hit an exception')
+
+        connection.close()

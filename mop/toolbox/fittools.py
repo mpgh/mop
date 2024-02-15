@@ -14,6 +14,8 @@ import logging
 from datetime import datetime
 from tom_dataproducts.models import ReducedDatum
 import json
+from django.db import connection
+
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +179,7 @@ def repackage_lightcurves(qs):
     datasets = {}
 
     for rd in qs:
-        if rd.data_type == 'photometry':
+        if rd.data_type == 'photometry' and rd.source_name != 'Interferometry_predictor':
             # Identify different lightcurves from the filter label given
             passband = rd.value['filter']
             if passband in datasets.keys():
@@ -291,6 +293,7 @@ def store_model_lightcurve(target, model):
         )
 
         rd.save()
+    connection.close()
 
 def store_model_parameters(target, model_params, event_alive):
     """Function to store the fitted model parameters in the TOM"""
@@ -314,6 +317,7 @@ def store_model_parameters(target, model_params, event_alive):
         extras[key] = data
 
     target.save(extras=extras)
+    connection.close()
 
 def check_event_alive(t0_fit, tE_fit):
     """Function to evaluate whether or not an event is still actively going on, based on the current time

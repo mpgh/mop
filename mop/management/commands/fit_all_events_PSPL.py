@@ -14,6 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+
 class Command(BaseCommand):
 
     help = 'Fit a specific selection of events with PSPL and parallax, then ingest fit parameters in the db'
