@@ -15,12 +15,13 @@
         {{ object.future_observations|length }} upcoming observation{{ object.future_observations|pluralize }}
       </div>
       {% endif %}
-     
-      <a href="http://aladin.unistra.fr/AladinLite/?target={{ target.ra }} {{ target.dec }}&fov=0.05&survey=P%2FDSS2%2Fcolor">Aladin Finding Chart</a>
+
+      <!--<a href="http://aladin.unistra.fr/AladinLite/?target={{ target.ra }} {{ target.dec }}&fov=0.05&survey=P%2FDSS2%2Fcolor">Aladin Finding Chart</a>-->
 
       <br><br>
 
       {% mulens_target_data object request %}
+      {% aladin object %}
 
     </div>
   </div>
