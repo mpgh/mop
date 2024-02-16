@@ -149,7 +149,6 @@ class MicrolensingEvent(Target):
             if key == 'Fit_covariance':
                 data = json.dumps(data.tolist())
             setattr(self, key, data)
-            print(key, self.extras[key])
             if key in self.extras.keys():
                 self.extras[key].value = data
                 self.extras[key].save()
