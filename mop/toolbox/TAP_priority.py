@@ -1,4 +1,5 @@
 import numpy as np
+from mop.toolbox.mop_classes import MicrolensingEvent
 
 def psi_derivatives_squared(t,te,u0,t0):
     """if you prefer to have the derivatives for a simple
@@ -31,7 +32,7 @@ def psi_derivatives_squared(t,te,u0,t0):
     #i.e. for te, u0, to
     return [c0, c1, c2 ]
 
-def TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance):
+def TAP_planet_priority_error(time_now, t0_pspl, u0_pspl, tE_pspl, covariance):
     """
     This function calculates the priority for ranking
     microlensing events based on the planet probability psi
@@ -61,7 +62,7 @@ def TAP_planet_priority_error(time_now,t0_pspl,u0_pspl,tE_pspl,covariance):
 
     return error_psip #/ (calculate_exptime_omega_sdss_i(mag) + 60.)
 
-def TAP_planet_priority(time_now,t0_pspl,u0_pspl,tE_pspl):
+def TAP_planet_priority(time_now, t0_pspl, u0_pspl, tE_pspl):
     """
     This function calculates the priority for ranking
     microlensing events based on the planet probability psi

@@ -9,6 +9,7 @@ from astropy.time import Time, TimeDecimalYear
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from mop.toolbox import TAP, lco_observations
+from mop.toolbox.mop_classes import MicrolensingEvent
 import datetime
 from django.conf import settings
 import copy

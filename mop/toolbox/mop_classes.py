@@ -17,6 +17,7 @@ class MicrolensingEvent(Target):
         self.red_data = None
         self.extras = None
         self.Last_fit = None
+        self.first_observation = None
         self.last_observation = None
         self.existing_model = None
         self.need_to_fit = True
@@ -45,8 +46,10 @@ class MicrolensingEvent(Target):
         # Extract the timestamp of the last observation
         time = [Time(i.timestamp).jd for i in self.red_data if i.data_type == 'photometry']
         if len(time) > 0:
+            self.first_observation = min(time)
             self.last_observation = max(time)
         else:
+            self.first_observation = None
             self.last_observation = None
 
         # Identify a pre-existing model lightcurve, if one is available:
@@ -137,5 +140,24 @@ class MicrolensingEvent(Target):
                     key = key,
                     value = data
                     )
-                ep.save
+                ep.save()
+                self.extras[key] = ep
+
+    def store_parameter_set(self, parameters):
+
+        for key, data in parameters.items():
+            if key == 'Fit_covariance':
+                data = json.dumps(data.tolist())
+            setattr(self, key, data)
+            print(key, self.extras[key])
+            if key in self.extras.keys():
+                self.extras[key].value = data
+                self.extras[key].save()
+            else:
+                ep = TargetExtra.objects.create(
+                    target = self.target,
+                    key = key,
+                    value = data
+                    )
+                ep.save()
                 self.extras[key] = ep

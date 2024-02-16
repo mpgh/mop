@@ -15,6 +15,7 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
 from mop.toolbox import TAP_priority
+from mop.toolbox import mop_classes
 import logging
 
 logger = logging.getLogger(__name__)
@@ -204,17 +205,29 @@ def TAP_telescope_class(sdss_i_mag):
 #   mag_now = ZP-2.5*np.log10(ml_model)
 #   return mag_now
 
-def TAP_mag_now(target):
-    lightcurve = ReducedDatum.objects.filter(target=target, data_type='lc_model')
+def TAP_mag_now(mulens):
+    lightcurve = ReducedDatum.objects.filter(target=mulens.target, data_type='lc_model')
     time_now = Time(datetime.datetime.now()).jd
 
-    if len(lightcurve) > 0:
+    if mulens.existing_model:
         closest_mag = np.argmin(np.abs(lightcurve[0].value['lc_model_time']-time_now))
         mag_now =  lightcurve[0].value['lc_model_magnitude'][closest_mag]
-        extras = {'Mag_now': round(mag_now,3)}
-        target.save(extras=extras)
+
+        mulens.Mag_now = round(mag_now,3)
+        if 'Mag_now' in mulens.extras.keys():
+            mulens.extras['Mag_now'].value = round(mag_now,3)
+        else:
+            ep = TargetExtra.objects.create(
+                target = mulens.target,
+                key = 'Mag_now',
+                value = round(mag_now,3)
+            )
+            ep.save()
+            mulens.extras['Mag_now'] = ep
+
     else:
         mag_now = None
+        mulens.Mag_now = None
 
     return mag_now
    
@@ -275,6 +288,8 @@ def TAP_time_last_datapoint(target):
     Returns time of the latest datapoint in the lightcurve.  If no photometry for this target is available,
     this function returns a default timestamp for 1995-01-01.  This is done to indicate that any subsequent
     photometry should be considered to be more recent and therefore ingested.
+
+    DEPRECIATED
     """
     datasets = ReducedDatum.objects.filter(target=target).order_by('timestamp')
 
@@ -301,7 +316,7 @@ def TAP_time_last_datapoint(target):
 
     return last_jd, last_ts
 
-def categorize_event_timescale(target, threshold=75.0):
+def categorize_event_timescale(mulens, threshold=75.0):
     """
     This function is designed to classify an event based on the best
     currently available estimate of its Einstein crossing time.
@@ -312,11 +327,21 @@ def categorize_event_timescale(target, threshold=75.0):
 
     category = 'Microlensing stellar/planet'
 
-    if target.extra_fields['tE'] >= threshold:
+    if float(mulens.tE) >= threshold:
         category = 'Microlensing long-tE'
 
-    extras = {'Category': category}
-    target.save(extras=extras)
+    if 'Category' in mulens.extras.keys():
+        mulens.extras['Category'].value = category
+        mulens.Category = category
+    else:
+        ep = TargetExtra.objects.create(
+            target=mulens.target,
+            key='Category',
+            value=category
+        )
+        ep.save()
+        mulens.extras['Category'] = ep
+        mulens.Category = category
 
     return category
 
@@ -329,6 +354,7 @@ def sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_p
 
     # Check t0, tE and u0 values are non-zero, not NaNs and floating point variables
     for value in params:
+        print(value, type(value))
         if value == 0.0 or np.isnan(value) or type(value) != type(1.0) or value == None:
             sane = False
 
@@ -340,18 +366,14 @@ def sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_p
 
     return sane
 
-def TAP_check_baseline(target, t0, tE):
+def TAP_check_baseline(mulens):
     """
     Checks if a baseline exists for a target.
     """
-    datasets = ReducedDatum.objects.filter(target=target).order_by('timestamp')
 
-    if datasets.count() > 0:
-        for d in datasets:
-            if d.data_type == 'photometry':
-                time = Time(d.timestamp, format='datetime').jd
-                if(time < t0 - tE):
-                    logger.info('Baseline data prior to an event found.')
-                    return True
+    if mulens.first_observation:
+        if (mulens.first_observation < float(mulens.t0) - float(mulens.tE)):
+            logger.info('Baseline data prior to an event found.')
+            return True
 
     return False
