@@ -156,11 +156,15 @@ class Command(BaseCommand):
 
             logger.info('FIT_NEED_EVENTS: Reviewing target list to identify those that need remodeling')
             target_data = {}
-            for t in target_list:
+            for i,t in enumerate(target_list):
+                logger.info('FIT_NEED_EVENTS: evaluating target ' + t.name + ', '
+                            + str(i) + ' out of ' + str(len(target_list)))
+
                 mulens = MicrolensingEvent(t)
                 mulens.set_extra_params(target_extras.filter(target=t))
                 mulens.set_reduced_data(datums.filter(target=t))
-                mulens.check_need_to_fit()
+                (status, reason) = mulens.check_need_to_fit()
+                logger.info('FIT_NEED_EVENTS: Need to fit: ' + repr(status) + ', reason: ' + reason)
 
                 if mulens.need_to_fit:
                     target_data[t] = mulens

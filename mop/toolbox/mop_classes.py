@@ -56,14 +56,22 @@ class MicrolensingEvent(Target):
                 break
 
     def check_need_to_fit(self):
+        reason = 'OK'
+
         if self.last_observation:
             if self.Last_fit:
                 if (float(self.last_observation) < float(self.Last_fit)):
                     self.need_to_fit = False
+                    reason = 'Outdated model; new data available'
+            else:
+                reason = 'No previous model fit recorded'
 
         # If last_observation is not set, then there are no data to model
         else:
             self.need_to_fit = False
+            reason = 'No last observation'
+
+        return self.need_to_fit, reason
 
     def store_model_lightcurve(self, model):
         """Method to store in the TOM the timeseries lihgtcurve corresponding to a fitted model.
