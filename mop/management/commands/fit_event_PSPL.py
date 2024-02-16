@@ -42,8 +42,8 @@ class Command(BaseCommand):
                 result = run_fit(mulens, cores=options['cores'])
 
         except:
-            logger.warning('Fitting event '+target.name+' hit an exception')
+            logger.warning('Fitting event '+t.name+' hit an exception')
 
         connection.close()
         tend = datetime.datetime.utcnow()
-        print('Total time for single target model fit: ' + str(tend - tstart))
+        logger.info('Total time for single target model fit: ' + str(tend - tstart))

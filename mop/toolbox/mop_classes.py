@@ -109,9 +109,18 @@ class MicrolensingEvent(Target):
                       'KS_test', 'AD_test', 'SW_test']
 
         for key in parameters:
-            if key == 'Fit_covariance':
-                data = json.dumps(model_params['Fit_covariance'].tolist())
+            if key in self.extras.keys():
+                if key == 'Fit_covariance':
+                    data = json.dumps(model_params['Fit_covariance'].tolist())
+                else:
+                    data = model_params[key]
+                self.extras[key].value = data
+                self.extras[key].save()
             else:
-                data = model_params[key]
-            self.extras[key].value = data
-            self.extras[key].save()
+                ep = TargetExtra.objects.create(
+                    target = self.target,
+                    key = key,
+                    value = data
+                    )
+                ep.save
+                self.extras[key] = ep
