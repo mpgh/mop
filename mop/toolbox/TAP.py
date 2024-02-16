@@ -1,8 +1,7 @@
 from django.core.management.base import BaseCommand
 from tom_observations.models import ObservationRecord
 from tom_dataproducts.models import ReducedDatum
-
-from tom_targets.models import Target
+from tom_targets.models import TargetExtra
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time, TimezoneInfo
