@@ -353,7 +353,6 @@ def sanity_check_model_parameters(t0_pspl, t0_pspl_error, u0_pspl, tE_pspl, tE_p
 
     # Check t0, tE and u0 values are non-zero, not NaNs and floating point variables
     for value in params:
-        print(value, type(value))
         if value == 0.0 or np.isnan(value) or type(value) != type(1.0) or value == None:
             sane = False
 
