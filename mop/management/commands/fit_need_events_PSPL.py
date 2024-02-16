@@ -128,7 +128,7 @@ class Command(BaseCommand):
                         + str(ts1.count()) + ' events classified as microlensing, '
                         + str(ts2.count()) + ' events currently Alive, '
                         + str(ts3.count()) + ' events last modeled before ' + repr(cutoff)
-                        + ', and with data added since then')
+                        + ', and ' + str(ts4.count()) + ' with data added since then')
 
             # This doesn't directly produce a queryset of targets, instead it returns a queryset of target IDs.
             # So we have to extract the corresponding targets:
