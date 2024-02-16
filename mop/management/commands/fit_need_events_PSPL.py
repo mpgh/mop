@@ -124,6 +124,11 @@ class Command(BaseCommand):
             ts4 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
                 key='Latest_data_HJD', value__gt=cutoff
             )
+            logger.info('FIT_NEED_EVENTS: Initial queries selected '
+                        + str(ts1.count()) + ' events classified as microlensing, '
+                        + str(ts2.count()) + ' events currently Alive, '
+                        + str(ts3.count()) + ' events last modeled before ' + repr(cutoff)
+                        + ', and with data added since then')
 
             # This doesn't directly produce a queryset of targets, instead it returns a queryset of target IDs.
             # So we have to extract the corresponding targets:
