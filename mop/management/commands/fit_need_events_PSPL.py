@@ -121,28 +121,26 @@ class Command(BaseCommand):
             ts3 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
                 key='Last_fit', value__lte=cutoff
             )
-            ts4 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
-                key='Latest_data_HJD', value__gt=cutoff
-            )
+            # This is taken care of at a later stage of selection.
+            #ts4 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
+            #    key='Latest_data_HJD', value__gt=cutoff
+            #)
             logger.info('FIT_NEED_EVENTS: Initial queries selected '
                         + str(ts1.count()) + ' events classified as microlensing, '
                         + str(ts2.count()) + ' events currently Alive, '
-                        + str(ts3.count()) + ' events last modeled before ' + repr(cutoff)
-                        + ', and ' + str(ts4.count()) + ' with data added since then')
+                        + str(ts3.count()) + ' events last modeled before ' + repr(cutoff))
 
             # This doesn't directly produce a queryset of targets, instead it returns a queryset of target IDs.
             # So we have to extract the corresponding targets:
             targets1 = [x.target for x in ts1]
             targets2 = [x.target for x in ts2]
             targets3 = [x.target for x in ts3]
-            targets4 = [x.target for x in ts4]
+            #targets4 = [x.target for x in ts4]
             target_list = list(set(targets1).intersection(
                 set(targets2)
             ).intersection(
                 set(targets3)
-            ).intersection(
-                set(targets4))
-            )
+            ))
 
             logger.info('FIT_NEED_EVENTS: Initial target list has ' + str(len(target_list)) + ' entries')
 
