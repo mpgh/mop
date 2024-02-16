@@ -44,7 +44,10 @@ class MicrolensingEvent(Target):
 
         # Extract the timestamp of the last observation
         time = [Time(i.timestamp).jd for i in self.red_data if i.data_type == 'photometry']
-        self.last_observation = max(time)
+        if len(time) > 0:
+            self.last_observation = max(time)
+        else:
+            self.last_observation = None
 
         # Identify a pre-existing model lightcurve, if one is available:
         for dset in qs:
@@ -57,6 +60,10 @@ class MicrolensingEvent(Target):
             if self.Last_fit:
                 if (float(self.last_observation) < float(self.Last_fit)):
                     self.need_to_fit = False
+
+        # If last_observation is not set, then there are no data to model
+        else:
+            self.need_to_fit = False
 
     def store_model_lightcurve(self, model):
         """Method to store in the TOM the timeseries lihgtcurve corresponding to a fitted model.
