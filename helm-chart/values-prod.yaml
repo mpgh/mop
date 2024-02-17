@@ -101,10 +101,10 @@ runtap:
   resources:
     requests:
       cpu: 10m
-      memory: 256Mi
+      memory: 2048Mi
     limits:
       cpu: 1000m
-      memory: 1024Mi
+      memory: 4096Mi
 
 # CronJob: Harvest ZTF DR3
 # Logs into IPAC archive portal directly
