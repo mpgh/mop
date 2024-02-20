@@ -65,7 +65,7 @@ class MicrolensingEvent(Target):
             if self.Last_fit:
                 if (float(self.last_observation) < float(self.Last_fit)):
                     self.need_to_fit = False
-                    reason = 'Outdated model; new data available'
+                    reason = 'Up to date model'
             else:
                 reason = 'No previous model fit recorded'
 
