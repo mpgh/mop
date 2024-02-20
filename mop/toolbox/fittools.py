@@ -313,11 +313,12 @@ def check_event_alive(t0_fit, tE_fit, last_obs_jd):
 
     # Check for events (common in Gaia) where we received a few datapoints some time ago
     # but not enough for a model fit.  These events should be expired after 6 months
-    look_back_time = time_now - Time(datetime.utcnow() - timedelta(weeks=32)).jd
-    if (t0_fit == 0.0 or tE_fit == 0.0) \
-        and (time_now - last_obs_jd) > look_back_time:
+    if last_obs_jd:
+        look_back_time = time_now - Time(datetime.utcnow() - timedelta(weeks=32)).jd
+        if (t0_fit == 0.0 or tE_fit == 0.0) \
+            and (time_now - last_obs_jd) > look_back_time:
 
-        alive = False
+            alive = False
 
     return alive
 
