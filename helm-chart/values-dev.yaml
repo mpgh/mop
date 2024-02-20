@@ -50,19 +50,6 @@ ingress:
       paths:
         - "/"
 
-# CronJob: Fit Alive Events
-# WARNING: This process doesn't parallelize
-fitaliveevents:
-  enabled: false
-  cores: 3
-  resources:
-    requests:
-      cpu: 3200m
-      memory: 1024Mi
-    limits:
-      cpu: 3200m
-      memory: 4096Mi
-
 # CronJob: Fit Need Events
 fitneedevents:
   enabled: false

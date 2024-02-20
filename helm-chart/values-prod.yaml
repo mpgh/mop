@@ -64,21 +64,6 @@ ingress:
       paths:
         - "/"
 
-# CronJob: Fit Alive Events
-fitaliveevents:
-  enabled: false
-  # Do not parallelize this process since the code isn't designed for it
-  # Use 3 CPU on each Node (Machine)
-  cores: 3
-  # CPU/Memory requests/limits
-  resources:
-    requests:
-      cpu: 2
-      memory: 512Mi
-    limits:
-      cpu: 3200m
-      memory: 4096Mi
-
 # CronJob: Fit Need Events
 fitneedevents:
   enabled: false
@@ -98,7 +83,7 @@ fitneedevents:
 
 # CronJob: Run TAP
 runtap:
-  enabled: false
+  enabled: true
   resources:
     requests:
       cpu: 10m
