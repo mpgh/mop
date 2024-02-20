@@ -162,8 +162,6 @@ class Command(BaseCommand):
             logger.info('FIT_NEED_EVENTS: Reviewing target list to identify those that need remodeling')
             target_data = {}
             for i,t in enumerate(target_list):
-                logger.info('FIT_NEED_EVENTS: evaluating target ' + t.name + ', '
-                            + str(i) + ' out of ' + str(len(target_list)))
 
                 mulens = MicrolensingEvent(t)
                 mulens.set_extra_params(target_extras.filter(target=t))
@@ -187,6 +185,10 @@ class Command(BaseCommand):
                             mulens.store_parameter_set(update_extras)
                             logger.info('Updated Alive status to ' + repr(alive))
 
+                logger.info('FIT_NEED_EVENTS: evaluated target ' + t.name + ', '
+                            + str(i) + ' out of ' + str(len(target_list)))
+                utilities.checkpoint()
+                
             t3 = datetime.datetime.utcnow()
             logger.info('FIT_NEED_EVENTS: Collated data for ' + str(len(target_data)) + ' targets in ' + str(t3 - t2))
             utilities.checkpoint()
