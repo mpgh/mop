@@ -39,7 +39,7 @@ class Command(BaseCommand):
             )
 
             if len(mulens.red_data) > 0:
-                result = run_fit(mulens, cores=options['cores'])
+                result = run_fit(mulens, cores=options['cores'], verbose=True)
 
         except:
             logger.warning('Fitting event '+t.name+' hit an exception')

@@ -7,7 +7,7 @@ from mop.toolbox import TAP_priority
 from mop.toolbox import obs_control
 from mop.toolbox import omegaII_strategy
 from mop.toolbox import interferometry_prediction
-from mop.toolbox import querytools
+from mop.toolbox import querytools, utilities
 from mop.toolbox.mop_classes import MicrolensingEvent
 import datetime
 import json
@@ -34,7 +34,7 @@ class Command(BaseCommand):
 
             logger.info("runTAP: Started with options "+repr(options))
             t1 = datetime.datetime.utcnow()
-            logger.info('runTAP: Starting with N DB connections: ' + str(len(connection.queries)))
+            utilities.checkpoint()
 
             ### Create or load TAP list
             try:
@@ -46,18 +46,18 @@ class Command(BaseCommand):
                 tap_list = TargetList(name='OMEGAII')
                 tap_list.save()
             t2 = datetime.datetime.utcnow()
-            logger.info('runTAP: N DB connections post tap_list query: ' + str(len(connection.queries)))
-            logger.info('runTAP: Time taken ' + str(t2 - t1))
+            logger.info('runTAP: Time taken for tap_list query' + str(t2 - t1))
+            utilities.checkpoint()
 
             ### Prefetch data on the selected targetset
-            target_data = querytools.get_alive_events(options['target_name'])
+            target_data = querytools.get_alive_events_outside_HCZ(options['target_name'])
             nalive = str(len(target_data))
 
             KMTNet_fields = TAP.load_KMTNet_fields()
 
             t3 = datetime.datetime.utcnow()
-            logger.info('runTAP: N DB connections post creation of event objects: ' + str(len(connection.queries)))
-            logger.info('runTAP: Time taken ' + str(t3 - t2))
+            logger.info('runTAP: Time taken for creation of event objects' + str(t3 - t2))
+            utilities.checkpoint()
 
             ## Get list of targets for which there are currently-pending observations already in the LCO Portal.
             response = obs_control.fetch_pending_lco_requestgroups()
@@ -66,8 +66,9 @@ class Command(BaseCommand):
                         + ' targets: ' + repr(pending_obs))
 
             t4 = datetime.datetime.utcnow()
-            logger.info('runTAP: N DB connections post fetch of pending obs: ' + str(len(connection.queries)))
-            logger.info('runTAP: Time taken ' + str(t4 - t3))
+            logger.info('runTAP: Time taken to fetch pending obs' + str(t4 - t3))
+            utilities.checkpoint()
+
 
             #for k,event in enumerate(list_of_events_alive[:]):
             for k, (event, mulens) in enumerate(target_data.items()):
@@ -97,8 +98,8 @@ class Command(BaseCommand):
                         sane = False
 
                     t5 = datetime.datetime.utcnow()
-                    logger.info('runTAP: N DB connections post sanity check: ' + str(len(connection.queries)))
-                    logger.info('runTAP: Time taken ' + str(t5 - t4))
+                    logger.info('runTAP: Time taken post sanity check: ' + str(t5 - t4))
+                    utilities.checkpoint()
 
                     if sane:
                         # Categorize the event based on event timescale
@@ -135,8 +136,8 @@ class Command(BaseCommand):
                         # for this target:
 
                         t6 = datetime.datetime.utcnow()
-                        logger.info('runTAP: N DB connections post priority calculations: ' + str(len(connection.queries)))
-                        logger.info('runTAP: Time taken ' + str(t6 - t5))
+                        logger.info('runTAP: Time taken for priority calculations' + str(t6 - t5))
+                        utilities.checkpoint()
 
                         # Exclude events that are within the High Cadence Zone
                         # event_in_the_Bulge = TAP.event_in_the_Bulge(event.ra, event.dec)
@@ -221,8 +222,8 @@ class Command(BaseCommand):
                         logger.info('runTAP: Evaluated ' + event.name + ' for interferometry')
 
                         t7 = datetime.datetime.utcnow()
-                        logger.info('runTAP: N DB connections post obscontrol block: ' + str(len(connection.queries)))
-                        logger.info('runTAP: Time taken ' + str(t7 - t6))
+                        logger.info('runTAP: Time taken for obscontrol block' + str(t7 - t6))
+                        utilities.checkpoint()
 
                         ### Updating stored information
                         # Storing both types of priority as extra_params and also as ReducedDatums so
@@ -237,8 +238,8 @@ class Command(BaseCommand):
                         mulens.store_parameter_set(update_extras)
 
                         t8 = datetime.datetime.utcnow()
-                        logger.info('runTAP: N DB connections post extra parameters store: ' + str(len(connection.queries)))
-                        logger.info('runTAP: Time taken ' + str(t8 - t7))
+                        logger.info('runTAP: Time taken to store extra parameters' + str(t8 - t7))
+                        utilities.checkpoint()
 
                         data = {'tap_planet': planet_priority,
                                 'tap_planet_error': planet_priority_error,
@@ -267,15 +268,15 @@ class Command(BaseCommand):
                             rd.save()
 
                         t9 = datetime.datetime.utcnow()
-                        logger.info('runTAP: N DB connections post reduceddatums store: ' + str(len(connection.queries)))
-                        logger.info('runTAP: Time taken ' + str(t9 - t8))
+                        logger.info('runTAP: Time taken to store reduceddatums' + str(t9 - t8))
+                        utilities.checkpoint()
 
                 except:
                     logger.warning('runTAP: Cannot perform TAP for target ' + event.name)
             logger.info('runTAP: Completed run')
             t10 = datetime.datetime.utcnow()
-            logger.info('runTAP: N DB connections at end: ' + str(len(connection.queries)))
             logger.info('runTAP: Time taken to complete ' + str(t10 - t1))
+            utilities.checkpoint()
 
 
 def load_covar_matrix(raw_covar_data):

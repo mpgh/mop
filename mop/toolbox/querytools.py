@@ -1,13 +1,14 @@
 from tom_dataproducts.models import ReducedDatum
 from tom_targets.models import Target,TargetExtra,TargetList
 from mop.toolbox.mop_classes import MicrolensingEvent
+from mop.toolbox import utilities
 import logging
 import datetime
 from django.db import connection
 
 logger = logging.getLogger(__name__)
 
-def get_alive_events(option):
+def get_alive_events_outside_HCZ(option):
     """
     Function to retrieve Targets that are classified as microlensing events that are currently ongoing.
 
@@ -18,24 +19,34 @@ def get_alive_events(option):
 
     if option == 'all':
         t1 = datetime.datetime.utcnow()
+        logger.info('queryTools: checkpoint 1')
+        utilities.checkpoint()
 
-       # Search TargetExtras to identify alive microlensing events
+       # Search TargetExtras to identify alive microlensing events outside the HCZ
         ts1 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
             key='Classification', value__icontains='Microlensing'
         )
         ts2 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
-            key='Alive', value__icontains=True
+            key='Alive', value=True
+        )
+        ts3 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
+            key='Sky_location', value__icontains='Outside HCZ'
         )
         logger.info('queryTools: Initial queries selected '
                     + str(ts1.count()) + ' events classified as microlensing, '
                     + str(ts2.count()) + ' events currently Alive')
+        t2 = datetime.datetime.utcnow()
+        utilities.checkpoint()
 
         # This doesn't directly produce a queryset of targets, instead it returns a queryset of target IDs.
         # So we have to extract the corresponding targets:
         targets1 = [x.target for x in ts1]
         targets2 = [x.target for x in ts2]
+        targets3 = [x.target for x in ts3]
         target_list = list(set(targets1).intersection(
             set(targets2)
+        ).intersection(
+            set(targets3)
         ))
 
         logger.info('queryTools: Initial target list has ' + str(len(target_list)) + ' entries')
@@ -46,7 +57,7 @@ def get_alive_events(option):
 
         t3 = datetime.datetime.utcnow()
         logger.info('queryTools: Collated data for ' + str(len(target_data)) + ' targets in ' + str(t3 - t2))
-        logger.info('queryTools: N DB connections: ' + str(len(connection.queries)))
+        utilities.checkpoint()
 
     # Search for a specific target
     else:
@@ -80,7 +91,7 @@ def fetch_data_for_targetset(target_list, check_need_to_fit=True):
 
     t2 = datetime.datetime.utcnow()
     logger.info('queryTools: Retrieved associated data for ' + str(len(target_list)) + ' Targets')
-    logger.info('queryTools: N DB connections: ' + str(len(connection.queries)))
+    utilities.checkpoint()
     logger.info('queryTools: Time taken: ' + str(t2 - t1))
 
     # Create microlensing event instances for the selected targets, associating all of the
@@ -88,23 +99,24 @@ def fetch_data_for_targetset(target_list, check_need_to_fit=True):
     logger.info('queryTools: collating data on microlensing event set')
     target_data = {}
     for i, t in enumerate(target_list):
-        logger.info('queryTools: evaluating target ' + t.name + ', '
-                    + str(i) + ' out of ' + str(len(target_list)))
-
         mulens = MicrolensingEvent(t)
         mulens.set_extra_params(target_extras.filter(target=t))
         mulens.set_reduced_data(datums.filter(target=t))
-        (status, reason) = mulens.check_need_to_fit()
-        logger.info('queryTools: Need to fit: ' + repr(status) + ', reason: ' + reason)
+        if check_need_to_fit:
+            (status, reason) = mulens.check_need_to_fit()
+            logger.info('queryTools: Need to fit: ' + repr(status) + ', reason: ' + reason)
 
-        if check_need_to_fit and mulens.need_to_fit:
-            target_data[t] = mulens
+            if mulens.need_to_fit:
+                target_data[t] = mulens
 
-        if not check_need_to_fit:
+        else:
             target_data[t] = mulens
+        logger.info('queryTools: collated data for target ' + t.name + ', '
+                    + str(i) + ' out of ' + str(len(target_list)))
+        utilities.checkpoint()
 
     t3 = datetime.datetime.utcnow()
     logger.info('queryTools: Collated data for ' + str(len(target_data)) + ' targets in ' + str(t3 - t2))
-    logger.info('queryTools: N DB connections: ' + str(len(connection.queries)))
+    utilities.checkpoint()
 
     return target_data

@@ -12,7 +12,7 @@ class MicrolensingEvent(Target):
     """
 
     def __init__(self, t):
-        super().__init__(self, t.name, t.type, t.ra, t.dec, t.galactic_lng, t.galactic_lat)
+        super().__init__(self, t.name)
         self.target = t
         self.red_data = None
         self.extras = None

@@ -2,7 +2,15 @@ from tom_targets.models import Target
 from astropy.coordinates import SkyCoord, Galactic
 from astropy import units as u
 from django.contrib.auth.models import Group, User
+from django.db import connection
 from guardian.shortcuts import assign_perm
+import datetime
+import os
+import logging
+import psutil
+
+logger = logging.getLogger(__name__)
+process = psutil.Process()
 
 def fetch_extra_param(target, key):
     string_keys = ['Classification', 'Category', 'Observing_mode', 'Sky_location',
@@ -54,3 +62,10 @@ def open_targets_to_OMEGA_team(target_list):
         for target in target_list:
             assign_perm('tom_targets.view_target', omega_group, target)
             assign_perm('tom_targets.change_target', omega_group, target)
+
+def checkpoint():
+    """Function to output the number of database connections and memory useage in MB"""
+
+    logger.info('CHECKPOINT: N DB connections: '
+                + str(len(connection.queries)) + ', memory: '
+                + str(round(psutil.Process(os.getpid()).memory_info().rss / 1048576, 2)) + 'MiB')

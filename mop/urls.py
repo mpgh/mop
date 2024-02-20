@@ -22,4 +22,5 @@ urlpatterns = [
     path('activeobs/', ActiveObsView.as_view(), name='activeobs'),
     path('prioritytargets/', PriorityTargetsView.as_view(), name='prioritytargets'),
     path('', include('tom_common.urls')),
+    path('silk/', include('silk.urls', namespace='silk'))
 ]

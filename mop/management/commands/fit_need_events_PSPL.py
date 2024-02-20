@@ -3,7 +3,7 @@ from tom_dataproducts.models import ReducedDatum
 from tom_targets.models import Target,TargetExtra
 from django.db import transaction
 from astropy.time import Time
-from mop.toolbox import fittools
+from mop.toolbox import fittools, utilities
 from mop.toolbox.mop_classes import MicrolensingEvent
 import datetime
 import os
@@ -26,12 +26,12 @@ def run_fit(mulens, cores=0, verbose=False):
     logger.info('Fitting event: '+mulens.name)
 
     t5 = datetime.datetime.utcnow()
-    if verbose: logger.info('N DB connections run_fit 1: ' + str(len(connection.queries)))
+    if verbose: utilities.checkpoint()
 
     try:
         t6 = datetime.datetime.utcnow()
-        if verbose: logger.info('N DB connections run_fit 2: ' + str(len(connection.queries)))
-        if verbose: logger.info('Time taken: ' + str(t6 - t5))
+        if verbose: utilities.checkpoint()
+        if verbose: logger.info('Time taken chk 2: ' + str(t6 - t5))
 
         # Retrieve all available ReducedDatum entries for this target.  Note that this may include data
         # other than lightcurve photometry, so the data are then filtered and repackaged for later
@@ -40,16 +40,17 @@ def run_fit(mulens, cores=0, verbose=False):
                     +str(mulens.ndata)+' datapoints to model for event '+mulens.name)
 
         t7 = datetime.datetime.utcnow()
-        if verbose: logger.info('N DB connections run_fit 3: ' + str(len(connection.queries)))
-        if verbose: logger.info('Time taken: ' + str(t7 - t6))
+        if verbose: utilities.checkpoint()
+        if verbose: logger.info('Time taken chk 3: ' + str(t7 - t6))
 
         if mulens.ndata > 10:
-            (model_params, model_telescope) = fittools.fit_pspl_omega2(mulens.ra, mulens.dec, mulens.datasets)
+            (model_params, model_telescope) = fittools.fit_pspl_omega2(
+                mulens.target.ra, mulens.target.dec, mulens.datasets)
             logger.info('FIT: completed modeling process for '+mulens.name)
 
             t8 = datetime.datetime.utcnow()
-            if verbose: logger.info('N DB connections run_fit 3: ' + str(len(connection.queries)))
-            if verbose: logger.info('Time taken: ' + str(t8 - t7))
+            if verbose: utilities.checkpoint()
+            if verbose: logger.info('Time taken chk 4: ' + str(t8 - t7))
 
             # Store model lightcurve
             if model_telescope:
@@ -59,16 +60,16 @@ def run_fit(mulens, cores=0, verbose=False):
                 logger.warning('FIT: No valid model fit produced so not model lightcurve for event '+mulens.name)
 
             t9 = datetime.datetime.utcnow()
-            if verbose: logger.info('N DB connections run_fit 4: ' + str(len(connection.queries)))
-            if verbose: logger.info('Time taken: ' + str(t9 - t8))
+            if verbose: utilities.checkpoint()
+            if verbose: logger.info('Time taken chk 5: ' + str(t9 - t8))
 
             # Determine whether or not an event is still active based on the
             # current time relative to its t0 and tE
             alive = fittools.check_event_alive(model_params['t0'], model_params['tE'])
 
             t10 = datetime.datetime.utcnow()
-            if verbose: logger.info('N DB connections run_fit 5: ' + str(len(connection.queries)))
-            if verbose: logger.info('Time taken: ' + str(t10 - t9))
+            if verbose: utilities.checkpoint()
+            if verbose: logger.info('Time taken chk 6: ' + str(t10 - t9))
 
             # Store model parameters
             model_params['Last_fit'] = Time(datetime.datetime.utcnow()).jd
@@ -77,8 +78,8 @@ def run_fit(mulens, cores=0, verbose=False):
             logger.info('FIT: Stored model parameters for event ' + mulens.name)
 
             t11 = datetime.datetime.utcnow()
-            if verbose: logger.info('N DB connections run_fit 6: ' + str(len(connection.queries)))
-            if verbose: logger.info('Time taken: ' + str(t11 - t10))
+            if verbose: utilities.checkpoint()
+            if verbose: logger.info('Time taken chk 6: ' + str(t11 - t10))
 
         else:
             logger.info('Insufficient lightcurve data available to model event '+mulens.name)
@@ -87,7 +88,7 @@ def run_fit(mulens, cores=0, verbose=False):
             return True
 
     except:
-        logger.error('Job failed: '+target.name)
+        logger.error('Job failed: '+mulens.name)
         return False
 
 class Command(BaseCommand):
@@ -102,7 +103,8 @@ class Command(BaseCommand):
         with transaction.atomic():
 
             t1 = datetime.datetime.utcnow()
-            logger.info('FIT_NEED_EVENTS: Starting with N DB connections: ' + str(len(connection.queries)))
+            logger.info('FIT_NEED_EVENTS: Starting checkpoint: ')
+            utilities.checkpoint()
 
             # Cutoff date: N hours ago (from the "--run-every=N" hours command line argument)
             cutoff = Time(datetime.datetime.utcnow() - datetime.timedelta(hours=options['run_every'])).jd
@@ -121,6 +123,7 @@ class Command(BaseCommand):
             ts3 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
                 key='Last_fit', value__lte=cutoff
             )
+
             # This is taken care of at a later stage of selection.
             #ts4 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
             #    key='Latest_data_HJD', value__gt=cutoff
@@ -144,6 +147,9 @@ class Command(BaseCommand):
 
             logger.info('FIT_NEED_EVENTS: Initial target list has ' + str(len(target_list)) + ' entries')
 
+            print(ts3)
+            utilities.checkpoint()
+
             target_extras = TargetExtra.objects.filter(
                 target__in=target_list
             )
@@ -151,8 +157,8 @@ class Command(BaseCommand):
 
             t2 = datetime.datetime.utcnow()
             logger.info('FIT_NEED_EVENTS: Retrieved associated data for ' + str(len(target_list)) + ' Targets')
-            logger.info('FIT_NEED_EVENTS: N DB connections 2: ' + str(len(connection.queries)))
-            logger.info('FIT_NEED_EVENTS: Time taken: ' + str(t2 - t1))
+            utilities.checkpoint()
+            logger.info('FIT_NEED_EVENTS: Time taken chk 2: ' + str(t2 - t1))
 
             logger.info('FIT_NEED_EVENTS: Reviewing target list to identify those that need remodeling')
             target_data = {}
@@ -166,12 +172,28 @@ class Command(BaseCommand):
                 (status, reason) = mulens.check_need_to_fit()
                 logger.info('FIT_NEED_EVENTS: Need to fit: ' + repr(status) + ', reason: ' + reason)
 
+                # If the event is to be fitted, this will take care of evaluating whether or
+                # not the event is still alive, based on the new model.
+                # If the event is not to be fitted for any reason, we need to check whether or not
+                # it is still alive.
                 if mulens.need_to_fit:
                     target_data[t] = mulens
 
+                else:
+                    print('Checking alive status, ' + str(mulens.t0) + ', ' + str(mulens.tE))
+                    print(mulens.t0 and mulens.tE)
+                    if mulens.t0 and mulens.tE:
+                        alive = fittools.check_event_alive(float(mulens.t0),
+                                                           float(mulens.tE))
+                        print(mulens.name, mulens.Alive, alive)
+                        if alive != mulens.Alive:
+                            update_extras = {'Alive': alive}
+                            mulens.store_parameter_set(update_extras)
+                            print('Updated Alive status')
+
             t3 = datetime.datetime.utcnow()
             logger.info('FIT_NEED_EVENTS: Collated data for ' + str(len(target_data)) + ' targets in ' + str(t3 - t2))
-            logger.info('FIT_NEED_EVENTS: N DB connections 3: ' + str(len(connection.queries)))
+            utilities.checkpoint()
 
             # Loop through all targets in the set
             for i, (t, mulens) in enumerate(target_data.items()):
@@ -184,11 +206,11 @@ class Command(BaseCommand):
 
                 t5 = datetime.datetime.utcnow()
                 logger.info('FIT_NEED_EVENTS: Completed modeling of ' + mulens.name + ' in ' + str(t5 - t4))
-                logger.info('FIT_NEED_EVENTS: N DB connections 4: ' + str(len(connection.queries)))
+                utilities.checkpoint()
 
             t6 = datetime.datetime.utcnow()
             logger.info('FIT_NEED_EVENTS: Finished modeling set of targets in ' + str(t6 - t1))
-            logger.info('FIT_NEED_EVENTS: N DB connections 5: ' + str(len(connection.queries)))
+            utilities.checkpoint()
 
 if __name__ == '__main__':
     main()
