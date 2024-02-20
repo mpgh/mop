@@ -147,7 +147,6 @@ class Command(BaseCommand):
 
             logger.info('FIT_NEED_EVENTS: Initial target list has ' + str(len(target_list)) + ' entries')
 
-            print(ts3)
             utilities.checkpoint()
 
             target_extras = TargetExtra.objects.filter(
@@ -180,16 +179,16 @@ class Command(BaseCommand):
                     target_data[t] = mulens
 
                 else:
-                    print('Checking alive status, ' + str(mulens.t0) + ', ' + str(mulens.tE))
-                    print(mulens.t0 and mulens.tE)
+                    logger.info('Checking alive status, ' + str(mulens.t0) + ', ' + str(mulens.tE))
+                    logger.info(mulens.t0 and mulens.tE)
                     if mulens.t0 and mulens.tE:
                         alive = fittools.check_event_alive(float(mulens.t0),
                                                            float(mulens.tE))
-                        print(mulens.name, mulens.Alive, alive)
-                        if alive != mulens.Alive:
+                        logger.info(mulens.name, type(mulens.Alive), type(alive))
+                        if alive != bool(mulens.Alive):
                             update_extras = {'Alive': alive}
                             mulens.store_parameter_set(update_extras)
-                            print('Updated Alive status')
+                            logger.info('Updated Alive status')
 
             t3 = datetime.datetime.utcnow()
             logger.info('FIT_NEED_EVENTS: Collated data for ' + str(len(target_data)) + ' targets in ' + str(t3 - t2))
