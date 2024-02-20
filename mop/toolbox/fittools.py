@@ -11,7 +11,7 @@ from astropy import units as unit
 from astropy.time import Time
 from scipy import stats
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from tom_dataproducts.models import ReducedDatum
 import json
 from django.db import connection
@@ -295,14 +295,14 @@ def store_model_lightcurve(target, model):
         rd.save()
     connection.close()
 
-def check_event_alive(t0_fit, tE_fit):
+def check_event_alive(t0_fit, tE_fit, last_obs_jd):
     """Function to evaluate whether or not an event is still actively going on, based on the current time
     relative to the model fit t0 and tE"""
 
     time_now = Time(datetime.now()).jd
 
+    # Check for events which peaked in the past and are no longer magnified
     how_many_tE = (time_now - t0_fit) / tE_fit
-
     if how_many_tE > 2:
 
         alive = False
@@ -310,6 +310,14 @@ def check_event_alive(t0_fit, tE_fit):
     else:
 
         alive = True
+
+    # Check for events (common in Gaia) where we received a few datapoints some time ago
+    # but not enough for a model fit.  These events should be expired after 6 months
+    look_back_time = time_now - Time(datetime.utcnow() - timedelta(weeks=32)).jd
+    if (t0_fit == 0.0 or tE_fit == 0.0) \
+        and (time_now - last_obs_jd) > look_back_time:
+
+        alive = False
 
     return alive
 

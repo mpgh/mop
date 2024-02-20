@@ -65,7 +65,7 @@ def run_fit(mulens, cores=0, verbose=False):
 
             # Determine whether or not an event is still active based on the
             # current time relative to its t0 and tE
-            alive = fittools.check_event_alive(model_params['t0'], model_params['tE'])
+            alive = fittools.check_event_alive(model_params['t0'], model_params['tE'], mulens.last_observation)
 
             t10 = datetime.datetime.utcnow()
             if verbose: utilities.checkpoint()
@@ -83,6 +83,11 @@ def run_fit(mulens, cores=0, verbose=False):
 
         else:
             logger.info('Insufficient lightcurve data available to model event '+mulens.name)
+
+            # Determine whether or not an event is still active based on the
+            # current time relative to its t0 and tE, and the date it was last observed
+            alive = fittools.check_event_alive(float(mulens.t0), float(mulens.tE), mulens.last_observation)
+            mulens.store_parameter_set({'Alive': alive})
 
             # Return True because no further processing is required
             return True
@@ -179,7 +184,8 @@ class Command(BaseCommand):
                 else:
                     if mulens.t0 and mulens.tE:
                         alive = fittools.check_event_alive(float(mulens.t0),
-                                                           float(mulens.tE))
+                                                           float(mulens.tE),
+                                                           mulens.last_observation)
                         if alive != bool(mulens.Alive):
                             update_extras = {'Alive': alive}
                             mulens.store_parameter_set(update_extras)
@@ -188,7 +194,7 @@ class Command(BaseCommand):
                 logger.info('FIT_NEED_EVENTS: evaluated target ' + t.name + ', '
                             + str(i) + ' out of ' + str(len(target_list)))
                 utilities.checkpoint()
-                
+
             t3 = datetime.datetime.utcnow()
             logger.info('FIT_NEED_EVENTS: Collated data for ' + str(len(target_data)) + ' targets in ' + str(t3 - t2))
             utilities.checkpoint()
