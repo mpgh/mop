@@ -172,7 +172,8 @@ class Command(BaseCommand):
                 mulens.set_extra_params(target_extras.filter(target=t))
                 mulens.set_reduced_data(datums.filter(target=t))
                 (status, reason) = mulens.check_need_to_fit()
-                logger.info('FIT_NEED_EVENTS: Need to fit: ' + repr(status) + ', reason: ' + reason)
+                logger.info('FIT_NEED_EVENTS: Need to fit ' + t.name
+                            + ': ' + repr(status) + ', reason: ' + reason)
 
                 # If the event is to be fitted, this will take care of evaluating whether or
                 # not the event is still alive, based on the new model.
