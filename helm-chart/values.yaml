@@ -10,7 +10,7 @@ gunicornTimeout: 300
 fitneedevents:
   enabled: true
   # Run every 4 hours
-  schedule: "0 2,6,10,14,18,22 * * *"
+  schedule: "30 2,6,10,14,18,22 * * *"
   # maximum execution time: 4 hours - 10 minutes == 14400 seconds - 600 seconds == 13800 seconds
   # if it takes longer than this, it will be terminated and marked FAILED
   activeDeadlineSeconds: 13800
