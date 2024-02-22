@@ -19,6 +19,17 @@ logger = logging.getLogger(__name__)
 
 register = template.Library()
 
+@register.inclusion_tag('tom_dataproducts/partials/pylima_models_for_target.html')
+def mop_pylima_model(target):
+    """
+    Renders a list of models for a target.
+    """
+    pylima_model_products = target.dataproduct_set.filter(data_product_type='pylima_model')
+    return {
+        'target': target,
+        'pylima_model_products': pylima_model_products
+    }
+
 @register.inclusion_tag('tom_dataproducts/partials/photometry_for_target.html')
 def mop_photometry(mulens):
     """
