@@ -159,15 +159,18 @@ def interferometry_data(mulens):
 
     for key in key_list:
         clean_key = clean_key_string(key)
-        value = mulens.extras[key].value
-        if key in bool_keys and value != None:
-            if value:
-                context[clean_key] = 'True'
+        if key in mulens.extras.keys():
+            value = mulens.extras[key].value
+            if key in bool_keys and value != None:
+                if value:
+                    context[clean_key] = 'True'
+                else:
+                    context[clean_key] = 'False'
             else:
-                context[clean_key] = 'False'
+                context[clean_key] = value
         else:
-            context[clean_key] = value
-
+            context[clean_key] = None
+            
     if mulens.existing_model:
         context['t0_date'] = str(convert_JD_to_UTC(mulens.t0))
     else:
