@@ -255,19 +255,19 @@ class PriorityTargetsView(ListView):
                 # Not all entries have an uncertainty set, due to older versions of the code not storing it
                 try:
                     target_info['priority_error'] = round(float(mulens.TAP_priority_error),3)
-                except KeyError:
+                except AttributeError:
                     target_info['priority_error'] = np.nan
             else:
                 target_info['priority'] = round(float(mulens.TAP_priority_longtE),3)
                 try:
                     target_info['priority_error'] = round(float(mulens.TAP_priority_longtE_error),3)
-                except KeyError:
+                except AttributeError:
                     target_info['priority_error'] = np.nan
 
             for key in key_list:
                 try:
                     target_info[key] = float(getattr(mulens, key))
-                except KeyError:
+                except AttributeError:
                     target_info[key] = np.nan
                 if key == 't0':
                     target_info[key] = round((target_info[key] - 2460000.0), 3)
