@@ -31,46 +31,26 @@ def mop_pylima_model(target):
     }
 
 @register.inclusion_tag('tom_dataproducts/partials/photometry_for_target.html')
-def mop_photometry(target):
+def mop_photometry(mulens):
     """
     Renders a photometric plot for a target.
     This templatetag requires all ``ReducedDatum`` objects with a data_type of ``photometry`` to be structured with the
     following keys in the JSON representation: magnitude, error, filter
     """
-    t1 = datetime.utcnow()
-    photometry_data = {}
-    qs = ReducedDatum.objects.filter(target=target, data_type=settings.DATA_PRODUCT_TYPES['photometry'][0])
-    t2 = datetime.utcnow()
-    logger.info('MOP PHOTOMETRY: Got ' + str(qs.count()) + ' datasets for target ' + target.name
-                + ' in ' + str((t2-t1)) )
-    for datum in qs:
-        values = datum.value
 
-        try:
-            photometry_data.setdefault(values['filter'], {})
-            photometry_data[values['filter']].setdefault('time', []).append(Time(datum.timestamp).jd-2450000)
-            photometry_data[values['filter']].setdefault('magnitude', []).append(values.get('magnitude'))
-            photometry_data[values['filter']].setdefault('error', []).append(values.get('error'))
-
-        except:
-            pass
-
-    t3 = datetime.utcnow()
-    logger.info('MOP PHOTOMETRY: Extracted photometry in ' + str((t3-t2)) )
+    logger.info('MOP PHOTOMETRY: Got ' + str(mulens.ndata) + ' datasets for target ' + mulens.name)
 
     plot_data = [
         go.Scatter(
-            x=filter_values['time'],
-            y=filter_values['magnitude'], mode='markers',
-            name=filter_name,
+            x=dataset_values[:,0] - 2460000.0,
+            y=dataset_values[:,1], mode='markers',
+            name=dataset_name,
             error_y=dict(
                 type='data',
-                array=filter_values['error'],
+                array=dataset_values[:,2],
                 visible=True
             )
-        ) for filter_name, filter_values in photometry_data.items()]
-   
-
+        ) for dataset_name, dataset_values in mulens.datasets.items()]
 
     layout = go.Layout(
         yaxis=dict(autorange='reversed'),
@@ -78,9 +58,9 @@ def mop_photometry(target):
         width=700,
              
     )
-   
+
     fig = go.Figure(data=plot_data, layout=layout)
-    current_time =  Time.now().jd-2450000
+    current_time =  Time.now().jd-2460000
     fig.add_shape(
         # Line Vertical
         dict(
@@ -100,23 +80,18 @@ def mop_photometry(target):
     ))
 
     ### Try to plot model if exist
-    try:
-       for datum in ReducedDatum.objects.filter(target=target, data_type=settings.DATA_PRODUCT_TYPES['lc_model'][0]).order_by('-id')[:1]:
+    if mulens.existing_model:
 
-            values =datum.value
-            time = np.array(values['lc_model_time'])-2450000
-            mag = np.array(values['lc_model_magnitude'])
-            fig.add_trace(go.Scatter(x=time, y=mag,
-                    mode='lines',
-                    name='Model',
-                    opacity=0.5,
-                    line = dict(color='rgb(128,128,128)',
-                                width=5,
-                                ),
-                     ))
-    except:
+        fig.add_trace(go.Scatter(x = np.array(mulens.existing_model.value['lc_model_time']) - 2460000,
+                                 y = np.array(mulens.existing_model.value['lc_model_magnitude']),
+                                 mode = 'lines',
+                                 name = 'Model',
+                                 opacity = 0.5,
+                                 line = dict(color = 'rgb(128,128,128)',
+                                             width = 5,),
+                                 )
+                      )
 
-       pass
     fig.update_layout(
 
     annotations=[
@@ -129,30 +104,36 @@ def mop_photometry(target):
              showarrow=False,
              textangle=-90,)
     ],		
-             xaxis_title="HJD-2450000",
+             xaxis_title="HJD-2460000",
              yaxis_title="Mag",
     )
 
-    t4 = datetime.utcnow()
-    logger.info('MOP PHOTOMETRY: Generated plot in ' + str((t4-t3)) )
-
     return {
-        'target': target,
+        'target': mulens.target,
         'plot': offline.plot(fig, output_type='div', show_link=False)
     }
 
 
 @register.inclusion_tag('tom_dataproducts/partials/interferometry_data.html')
-def interferometry_data(target):
+def interferometry_data(mulens):
     context = {}
+    t1 = datetime.utcnow()
+    logger.info('MOP INTERFEROMETRY: ' + str(t1))
+    utilities.checkpoint()
 
     # Gather extra_param key values for target's Gaia catalog data
-    u0 = utilities.fetch_extra_param(target, 'u0')
-    u0_error = utilities.fetch_extra_param(target, 'u0_error')
+    #u0 = utilities.fetch_extra_param(target, 'u0')
+    #u0_error = utilities.fetch_extra_param(target, 'u0_error')
+    u0 = float(mulens.u0)
+    u0_error = float(mulens.u0_error)
     if u0 == None or u0_error == None or u0 == 0.0 or u0_error == 0.0:
         context['model_valid'] = False
     else:
         context['model_valid'] = True
+
+    def clean_key_string(key):
+        return key.replace('[','').replace(']','').replace('/','_').replace('(','_').replace(')','_').replace('-','_')
+
     key_list = ['Gaia_Source_ID',
                 'Gmag', 'Gmag_error', 'RPmag', 'RPmag_error', 'BPmag', 'BPmag_error', 'BP-RP', 'BP-RP_error',
                 'Reddening(BP-RP)', 'Extinction_G', 'Distance', 'Teff', 'logg', '[Fe/H]', 'RUWE',
@@ -161,17 +142,12 @@ def interferometry_data(target):
                 'Mag_peak_H', 'Mag_peak_H_error', 'Mag_peak_K', 'Mag_peak_K_error',
                 't0', 't0_error', 'Interferometry_candidate'
                 ]
-    round_keys = ['Gmag', 'Gmag_error', 'RPmag', 'RPmag_error', 'BPmag', 'BPmag_error', 'BP-RP', 'BP-RP_error',
-                'Reddening(BP-RP)', 'Extinction_G', 'Mag_peak_J', 'Mag_peak_J_error',
-                  'Mag_peak_H', 'Mag_peak_H_error', 'Mag_peak_K', 'Mag_peak_K_error',
-                  'Mag_base_J', 'Mag_base_H', 'Mag_base_K', 't0', 't0_error', 'Interferometry_interval' ]
     bool_keys = ['Interferometry_candidate']
+
     for key in key_list:
-        clean_key = key.replace('[','').replace(']','').replace('/','_').replace('(','_').replace(')','_').replace('-','_')
-        value = utilities.fetch_extra_param(target, key)
-        if key in round_keys and value != None:
-            context[clean_key] = np.around(value,3)
-        elif key in bool_keys and value != None:
+        clean_key = clean_key_string(key)
+        value = mulens.extras[key].value
+        if key in bool_keys and value != None:
             if value:
                 context[clean_key] = 'True'
             else:
@@ -179,18 +155,21 @@ def interferometry_data(target):
         else:
             context[clean_key] = value
 
-    context['t0_date'] = str(convert_JD_to_UTC(utilities.fetch_extra_param(target, 't0')))
+    if mulens.existing_model:
+        context['t0_date'] = str(convert_JD_to_UTC(mulens.t0))
+    else:
+        context['t0_date'] = None
+
+    t2 = datetime.utcnow()
+    logger.info('MOP INTERFEROMETRY chk 2: ' + str(t2 - t1))
+    utilities.checkpoint()
 
     # Gather the ReducedData for the neighbouring stars
     # Unpack the QuerySet returned into a more convenient format for display
-    qs = ReducedDatum.objects.filter(target=target, data_type='tabular', source_name='Interferometry_predictor')
-    neighbours = []
-    if len(qs) > 0:
-        rd = qs[0]
+    if mulens.neighbours:
+        rd = mulens.neighbours
         nstars = len(rd.value['Gaia_Source_ID'])
-        for i in range(0,nstars,1):
-            neighbours.append(
-                        {'Gaia_Source_ID': rd.value['Gaia_Source_ID'][i],
+        context['neighbours'] = [{'Gaia_Source_ID': rd.value['Gaia_Source_ID'][i],
                          'Gmag': np.around(rd.value['Gmag'][i],3),
                          'Gmag_error': np.around(rd.value['Gmag_error'][i],3),
                          'BPmag': np.around(rd.value['BPmag'][i],3),
@@ -210,18 +189,20 @@ def interferometry_data(target):
                          'Fe_H': rd.value['[Fe/H]'][i],
                          'RUWE': np.around(rd.value['RUWE'][i],3),
                          'Separation': np.around((rd.value['Separation'][i]*3600.0),3)}
-            )
-    context['neighbours'] = neighbours
+                             for i in range(0,nstars,1)]
+
+    else:
+        context['neighbours'] = []
+
+    t3 = datetime.utcnow()
+    logger.info('MOP INTERFEROMETRY chk 3: ' + str(t3 - t2))
+    utilities.checkpoint()
 
     # Retrieve and unpacked the ReducedData for the nearby GSC stars
-    qs = ReducedDatum.objects.filter(target=target, data_type='tabular', source_name='GSC_query_results')
-    gsc_table = []
-    if len(qs) > 0:
-        rd = qs[0]
+    if mulens.gsc_results:
+        rd = mulens.gsc_results
         nstars = len(rd.value['GSC2'])
-        for i in range(0, nstars, 1):
-            gsc_table.append(
-                {'GSC2': rd.value['GSC2'][i],
+        context['gsc_table'] = [{'GSC2': rd.value['GSC2'][i],
                  'Separation': np.around(rd.value['Separation'][i], 3),
                  'Jmag': np.around(rd.value['Jmag'][i], 3),
                  'Hmag': np.around(rd.value['Hmag'][i], 3),
@@ -234,20 +215,21 @@ def interferometry_data(target):
                  'pmDE': np.around(rd.value['pmDE'][i], 3),
                  'AOstar': rd.value['AOstar'][i],
                  'FTstar': rd.value['FTstar'][i]}
-            )
-        context['gsc_table'] = gsc_table
+                                for i in range(0,nstars,1)]
     else:
         context['gsc_table'] = []
+    t4 = datetime.utcnow()
+    logger.info('MOP INTERFEROMETRY chk 4: ' + str(t4 - t3))
+    utilities.checkpoint()
 
     # Retrieve and unpack the ReducedData for the AOFT table
     maxStrehl = 40
-    qs = ReducedDatum.objects.filter(target=target, data_type='tabular', source_name='AOFT_table')
     AOFT_table = []
     FTstar_columns = ['FTstar', 'SC_separation', 'Ksmag', 'SC_Vloss']
     AOstar_columns = ['_FTstrehl', '_Ksmag', '_FT_separation']
     AOstars = []
-    if len(qs) > 0:
-        rd = qs[0]
+    if mulens.aoft_table:
+        rd = mulens.aoft_table
 
         # Review the dictionary keys(=column names) to identify the AOstar names
         AOstars = []
@@ -317,6 +299,11 @@ def interferometry_data(target):
         context['naostars'] = 0
         context['nftstars'] = 0
         context['AOstars'] = []
+
+    t5 = datetime.utcnow()
+    logger.info('MOP INTERFEROMETRY chk 5: ' + str(t5 - t4))
+    utilities.checkpoint()
+    logger.info('MOP INTERFEROMETRY took ' + str(t5 - t1))
 
     return context
 
@@ -399,40 +386,41 @@ def convert_JD_to_UTC(jd):
     return ts
 
 @register.inclusion_tag('tom_dataproducts/partials/gaia_neighbours_data.html')
-def gaia_neighbours_data(target):
+def gaia_neighbours_data(mulens):
     context = {}
 
     # Gather the ReducedData for the neighbouring stars
     # Unpack the QuerySet returned into a more convenient format for display
-    qs = ReducedDatum.objects.filter(target=target, data_type='tabular', source_name='Interferometry_predictor')
     neighbours = []
-    if len(qs) > 0:
-        rd = qs[0]
+    if mulens.neighbours:
+        rd = mulens.neighbours
         nstars = len(rd.value['Gaia_Source_ID'])
-        for i in range(0,nstars,1):
-            neighbours.append(
-                        {'Gaia_Source_ID': rd.value['Gaia_Source_ID'][i],
-                         'Gmag': np.around(rd.value['Gmag'][i],3),
-                         'Gmag_error': np.around(rd.value['Gmag_error'][i],3),
-                         'BPmag': np.around(rd.value['BPmag'][i],3),
-                         'BPmag_error': np.around(rd.value['BPmag_error'][i],3),
-                         'RPmag': np.around(rd.value['RPmag'][i],3),
-                         'RPmag_error': np.around(rd.value['RPmag_error'][i],3),
-                         'BP_RP': np.around(rd.value['BP-RP'][i],3),
-                         'BP_RP_error': np.around(rd.value['BP-RP_error'][i],3),
-                         'Jmag': np.around(rd.value['Jmag'][i],3),
-                         'Hmag': np.around(rd.value['Hmag'][i],3),
-                         'Kmag': np.around(rd.value['Kmag'][i],3),
-                         'Reddening_BP_RP': np.around(rd.value['Reddening(BP-RP)'][i],3),
-                         'Extinction_G': np.around(rd.value['Extinction_G'][i],3),
-                         'Distance': rd.value['Distance'][i],
-                         'Teff': rd.value['Teff'][i],
-                         'logg': rd.value['logg'][i],
-                         'Fe_H': rd.value['[Fe/H]'][i],
-                         'RUWE': np.around(rd.value['RUWE'][i],3),
-                         'Separation': np.around((rd.value['Separation'][i]*3600.0),3)}
-            )
+        neighbours = [
+                    {'Gaia_Source_ID': rd.value['Gaia_Source_ID'][i],
+                     'Gmag': np.around(rd.value['Gmag'][i],3),
+                     'Gmag_error': np.around(rd.value['Gmag_error'][i],3),
+                     'BPmag': np.around(rd.value['BPmag'][i],3),
+                     'BPmag_error': np.around(rd.value['BPmag_error'][i],3),
+                     'RPmag': np.around(rd.value['RPmag'][i],3),
+                     'RPmag_error': np.around(rd.value['RPmag_error'][i],3),
+                     'BP_RP': np.around(rd.value['BP-RP'][i],3),
+                     'BP_RP_error': np.around(rd.value['BP-RP_error'][i],3),
+                     'Jmag': np.around(rd.value['Jmag'][i],3),
+                     'Hmag': np.around(rd.value['Hmag'][i],3),
+                     'Kmag': np.around(rd.value['Kmag'][i],3),
+                     'Reddening_BP_RP': np.around(rd.value['Reddening(BP-RP)'][i],3),
+                     'Extinction_G': np.around(rd.value['Extinction_G'][i],3),
+                     'Distance': rd.value['Distance'][i],
+                     'Teff': rd.value['Teff'][i],
+                     'logg': rd.value['logg'][i],
+                     'Fe_H': rd.value['[Fe/H]'][i],
+                     'RUWE': np.around(rd.value['RUWE'][i],3),
+                     'Separation': np.around((rd.value['Separation'][i]*3600.0),3)}
+                    for i in range(0, nstars, 1) ]
+
     context['neighbours'] = neighbours
+
+    print('END ', datetime.utcnow())
 
     return context
 @register.inclusion_tag('tom_targets/partials/current_timestamp.html')
@@ -447,16 +435,23 @@ def current_timestamp():
 
 
 @register.inclusion_tag('tom_targets/partials/mulens_target_data.html')
-def mulens_target_data(target, request):
+def mulens_target_data(mulens, request):
     """
     Displays the data of a target.
     """
-    extras = {k['name']: target.extra_fields.get(k['name'], '') for k in settings.EXTRA_FIELDS if not k.get('hidden')}
-    return {
-        'target': target,
-        'extras': extras,
+
+    t1 = datetime.utcnow()
+    utilities.checkpoint()
+    target_data = {
+        'target': mulens.target,
+        'extras': mulens.extras,
         'request': request
     }
+    utilities.checkpoint()
+    t2 = datetime.utcnow()
+    logger.info('MULENS TARGET DATA time taken: ' + str(t2 - t1))
+
+    return target_data
 
 @register.inclusion_tag('tom_targets/partials/target_class_form.html', takes_context=True)
 def classification_form(context):
