@@ -269,6 +269,8 @@ class PriorityTargetsView(ListView):
                     target_info[key] = float(getattr(mulens, key))
                 except AttributeError:
                     target_info[key] = np.nan
+                except ValueError:
+                    target_info[key] = np.nan
                 if key == 't0':
                     target_info[key] = round((target_info[key] - 2460000.0), 3)
                 else:
