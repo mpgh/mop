@@ -193,6 +193,10 @@ class PriorityTargetsView(ListView):
             context     dict    Context data for webpage template
         """
 
+        t1 = datetime.utcnow()
+        logger.info('PRIORITYTARGETS started context get ' + str(t1))
+        utilities.checkpoint()
+
         # Configure context
         context = super().get_context_data(*args, **kwargs)
         context['target_count'] = context['paginator'].count
@@ -201,28 +205,15 @@ class PriorityTargetsView(ListView):
         if self.request.user.is_authenticated:
 
             # Query for matching TargetExtra entries returns a list of Target PKs
-            qs_stars = TargetExtra.objects.filter(
-                key='TAP_priority', float_value__gt=10.0
-            ).exclude(
-                value=np.nan
-            ).exclude(
-                value__exact=''
-            ).exclude(
-                value__exact='None'
-            ).values_list('target').distinct()
-            qs_bh = TargetExtra.objects.filter(
-                key='TAP_priority_longtE', float_value__gt=10.0
-            ).exclude(
-                value=np.nan
-            ).exclude(
-                value__exact=''
-            ).exclude(
-                value__exact='None'
-            ).values_list('target').distinct()
+            qs_stars = querytools.fetch_priority_targets('TAP_priority', 10.0)
+            qs_bh = querytools.fetch_priority_targets('TAP_priority_longtE', 10.0)
 
             logger.info('Priority querysets initially find ' \
                         + str(len(qs_stars)) + ' stellar candidate events and ' \
                         + str(len(qs_bh)) + ' BH candidate events')
+            t2 = datetime.utcnow()
+            logger.info('PRIORITYTARGETS took ' + str(t2 - t1))
+            utilities.checkpoint()
 
             # Repackage the two lists to extract the parameters to display in the table.
             # This also checks to see if a Target is alive and not flagged as a known
@@ -239,53 +230,59 @@ class PriorityTargetsView(ListView):
             context['stellar_targets'] = []
             context['bh_targets'] = []
 
+        t2 = datetime.utcnow()
+        logger.info('PRIORITYTARGETS finished context get ' + str(t2) + ' took ' + str(t2 - t1))
+        utilities.checkpoint()
+
         return context
 
-    def extract_target_parameters(self, qs, target_category):
+    def extract_target_parameters(self, targetset, target_category):
         t1 = datetime.utcnow()
+        logger.info('PRIORITYTARGETS started extract at ' + str(t1))
+        utilities.checkpoint()
+
         key_list = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error', 'Mag_now', 'Baseline_magnitude']
 
-        selected_targets = Target.objects.filter(pk__in=qs)
+        selected_targets = querytools.fetch_data_for_targetset(targetset, check_need_to_fit=False)
 
-        target_data = []
         priority = []
-        for target in selected_targets:
-            target_info = {'name': target.name, 'id': target.id}
-            if 'Outside HCZ' in target.extra_fields['Sky_location'] and \
-                self.check_classification(target) and self.check_valid_target(target):
-                    if target_category == 'stellar':
-                        target_info['priority'] = round(target.extra_fields['TAP_priority'],3)
-                        # Not all entries have an uncertainty set, due to older versions of the code not storing it
-                        try:
-                            target_info['priority_error'] = round(target.extra_fields['TAP_priority_error'],3)
-                        except KeyError:
-                            target_info['priority_error'] = np.nan
-                    else:
-                        target_info['priority'] = round(target.extra_fields['TAP_priority_longtE'],3)
-                        try:
-                            target_info['priority_error'] = round(target.extra_fields['TAP_priority_longtE_error'],3)
-                        except KeyError:
-                            target_info['priority_error'] = np.nan
+        target_data = []
+        for t, mulens in selected_targets.items():
+            target_info = {'name': mulens.name, 'id': mulens.target.id}
 
-                    for key in key_list:
-                        try:
-                            target_info[key] = target.extra_fields[key]
-                        except KeyError:
-                            target_info[key] = np.nan
-                        if key == 't0':
-                            target_info[key] = round((target_info[key] - 2460000.0), 3)
-                        else:
-                            # Round floating point values where possible to save space in the table, catching
-                            # NaN entries.  Skip in the event that the value is None or a string.
-                            try:
-                                if not np.isnan(target_info[key]):
-                                    target_info[key] = round(target_info[key], 3)
-                            except:
-                                pass
+            if target_category == 'stellar':
+                target_info['priority'] = round(float(mulens.TAP_priority),3)
+                # Not all entries have an uncertainty set, due to older versions of the code not storing it
+                try:
+                    target_info['priority_error'] = round(float(mulens.TAP_priority_error),3)
+                except KeyError:
+                    target_info['priority_error'] = np.nan
+            else:
+                target_info['priority'] = round(float(mulens.TAP_priority_longtE),3)
+                try:
+                    target_info['priority_error'] = round(float(mulens.TAP_priority_longtE_error),3)
+                except KeyError:
+                    target_info['priority_error'] = np.nan
 
-                    target_data.append(target_info)
-                    priority.append(target_info['priority'])
-                
+            for key in key_list:
+                try:
+                    target_info[key] = float(getattr(mulens, key))
+                except KeyError:
+                    target_info[key] = np.nan
+                if key == 't0':
+                    target_info[key] = round((target_info[key] - 2460000.0), 3)
+                else:
+                    # Round floating point values where possible to save space in the table, catching
+                    # NaN entries.  Skip in the event that the value is None or a string.
+                    try:
+                        if not np.isnan(target_info[key]):
+                            target_info[key] = round(target_info[key], 3)
+                    except:
+                        pass
+
+            target_data.append(target_info)
+            priority.append(target_info['priority'])
+
         # Sort the returned list and cap it at a maximum of 20 events per table to avoid bad gateway errors
         max_entries = 20
         priority = np.array(priority)
@@ -295,13 +292,16 @@ class PriorityTargetsView(ListView):
             sorted_targets = sorted_targets[0:max_entries]
 
         t2 = datetime.utcnow()
-        logger.info('Complete extract function took ' + str(t2-t1))
+        logger.info('PRIORITYTARGETS finished data extract at ' + str(t2))
+        logger.info('PRIORITY TARGETS extract function took ' + str(t2-t1))
+        utilities.checkpoint()
 
         return sorted_targets
 
 
     def check_classification(self, target):
-        """Method to check that the listed events are actually microlensing"""
+        """Method to check that the listed events are actually microlensing
+        NOW DEPRECIATED"""
 
         if 'microlensing' in str(target.extra_fields['Classification']).lower():
             criteria = [True]
@@ -326,6 +326,7 @@ class PriorityTargetsView(ListView):
         """
         Method to verify that a Target is Alive and not flagged as a known variable before it is
         included in the Priority Targets table
+        NOW DEPRECIATED
         """
 
         if 'Alive' not in target.extra_fields.keys():

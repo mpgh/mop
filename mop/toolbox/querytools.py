@@ -5,6 +5,7 @@ from mop.toolbox import utilities
 import logging
 import datetime
 from django.db import connection
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -122,3 +123,65 @@ def fetch_data_for_targetset(target_list, check_need_to_fit=True):
     utilities.checkpoint()
 
     return target_data
+
+def fetch_priority_targets(priority_key, priority_threshold):
+    """Function to fetch a list of Targets currently assigned a priority value higher than
+    the given threshold.  Different priority keys are specified in the extra_fields and can
+    be used as selection keys. """
+
+    # First fetch a list of TargetExtra entries where the priority exceeds the threshold.
+    # This returns a list of Target pk interger values.
+    ts1 = TargetExtra.objects.prefetch_related('target').filter(
+        key=priority_key, float_value__gt=priority_threshold
+    ).exclude(
+        value=np.nan
+    ).exclude(
+        value__exact=''
+    ).exclude(
+        value__exact='None'
+    )
+    ts2 = TargetExtra.objects.prefetch_related('target').filter(
+        key='Sky_location', value__icontains='Outside HCZ'
+    )
+    ts3 = TargetExtra.objects.prefetch_related('target').filter(
+        key='Classification', value__icontains='Microlensing'
+    )
+    ts4 = TargetExtra.objects.prefetch_related('target').filter(
+        key='is_YSO', value__icontains='false'
+    )
+    ts5 = TargetExtra.objects.prefetch_related('target').filter(
+        key='is_QSO', value__icontains='false'
+    )
+    ts6 = TargetExtra.objects.prefetch_related('target').filter(
+        key='is_galaxy', value__icontains='false'
+    )
+
+    logger.info('QueryTools: Got ' + str(ts1.count()) + ' targets above priority threshold, '
+          + str(ts2.count()) + ' targets outside the HCZ, '
+          + str(ts3.count()) + ' targets classified as microlensing, '
+          + str(ts4.count()) + ' targets not YSOs, '
+          + str(ts5.count()) + ' targets not QSOs, '
+          + str(ts6.count()) + ' targets not galaxies')
+
+    # Find the intersection of the target sets:
+    targets1 = [x.target for x in ts1]
+    targets2 = [x.target for x in ts2]
+    targets3 = [x.target for x in ts3]
+    targets4 = [x.target for x in ts4]
+    targets5 = [x.target for x in ts5]
+    targets6 = [x.target for x in ts6]
+
+    target_list = list(set(targets1).intersection(
+        set(targets2)
+    ).intersection(
+        set(targets3)
+    ).intersection(
+        set(targets4)
+    ).intersection(
+        set(targets5)
+    ).intersection(
+        set(targets6)
+    ))
+    logger.info('QueryTools: identified ' + str(len(target_list)) + ' targets')
+
+    return target_list
