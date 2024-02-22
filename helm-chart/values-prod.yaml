@@ -44,11 +44,11 @@ postgresql:
 # MOP Container CPU/Memory Resource Requests/Limits
 resources:
   requests:
-    cpu: 10m
-    memory: 256Mi
+    cpu: 500m
+    memory: 512Mi
   limits:
-    cpu: 1000m
-    memory: 1024Mi
+    cpu: 2
+    memory: 2Gi
 
 # HTTP router configuration
 ingress:
