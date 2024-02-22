@@ -30,23 +30,33 @@ class MOPTargetDetailView(TargetDetailView):
         :returns: context object
         :rtype: dict
         """
+
+        t1 = datetime.utcnow()
+        logger.info('STARTED GET_CONTEXT ' + str(t1))
+        utilities.checkpoint()
+
         context = super().get_context_data(*args, **kwargs)
         context['class_form'] = TargetClassificationForm()
         target = self.get_object()
         target_data = querytools.fetch_data_for_targetset([target], check_need_to_fit=False)
         context['mulens'] = target_data[target]
 
+        t2 = datetime.utcnow()
+        logger.info('GET_CONTEXT took ' + str(t2 - t1))
+        utilities.checkpoint()
+
         return context
 
     def get(self, request, *args, **kwargs):
         # Ensure that the target's location flag is set
-        print('START: ', datetime.utcnow())
+        print('STARTING TargetDetail page load: ' + str(datetime.utcnow()))
+
         t1 = datetime.utcnow()
         utilities.checkpoint()
 
         target = self.get_object()
-        if 'Sky_location' not in target.extra_fields.keys():
-            set_target_sky_location(target)
+        #if 'Sky_location' not in target.extra_fields.keys():
+        #    set_target_sky_location(target)
 
         t2 = datetime.utcnow()
         logger.info('TARGETDETAIL: chk 1, time taken ' + str(t2 - t1))

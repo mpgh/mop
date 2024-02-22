@@ -20,13 +20,19 @@ logger = logging.getLogger(__name__)
 register = template.Library()
 
 @register.inclusion_tag('tom_dataproducts/partials/pylima_models_for_target.html')
-def mop_pylima_model(target):
+def mop_pylima_model(mulens):
     """
     Renders a list of models for a target.
     """
-    pylima_model_products = target.dataproduct_set.filter(data_product_type='pylima_model')
+    t1 = datetime.utcnow()
+    logger.info('PYLIMA MODEL EXTRACT started ' + str(t1))
+    pylima_model_products = mulens.target.dataproduct_set.filter(data_product_type='pylima_model')
+    t2 = datetime.utcnow()
+    logger.info('PyLIMA model load took ' + str(t2 - t1))
+    utilities.checkpoint()
+
     return {
-        'target': target,
+        'target': mulens.target,
         'pylima_model_products': pylima_model_products
     }
 
@@ -38,7 +44,10 @@ def mop_photometry(mulens):
     following keys in the JSON representation: magnitude, error, filter
     """
 
-    logger.info('MOP PHOTOMETRY: Got ' + str(mulens.ndata) + ' datasets for target ' + mulens.name)
+    t1 = datetime.utcnow()
+    logger.info('MOP PHOTOMETRY: Started at ' + str(t1) + ', got '
+                + str(mulens.ndata) + ' datasets for target ' + mulens.name)
+    utilities.checkpoint()
 
     plot_data = [
         go.Scatter(
@@ -108,6 +117,10 @@ def mop_photometry(mulens):
              yaxis_title="Mag",
     )
 
+    t2 = datetime.utcnow()
+    logger.info('MOP PHOTOMETRY took ' + str(t2 - t1))
+    utilities.checkpoint()
+
     return {
         'target': mulens.target,
         'plot': offline.plot(fig, output_type='div', show_link=False)
@@ -118,7 +131,7 @@ def mop_photometry(mulens):
 def interferometry_data(mulens):
     context = {}
     t1 = datetime.utcnow()
-    logger.info('MOP INTERFEROMETRY: ' + str(t1))
+    logger.info('MOP INTERFEROMETRY started at: ' + str(t1))
     utilities.checkpoint()
 
     # Gather extra_param key values for target's Gaia catalog data
@@ -160,10 +173,6 @@ def interferometry_data(mulens):
     else:
         context['t0_date'] = None
 
-    t2 = datetime.utcnow()
-    logger.info('MOP INTERFEROMETRY chk 2: ' + str(t2 - t1))
-    utilities.checkpoint()
-
     # Gather the ReducedData for the neighbouring stars
     # Unpack the QuerySet returned into a more convenient format for display
     if mulens.neighbours:
@@ -194,10 +203,6 @@ def interferometry_data(mulens):
     else:
         context['neighbours'] = []
 
-    t3 = datetime.utcnow()
-    logger.info('MOP INTERFEROMETRY chk 3: ' + str(t3 - t2))
-    utilities.checkpoint()
-
     # Retrieve and unpacked the ReducedData for the nearby GSC stars
     if mulens.gsc_results:
         rd = mulens.gsc_results
@@ -218,9 +223,6 @@ def interferometry_data(mulens):
                                 for i in range(0,nstars,1)]
     else:
         context['gsc_table'] = []
-    t4 = datetime.utcnow()
-    logger.info('MOP INTERFEROMETRY chk 4: ' + str(t4 - t3))
-    utilities.checkpoint()
 
     # Retrieve and unpack the ReducedData for the AOFT table
     maxStrehl = 40
@@ -300,10 +302,9 @@ def interferometry_data(mulens):
         context['nftstars'] = 0
         context['AOstars'] = []
 
-    t5 = datetime.utcnow()
-    logger.info('MOP INTERFEROMETRY chk 5: ' + str(t5 - t4))
+    t2 = datetime.utcnow()
     utilities.checkpoint()
-    logger.info('MOP INTERFEROMETRY took ' + str(t5 - t1))
+    logger.info('MOP INTERFEROMETRY took ' + str(t2 - t1))
 
     return context
 
@@ -387,6 +388,9 @@ def convert_JD_to_UTC(jd):
 
 @register.inclusion_tag('tom_dataproducts/partials/gaia_neighbours_data.html')
 def gaia_neighbours_data(mulens):
+    t1 = datetime.utcnow()
+    logger.info('GAIA NEIGHBOURS started ' + str(t1))
+    utilities.checkpoint()
     context = {}
 
     # Gather the ReducedData for the neighbouring stars
@@ -420,31 +424,41 @@ def gaia_neighbours_data(mulens):
 
     context['neighbours'] = neighbours
 
-    print('END ', datetime.utcnow())
+    t2 = datetime.utcnow()
+    logger.info('GAIA NEIGHBOURS took ' + str(t2 - t1))
+    utilities.checkpoint()
+    logger.info('END Targetpage get' + str(t2))
 
     return context
 @register.inclusion_tag('tom_targets/partials/current_timestamp.html')
 def current_timestamp():
-
     context = {}
     utc_now = datetime.utcnow()
     context['utc_now'] = utc_now.strftime("%Y-%m-%d %H:%M:%S")
     context['jd_now'] = str(np.around(Time(utc_now).jd,3))
 
+    t2 = datetime.utcnow()
+    logger.info('FINISHED GET_CONTEXT ' + str(t2))
+    utilities.checkpoint()
+
     return context
 
 
 @register.inclusion_tag('tom_targets/partials/mulens_target_data.html')
-def mulens_target_data(mulens, request):
+def mulens_target_data(target, request):
     """
     Displays the data of a target.
+    Note that this function cannot use the Microlensing Event objects as the classification form
+    is created as a subfunction here, and this requires a Target object in order for the
+    form to validate.
     """
 
     t1 = datetime.utcnow()
     utilities.checkpoint()
+    extras = {k['name']: target.extra_fields.get(k['name'], '') for k in settings.EXTRA_FIELDS if not k.get('hidden')}
     target_data = {
-        'target': mulens.target,
-        'extras': mulens.extras,
+        'target': target,
+        'extras': extras,
         'request': request
     }
     utilities.checkpoint()
@@ -456,6 +470,10 @@ def mulens_target_data(mulens, request):
 @register.inclusion_tag('tom_targets/partials/target_class_form.html', takes_context=True)
 def classification_form(context):
     """Embedded form to enable user to change a Target's classification extra_field parameters"""
+
+    t1 = datetime.utcnow()
+    logger.info('CLASS FORM started at ' + str(t1))
+    utilities.checkpoint()
 
     target = context['target']
     try:
@@ -523,6 +541,10 @@ def classification_form(context):
         result['current_category'] = target.extra_fields['Category']
     if 'Classification' in target.extra_fields.keys():
         result['current_classification'] = target.extra_fields['Classification']
+
+    t2 = datetime.utcnow()
+    logger.info('CLASS FORM took ' + str(t2 - t1))
+    utilities.checkpoint()
 
     return result
 

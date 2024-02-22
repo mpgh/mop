@@ -1,5 +1,5 @@
 from tom_dataproducts.models import ReducedDatum
-from tom_targets.models import Target,TargetExtra,TargetList
+from tom_targets.models import Target,TargetExtra,TargetName
 from mop.toolbox.mop_classes import MicrolensingEvent
 from mop.toolbox import utilities
 import logging
@@ -88,6 +88,7 @@ def fetch_data_for_targetset(target_list, check_need_to_fit=True):
         target__in=target_list
     )
     datums = ReducedDatum.objects.filter(target__in=target_list).order_by("timestamp")
+    names = TargetName.objects.filter(target__in=target_list)
 
     t2 = datetime.datetime.utcnow()
     logger.info('queryTools: Retrieved associated data for ' + str(len(target_list)) + ' Targets')
@@ -100,6 +101,7 @@ def fetch_data_for_targetset(target_list, check_need_to_fit=True):
     target_data = {}
     for i, t in enumerate(target_list):
         mulens = MicrolensingEvent(t)
+        mulens.set_target_names(names.filter(target=t))
         mulens.set_extra_params(target_extras.filter(target=t))
         mulens.set_reduced_data(datums.filter(target=t))
         if check_need_to_fit:

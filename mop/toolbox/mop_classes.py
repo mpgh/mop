@@ -14,6 +14,11 @@ class MicrolensingEvent(Target):
     def __init__(self, t):
         super().__init__(self, t.name)
         self.target = t
+        self.ra = float(t.ra)
+        self.dec = float(t.dec)
+        self.galactic_lng = float(t.galactic_lng)
+        self.galactic_lat = float(t.galactic_lat)
+        self.targetnames = []
         self.red_data = None
         self.extras = None
         self.Last_fit = None
@@ -23,6 +28,7 @@ class MicrolensingEvent(Target):
         self.neighbours = None
         self.gsc_results = None
         self.aoft_table = None
+        self.pylima_model = None
         self.need_to_fit = True
 
     def __str__(self):
@@ -35,6 +41,11 @@ class MicrolensingEvent(Target):
         for par in qs:
             setattr(self, par.key, par.value)
             self.extras[par.key] = par
+
+    def set_target_names(self, qs):
+        """Attributes the names associated with this target"""
+        for name in qs:
+            self.targetnames.append(name.name)
 
     def set_reduced_data(self, qs):
         """Extracts the timeseries data from a QuerySet of ReducedDatums, and
@@ -55,8 +66,7 @@ class MicrolensingEvent(Target):
             self.first_observation = None
             self.last_observation = None
 
-        # Identify a pre-existing model lightcurve, if one is available,
-        # and also any table of interferometry data:
+        # Identify any pre-existing datasets of specific categories, if available
         for dset in qs:
             if dset.data_type == 'lc_model':
                 self.existing_model = dset
@@ -70,7 +80,8 @@ class MicrolensingEvent(Target):
             if dset.data_type == 'tabular' and dset.source_name == 'AOFT_table':
                 self.aoft_table = dset
 
-            if self.existing_model and self.neighbours and self.gsc_results and self.aoft_table:
+            if self.existing_model and self.neighbours \
+                    and self.gsc_results and self.aoft_table:
                 break
 
     def check_need_to_fit(self):
