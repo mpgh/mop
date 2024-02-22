@@ -20,6 +20,9 @@ class MicrolensingEvent(Target):
         self.first_observation = None
         self.last_observation = None
         self.existing_model = None
+        self.neighbours = None
+        self.gsc_results = None
+        self.aoft_table = None
         self.need_to_fit = True
 
     def __str__(self):
@@ -52,10 +55,22 @@ class MicrolensingEvent(Target):
             self.first_observation = None
             self.last_observation = None
 
-        # Identify a pre-existing model lightcurve, if one is available:
+        # Identify a pre-existing model lightcurve, if one is available,
+        # and also any table of interferometry data:
         for dset in qs:
             if dset.data_type == 'lc_model':
                 self.existing_model = dset
+
+            if dset.data_type == 'tabular' and dset.source_name == 'Interferometry_predictor':
+                self.neighbours = dset
+
+            if dset.data_type == 'tabular' and dset.source_name == 'GSC_query_results':
+                self.gsc_results = dset
+
+            if dset.data_type == 'tabular' and dset.source_name == 'AOFT_table':
+                self.aoft_table = dset
+
+            if self.existing_model and self.neighbours and self.gsc_results and self.aoft_table:
                 break
 
     def check_need_to_fit(self):

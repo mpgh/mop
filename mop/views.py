@@ -13,6 +13,8 @@ from django_filters.views import FilterView
 from guardian.mixins import PermissionListMixin
 from guardian.shortcuts import get_objects_for_user
 from datetime import datetime, timedelta
+from mop.toolbox import utilities, querytools
+from mop.toolbox.mop_classes import MicrolensingEvent
 from django.views.generic.list import ListView
 import numpy as np
 import logging
@@ -30,13 +32,25 @@ class MOPTargetDetailView(TargetDetailView):
         """
         context = super().get_context_data(*args, **kwargs)
         context['class_form'] = TargetClassificationForm()
+        target = self.get_object()
+        target_data = querytools.fetch_data_for_targetset([target], check_need_to_fit=False)
+        context['mulens'] = target_data[target]
+
         return context
 
     def get(self, request, *args, **kwargs):
         # Ensure that the target's location flag is set
+        print('START: ', datetime.utcnow())
+        t1 = datetime.utcnow()
+        utilities.checkpoint()
+
         target = self.get_object()
         if 'Sky_location' not in target.extra_fields.keys():
             set_target_sky_location(target)
+
+        t2 = datetime.utcnow()
+        logger.info('TARGETDETAIL: chk 1, time taken ' + str(t2 - t1))
+        utilities.checkpoint()
 
         fit_event = request.GET.get('fit_event', False)
         if fit_event:
@@ -46,6 +60,10 @@ class MOPTargetDetailView(TargetDetailView):
             call_command('fit_event_PSPL', target_name, cores=0, stdout=out)
             return redirect(reverse('tom_targets:detail', args=(target_id,)))
 
+        t3 = datetime.utcnow()
+        logger.info('TARGETDETAIL: chk 2, time taken ' + str(t3 - t2))
+        utilities.checkpoint()
+
         TAP_event = request.GET.get('tap_event', False)
         if TAP_event:
             target_id = self.get_object().id
@@ -53,6 +71,12 @@ class MOPTargetDetailView(TargetDetailView):
             out = StringIO()
             call_command('run_TAP', target_name, stdout=out)
             return redirect(reverse('tom_targets:detail', args=(target_id,)))
+
+        t4 = datetime.utcnow()
+        logger.info('TARGETDETAIL: chk 3, time taken ' + str(t4 - t3))
+        utilities.checkpoint()
+
+        logger.info('TARGETDETAIL: get took ' + str(t4 - t1))
 
         return super().get(request, *args, **kwargs)
 
