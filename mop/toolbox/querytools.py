@@ -185,3 +185,47 @@ def fetch_priority_targets(priority_key, priority_threshold):
     logger.info('QueryTools: identified ' + str(len(target_list)) + ' targets')
 
     return target_list
+
+def get_gaia_alive_events():
+    """
+    Function to retrieve Targets that are classified as microlensing events that are currently ongoing.
+
+    Parameters:
+        None
+    """
+
+    t1 = datetime.datetime.utcnow()
+    logger.info('queryTools: checkpoint 1')
+    utilities.checkpoint()
+
+   # Search TargetExtras to identify alive microlensing events outside the HCZ
+    ts1 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
+        key='Classification', value__icontains='Microlensing'
+    )
+    ts2 = TargetExtra.objects.prefetch_related('target').select_for_update(skip_locked=True).filter(
+        key='Alive', value=True
+    )
+    logger.info('queryTools: Initial queries selected '
+                + str(ts1.count()) + ' events classified as microlensing, '
+                + str(ts2.count()) + ' events currently Alive')
+    t2 = datetime.datetime.utcnow()
+    utilities.checkpoint()
+
+    # This doesn't directly produce a queryset of targets, instead it returns a queryset of target IDs.
+    # So we have to extract the corresponding targets.
+    # In the process, filter out any events that are not from Gaia
+    targets1 = [x.target for x in ts1 if 'Gaia' in x.target.name]
+    targets2 = [x.target for x in ts2 if 'Gaia' in x.target.name]
+    target_list = list(set(targets1).intersection(set(targets2)))
+
+    logger.info('queryTools: Initial target list has ' + str(len(target_list)) + ' entries')
+
+    # Now gather any TargetExtra and ReducedDatums associated with these targets.
+    # This is managed as a dictionary of MicrolensingEvent objects
+    target_data = fetch_data_for_targetset(target_list, check_need_to_fit=False)
+
+    t3 = datetime.datetime.utcnow()
+    logger.info('queryTools: Collated data for ' + str(len(target_data)) + ' targets in ' + str(t3 - t2))
+    utilities.checkpoint()
+
+    return target_data

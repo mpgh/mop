@@ -137,8 +137,12 @@ def interferometry_data(mulens):
     # Gather extra_param key values for target's Gaia catalog data
     #u0 = utilities.fetch_extra_param(target, 'u0')
     #u0_error = utilities.fetch_extra_param(target, 'u0_error')
-    u0 = float(mulens.u0)
-    u0_error = float(mulens.u0_error)
+    try:
+        u0 = float(mulens.u0)
+        u0_error = float(mulens.u0_error)
+    except AttributeError:
+        u0 = None
+        u0 = None
     if u0 == None or u0_error == None or u0 == 0.0 or u0_error == 0.0:
         context['model_valid'] = False
     else:
@@ -464,6 +468,7 @@ def mulens_target_data(target, request):
         'extras': extras,
         'request': request
     }
+
     utilities.checkpoint()
     t2 = datetime.utcnow()
     logger.info('MULENS TARGET DATA time taken: ' + str(t2 - t1))

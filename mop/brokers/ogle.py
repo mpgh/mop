@@ -15,7 +15,7 @@ import numpy as np
 import requests
 from astropy.time import Time, TimezoneInfo
 import logging
-from mop.toolbox import TAP, utilities
+from mop.toolbox import TAP, utilities, classifier_tools
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +101,7 @@ class OGLEBroker(GenericBroker):
                     target.save()
                     utilities.add_gal_coords(target)
                     TAP.set_target_sky_location(target)
+                    classifier_tools.check_known_variable(target, coord=s)
                     logger.info('OGLE harvester: added event '+event_name+' to MOP')
                     new_targets.append(target)
             else:

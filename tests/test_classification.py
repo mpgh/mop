@@ -1,7 +1,7 @@
 from django.test import TestCase
 from tom_targets.tests.factories import SiderealTargetFactory
 from tom_dataproducts.models import ReducedDatum
-
+from tom_targets.models import Target
 from mop.toolbox import classifier_tools
 from mop.management.commands import gaia_classifier
 
@@ -117,3 +117,29 @@ def generate_test_ReducedDatums(target, lightcurve_file, tel_label):
                 data.append(rd)
 
     return data
+
+class TestCheckKnownVariable(TestCase):
+    def setUp(self):
+        st1 = SiderealTargetFactory.create()
+        st1.name = 'Gaia23avo'
+        st1.ra = 20.4233
+        st1.dec = 11.8307
+        self.target = st1
+        self.is_YSO = False
+        self.is_QSO = True
+        self.is_galaxy = True
+        self.classification = 'Extra-galactic variable'
+        self.category = 'Active Galactic Nucleus'
+
+    def test_check_known_variable(self):
+        classifier_tools.check_known_variable(self.target, coord=None)
+
+        t = Target.objects.get(name = self.target.name)
+
+        print(t.extra_fields)
+
+        assert(t.extra_fields['YSO'] == self.is_YSO)
+        assert(t.extra_fields['QSO'] == self.is_QSO)
+        assert(t.extra_fields['galaxy'] == self.is_galaxy)
+        assert(t.extra_fields['Classification'] == self.classification)
+        assert(t.extra_fields['Category'] == self.category)

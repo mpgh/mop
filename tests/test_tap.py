@@ -290,3 +290,4 @@ def generate_gaia_ReducedDatums(target, lightcurve_file, tel_label):
                 data.append(rd)
 
     return data
+

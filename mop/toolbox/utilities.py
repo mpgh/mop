@@ -69,3 +69,4 @@ def checkpoint():
     logger.info('CHECKPOINT: N DB connections: '
                 + str(len(connection.queries)) + ', memory: '
                 + str(round(psutil.Process(os.getpid()).memory_info().rss / 1048576, 2)) + 'MiB')
+

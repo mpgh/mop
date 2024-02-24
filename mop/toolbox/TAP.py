@@ -118,11 +118,6 @@ def set_target_sky_location(target):
         sky_location = 'Outside HCZ'
     target.save(extras={'Sky_location': sky_location})
 
-
-
-
-
-
 def TAP_regular_mode(in_the_Bulge,survey_cadence,sdssi_baseline,tE_fit):
 
     cadence =   20/tE_fit  #visits per day

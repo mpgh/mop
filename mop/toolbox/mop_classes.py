@@ -16,8 +16,12 @@ class MicrolensingEvent(Target):
         self.target = t
         self.ra = float(t.ra)
         self.dec = float(t.dec)
-        self.galactic_lng = float(t.galactic_lng)
-        self.galactic_lat = float(t.galactic_lat)
+        if t.galactic_lat and t.galactic_lng:
+            self.galactic_lng = float(t.galactic_lng)
+            self.galactic_lat = float(t.galactic_lat)
+        else:
+            self.galactic_lat = None
+            self.galactic_lng = None
         self.targetnames = []
         self.red_data = None
         self.extras = None

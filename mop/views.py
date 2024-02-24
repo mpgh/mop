@@ -49,7 +49,7 @@ class MOPTargetDetailView(TargetDetailView):
 
     def get(self, request, *args, **kwargs):
         # Ensure that the target's location flag is set
-        print('STARTING TargetDetail page load: ' + str(datetime.utcnow()))
+        logger.info('STARTING TargetDetail page load: ' + str(datetime.utcnow()))
 
         t1 = datetime.utcnow()
         utilities.checkpoint()

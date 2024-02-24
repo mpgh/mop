@@ -5,7 +5,7 @@ from tom_targets.models import Target, TargetExtra
 from astropy.time import Time
 from mop.toolbox import fittools
 from mop.brokers import gaia as gaia_mop
-from mop.brokers import tns
+from mop.brokers import tnsz
 
 import json
 import numpy as np

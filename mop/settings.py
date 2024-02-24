@@ -401,9 +401,9 @@ EXTRA_FIELDS = [{'name': 'Alive', 'type': 'boolean', 'default':True},
                 {'name': 'Mag_base_H', 'type': 'number', 'default': ''},
                 {'name': 'Mag_base_K', 'type': 'number', 'default': ''},
                 {'name': 'Interferometry_interval', 'type': 'number', 'default': 0},
-                {'name': 'is_YSO', 'type': 'string', 'default': ''},
-                {'name': 'is_QSO', 'type': 'string', 'default': ''},
-                {'name': 'is_galaxy', 'type': 'string', 'default': ''},
+                {'name': 'YSO', 'type': 'boolean', 'default': False},
+                {'name': 'QSO', 'type': 'boolean', 'default': False},
+                {'name': 'galaxy', 'type': 'boolean', 'default': False},
                 {'name': 'TNS_name', 'type': 'string', 'default': 'None'},
                 {'name': 'TNS_class', 'type': 'string', 'default': 'None'}]
 
