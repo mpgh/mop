@@ -120,8 +120,6 @@ def check_tns(coord):
         if tns_class:
             tns_results['TNS_class'] = str(tns_class)
 
-    logger.info('CHECK TNS results: ' + repr(tns_results))
-
     return tns_results
 
 def check_known_variable(target, coord=None):
