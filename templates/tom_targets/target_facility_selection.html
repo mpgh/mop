@@ -11,6 +11,13 @@
     <p>WARNING - function in development!  Visibility calculations take time and may time out.  The best way to avoid this is to select
     a targetlist from the pulldown menu rather than leave that field blank.  </p>
 </div>
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
 <div class="row">
   <form method="post" class="form" id='target-selection-form'>
     {% csrf_token %}

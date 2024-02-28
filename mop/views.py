@@ -10,6 +10,7 @@ from tom_observations.views import ObservationFilter
 from tom_observations.utils import get_sidereal_visibility
 from mop.toolbox.TAP import set_target_sky_location
 from django.views.generic.edit import FormView
+from django.contrib import messages
 from mop.toolbox.obs_control import fetch_all_lco_requestgroups, parse_lco_requestgroups
 from mop.forms import TargetClassificationForm, TargetSelectionForm
 from tom_common.mixins import Raise403PermissionRequiredMixin
@@ -424,43 +425,50 @@ class TargetFacilitySelectionView(Raise403PermissionRequiredMixin, FormView):
         ] + settings.SELECTION_EXTRA_FIELDS
         #for param in settings.SELECTION_EXTRA_FIELDS:
         #    table_columns.append(param)
+        context['table_columns'] = table_columns
+        context['observable_targets'] = []
         logger.info('FacilitySelectView: table columns: ' + repr(table_columns))
 
-        # Calculate the visibility of all selected targets on the date given
-        # Since some observatories include multiple sites, the visibiliy_data returned is always
-        # a dictionary indexed by site code.  Our purpose here is to verify whether each target is ever
-        # visible at lower airmass than the limit from any site - if so the target is considered to be visible
-        observable_targets = []
-        for object in targets:
-            start_time = datetime.strptime(request.POST.get('date')+'T00:00:00', '%Y-%m-%dT%H:%M:%S')
-            end_time = datetime.strptime(request.POST.get('date')+'T23:59:59', '%Y-%m-%dT%H:%M:%S')
-            airmass_limit = 2.0 # Hardcoded for now
-            logger.info('FacilitySelectView: calculating visibility for ' + object.name)
-            visibility_data = get_sidereal_visibility(
-                object, start_time, end_time,
-                visibiliy_intervals, airmass_max,
-                observation_facility=request.POST.get('observatory')
-            )
-            logger.info('FacilitySelectView: Got visibility data')
-            for site, vis_data in visibility_data.items():
-                airmass_data = np.array([x for x in vis_data[1] if x])
-                if len(airmass_data) > 0:
-                    s = SkyCoord(object.ra, object.dec, frame='icrs', unit=(u.deg, u.deg))
-                    target_data = [
-                        object.name, s.ra.to_string(u.hour), s.dec.to_string(u.deg, alwayssign=True),
-                        site, round(airmass_data.min(), 1)
-                    ]
+        # Parse the date, handling exceptions
+        try:
+            start_time = datetime.strptime(request.POST.get('date') + 'T00:00:00', '%Y-%m-%dT%H:%M:%S')
+            end_time = datetime.strptime(request.POST.get('date') + 'T23:59:59', '%Y-%m-%dT%H:%M:%S')
 
-                    # Extract any requested extra parameters for this object, if available
-                    for param in settings.SELECTION_EXTRA_FIELDS:
-                        if param in object.extra_fields.keys():
-                            target_data.append(object.extra_fields[param])
-                        else:
-                            target_data.append(None)
-                    observable_targets.append(target_data)
-                    logger.info('FacilitySelectView: Got observable target ' + object.name)
+            # Calculate the visibility of all selected targets on the date given
+            # Since some observatories include multiple sites, the visibiliy_data returned is always
+            # a dictionary indexed by site code.  Our purpose here is to verify whether each target is ever
+            # visible at lower airmass than the limit from any site - if so the target is considered to be visible
+            observable_targets = []
+            for object in targets:
+                airmass_limit = 2.0 # Hardcoded for now
+                logger.info('FacilitySelectView: calculating visibility for ' + object.name)
+                visibility_data = get_sidereal_visibility(
+                    object, start_time, end_time,
+                    visibiliy_intervals, airmass_max,
+                    observation_facility=request.POST.get('observatory')
+                )
+                logger.info('FacilitySelectView: Got visibility data')
+                for site, vis_data in visibility_data.items():
+                    airmass_data = np.array([x for x in vis_data[1] if x])
+                    if len(airmass_data) > 0:
+                        s = SkyCoord(object.ra, object.dec, frame='icrs', unit=(u.deg, u.deg))
+                        target_data = [
+                            object.name, s.ra.to_string(u.hour), s.dec.to_string(u.deg, alwayssign=True),
+                            site, round(airmass_data.min(), 1)
+                        ]
 
-        context['table_columns'] = table_columns
-        context['observable_targets'] = observable_targets
+                        # Extract any requested extra parameters for this object, if available
+                        for param in settings.SELECTION_EXTRA_FIELDS:
+                            if param in object.extra_fields.keys():
+                                target_data.append(object.extra_fields[param])
+                            else:
+                                target_data.append(None)
+                        observable_targets.append(target_data)
+                        logger.info('FacilitySelectView: Got observable target ' + object.name)
+
+            context['observable_targets'] = observable_targets
+
+        except ValueError:
+            messages.add_message(request, messages.WARNING, "Invalid date given")
 
         return self.render_to_response(context)
