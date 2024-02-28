@@ -408,31 +408,31 @@ class TargetFacilitySelectionView(Raise403PermissionRequiredMixin, FormView):
         visibiliy_intervals = 10
         context = super().get_context_data(*args, **kwargs)
 
-        # Gather the list of targets, either from the selected target list, or all targets accessible
-        # to the user.  This produces a QuerySet either way.
-        if len(request.POST.get('target_list')) > 0:
-            target_list = TargetList.objects.get(id=request.POST.get('target_list'))
-            targets = target_list.targets.all()
-        else:
-            targets = get_objects_for_user(request.user, 'tom_targets.view_target').distinct()
-        logger.info('FacilitySelectView: Retrieved ' + str(targets.count()) + ' targets')
-
-        # Configure output target table.
-        # The displayed table can be extended to include selected extra_fields for each target,
-        # if configured in the TOM's settings.py. So we set the list of table columns accordingly.
-        table_columns = [
-            'Target', 'RA', 'Dec', 'Site', 'Min airmass'
-        ] + settings.SELECTION_EXTRA_FIELDS
-        #for param in settings.SELECTION_EXTRA_FIELDS:
-        #    table_columns.append(param)
-        context['table_columns'] = table_columns
-        context['observable_targets'] = []
-        logger.info('FacilitySelectView: table columns: ' + repr(table_columns))
-
         # Parse the date, handling exceptions
         try:
             start_time = datetime.strptime(request.POST.get('date') + 'T00:00:00', '%Y-%m-%dT%H:%M:%S')
             end_time = datetime.strptime(request.POST.get('date') + 'T23:59:59', '%Y-%m-%dT%H:%M:%S')
+
+            # Gather the list of targets, either from the selected target list, or all targets accessible
+            # to the user.  This produces a QuerySet either way.
+            if len(request.POST.get('target_list')) > 0:
+                target_list = TargetList.objects.get(id=request.POST.get('target_list'))
+                targets = target_list.targets.all()
+            else:
+                targets = get_objects_for_user(request.user, 'tom_targets.view_target').distinct()
+            logger.info('FacilitySelectView: Retrieved ' + str(targets.count()) + ' targets')
+
+            # Configure output target table.
+            # The displayed table can be extended to include selected extra_fields for each target,
+            # if configured in the TOM's settings.py. So we set the list of table columns accordingly.
+            table_columns = [
+                'Target', 'RA', 'Dec', 'Site', 'Min airmass'
+            ] + settings.SELECTION_EXTRA_FIELDS
+            #for param in settings.SELECTION_EXTRA_FIELDS:
+            #    table_columns.append(param)
+            context['table_columns'] = table_columns
+            context['observable_targets'] = []
+            logger.info('FacilitySelectView: table columns: ' + repr(table_columns))
 
             # Calculate the visibility of all selected targets on the date given
             # Since some observatories include multiple sites, the visibiliy_data returned is always
