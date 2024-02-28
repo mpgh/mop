@@ -4,6 +4,7 @@ from astropy import units as u
 from mop.brokers import tns
 import logging
 import requests
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -177,18 +178,22 @@ def check_valid_u0(u_0_field):
     return True
 
 def check_valid_dmag(mulens):
-    """Function to find the brightest valid photometric measurement from all
-    lightcurves """
+    """Function to find the brightest valid photometric measurement from all available
+    lightcurves, and use it to estimate the change in magnitude from the baseline.
+    If the change is < 0.5, return False, as the target has not brightened enough to be
+    considered for follow-up.  If > 0.5mag, return True.
+    """
+
     if len(mulens.datasets) > 0:
-        # Find the brightest valid datapoint in the lightcurve,
-        # and use
+
         peak_mag = 50.0
         for passband, lc in mulens.datasets.items():
             idx = np.where(lc[:,1] > 0.0)
             if lc[idx].min() < peak_mag:
                 peak_mag = lc[idx].min()
 
-        delta_mag = baseline_mag_field - peak_mag
+        delta_mag = float(mulens.extras['Baseline_magnitude'].value) - peak_mag
+
         if delta_mag < 0.5:
             return False
     else:
@@ -198,8 +203,8 @@ def check_valid_dmag(mulens):
 
 def check_valid_chi2sq(mulens):
     if 'red_chi2' in mulens.extras.keys():
-        if mulens.extras['red_chi2'] > 50.0 \
-                or mulens.extras['red_chi2'] < 0.0:
+        if float(mulens.extras['red_chi2'].value) > 50.0 \
+                or float(mulens.extras['red_chi2'].value) < 0.0:
             return False
 
     else:
