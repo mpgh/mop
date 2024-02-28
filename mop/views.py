@@ -243,7 +243,7 @@ class PriorityTargetsView(ListView):
 
         key_list = ['t0', 't0_error', 'u0', 'u0_error', 'tE', 'tE_error', 'Mag_now', 'Baseline_magnitude']
 
-        selected_targets = querytools.fetch_data_for_targetset(targetset, check_need_to_fit=False)
+        selected_targets = querytools.fetch_data_for_targetset(targetset, check_need_to_fit=False, fetch_photometry=False)
 
         priority = []
         target_data = []

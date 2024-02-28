@@ -78,7 +78,7 @@ def get_alive_events_outside_HCZ(option):
 
     return target_data
 
-def fetch_data_for_targetset(target_list, check_need_to_fit=True):
+def fetch_data_for_targetset(target_list, check_need_to_fit=True, fetch_photometry=True):
     """
     Function to retrieve all TargetExtra and ReducedDatums associated with a set of targets
     """
@@ -104,7 +104,8 @@ def fetch_data_for_targetset(target_list, check_need_to_fit=True):
         mulens = MicrolensingEvent(t)
         mulens.set_target_names(names.filter(target=t))
         mulens.set_extra_params(target_extras.filter(target=t))
-        mulens.set_reduced_data(datums.filter(target=t))
+        if fetch_photometry:
+            mulens.set_reduced_data(datums.filter(target=t))
         if check_need_to_fit:
             (status, reason) = mulens.check_need_to_fit()
             logger.info('queryTools: Need to fit: ' + repr(status) + ', reason: ' + reason)
@@ -147,13 +148,13 @@ def fetch_priority_targets(priority_key, priority_threshold):
         key='Classification', value__icontains='Microlensing'
     )
     ts4 = TargetExtra.objects.prefetch_related('target').filter(
-        key='is_YSO', value__icontains='false'
+        key='YSO', value=False
     )
     ts5 = TargetExtra.objects.prefetch_related('target').filter(
-        key='is_QSO', value__icontains='false'
+        key='QSO', value=False
     )
     ts6 = TargetExtra.objects.prefetch_related('target').filter(
-        key='is_galaxy', value__icontains='false'
+        key='galaxy', value=False
     )
 
     logger.info('QueryTools: Got ' + str(ts1.count()) + ' targets above priority threshold, '
