@@ -65,8 +65,9 @@ ingress:
         - "/"
 
 # CronJob: Fit Need Events
+# ACTIVE
 fitneedevents:
-  enabled: true
+  enabled: false
   # Run in parallel across 6 Nodes (Machines) until all jobs are finished
   # Overruled: do not parallelize
   parallelism: 1
@@ -82,8 +83,9 @@ fitneedevents:
       memory: 4096Mi
 
 # CronJob: Run TAP
+# ACTIVE
 runtap:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m
@@ -94,8 +96,9 @@ runtap:
 
 # CronJob: Harvest ZTF DR3
 # Logs into IPAC archive portal directly
+# ACTIVE
 harvestztfdr3:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m
@@ -105,8 +108,9 @@ harvestztfdr3:
       memory: 1024Mi
 
 # CronJob: Harvest GAIA
+# ACTIVE
 harvestgaia:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m
@@ -116,8 +120,9 @@ harvestgaia:
       memory: 1024Mi
 
 # CronJob: Harvest MOA
+# ACTIVE
 harvestmoa:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m
@@ -127,18 +132,8 @@ harvestmoa:
       memory: 1024Mi
 
 # CronJob: Harvest OGLE
+# ACTIVE
 harvestogle:
-  enabled: true
-  resources:
-    requests:
-      cpu: 10m
-      memory: 256Mi
-    limits:
-      cpu: 1000m
-      memory: 1024Mi
-      
-# CronJob: Add Galactic Coordinates
-addgalacticcoordinates:
   enabled: false
   resources:
     requests:
@@ -147,22 +142,11 @@ addgalacticcoordinates:
     limits:
       cpu: 1000m
       memory: 1024Mi
-
-# CronJob: Open targets to OMEGA users
-opentargetstoomegausers:
-  enabled: false
-  resources:
-    requests:
-      cpu: 10m
-      memory: 256Mi
-    limits:
-      cpu: 1000m
-      memory: 1024Mi
-
 
 # CronJob: Add Gaia Classifier
+# ACTIVE
 gaiaclassifier:
-  enabled: true
+  enabled: false
   resources:
     requests:
       cpu: 10m

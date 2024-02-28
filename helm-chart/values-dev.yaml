@@ -133,39 +133,6 @@ harvestasassn:
       cpu: 1000m
       memory: 1024Mi
 
-# CronJob: Add Galactic Coordinates
-addgalacticcoordinates:
-  enabled: false
-  resources:
-    requests:
-      cpu: 10m
-      memory: 256Mi
-    limits:
-      cpu: 1000m
-      memory: 1024Mi
-
-# CronJob: Open targets to OMEGA users
-opentargetstoomegausers:
-  enabled: false
-  resources:
-    requests:
-      cpu: 10m
-      memory: 256Mi
-    limits:
-      cpu: 1000m
-      memory: 1024Mi
-
- # CronJob: Update observation status
-#updatestatus:
-  #enabled: true
-  #resources:
-    #requests:
-      #cpu: 10m
-      #memory: 256Mi
-    #limits:
-      #cpu: 1000m
-      #memory: 1024Mi
-
 # CronJob: Add Gaia Classifier
 gaiaclassifier:
   enabled: true
