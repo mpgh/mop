@@ -7,6 +7,11 @@
 {% block content %}
 <h3>Select Targets for an Observing Facility</h3>
 <div class="row">
+    <p>Please use the form below to search a target list for targets visible from a particular site and date. </p>
+    <p>WARNING - function in development!  Visibility calculations take time and may time out.  The best way to avoid this is to select
+    a targetlist from the pulldown menu rather than leave that field blank.  </p>
+</div>
+<div class="row">
   <form method="post" class="form" id='target-selection-form'>
     {% csrf_token %}
     <div class="form-row" style="padding-inline:1rem">
