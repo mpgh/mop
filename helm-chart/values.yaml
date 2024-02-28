@@ -59,18 +59,6 @@ harvestasassn:
   schedule: "0 12 * * *"
   resources: {}
 
-# CronJob: Add Galactic Coordinates
-addgalacticcoordinates:
-  enabled: false
-  schedule: "0 */12 * * *"
-  resources: {}
-
-# CronJob: Open targets to OMEGA users
-opentargetstoomegausers:
-  enabled: false
-  schedule: "0 */12 * * *"
-  resources: {}
-
 # CronJob: Gaia_classifier
 gaiaclassifier:
   enabled: true
