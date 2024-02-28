@@ -1,4 +1,6 @@
 from django import forms
+from tom_targets.models import TargetList
+from tom_observations import facility
 
 class TargetClassificationForm(forms.Form):
 
@@ -27,3 +29,18 @@ class TargetClassificationForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+class TargetSelectionForm(forms.Form):
+    """
+    Form for selecting the targets from a pre-existing TargetList
+    """
+    target_list = forms.ModelChoiceField(
+        TargetList.objects.all(),
+        required=False)
+    facilities = [(x,x) for x in facility.get_service_classes()]
+    observatory = forms.ChoiceField(required=True, choices=facilities)
+    date = forms.DateTimeField(required=True, help_text='YYYY-MM-DD')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+

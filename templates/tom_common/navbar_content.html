@@ -20,6 +20,9 @@ For customization instructions, see tom_common/base.html
         <li class="nav-item {% if request.resolver_match.namespace == 'targets' %}active{% endif %}">
             <a class="nav-link" href="{% url 'targets:targetgrouping' %}"><font color="black">Target Grouping</font></a>
         </li>
+        <li class="nav-item {% if request.resolver_match.namespace == 'targets' %}active{% endif %}">
+            <a class="nav-link" href="{% url 'target-selection' %}"><font color="black">Target Selection</font></a>
+        </li>
     </ul>
 </li>
 <li class="nav-item {% if request.resolver_match.namespace == 'alerts' %}active{% endif %}">

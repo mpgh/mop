@@ -1,14 +1,18 @@
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.core.management import call_command
+from django.conf import settings
 from io import StringIO
 from tom_targets.views import TargetDetailView
-from tom_targets.models import Target, TargetExtra
+from tom_targets.models import Target, TargetExtra, TargetList
 from tom_observations.models import ObservationRecord
 from tom_observations.views import ObservationFilter
+from tom_observations.utils import get_sidereal_visibility
 from mop.toolbox.TAP import set_target_sky_location
+from django.views.generic.edit import FormView
 from mop.toolbox.obs_control import fetch_all_lco_requestgroups, parse_lco_requestgroups
-from mop.forms import TargetClassificationForm
+from mop.forms import TargetClassificationForm, TargetSelectionForm
+from tom_common.mixins import Raise403PermissionRequiredMixin
 from django_filters.views import FilterView
 from guardian.mixins import PermissionListMixin
 from guardian.shortcuts import get_objects_for_user
@@ -17,6 +21,8 @@ from mop.toolbox import utilities, querytools
 from mop.toolbox.mop_classes import MicrolensingEvent
 from django.views.generic.list import ListView
 import numpy as np
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 import logging
 
 logger = logging.getLogger(__name__)
@@ -359,3 +365,102 @@ class PriorityTargetsView(ListView):
                 return False
 
         return True
+
+class TargetFacilitySelectionView(Raise403PermissionRequiredMixin, FormView):
+    """
+    View to select targets suitable to observe from a specific facility/location, taking into account target visibility
+    from that site, as well as other user-defined constraints.
+    """
+    template_name = 'tom_targets/target_facility_selection.html'
+    paginate_by = 25
+    strict = False
+    model = Target
+    permission_required = 'tom_targets.view_target'
+    form_class = TargetSelectionForm
+
+    def get_context_data(self, *args, **kwargs):
+        """
+        Adds the ``TargetListShareForm`` to the context and prepopulates the hidden fields.
+        :returns: context object
+        :rtype: dict
+        """
+        context = super().get_context_data(*args, **kwargs)
+        # Surely this needs to verify that the user has permission?
+        context['form'] = TargetSelectionForm()
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handles POST requests to select targets suitable for observation from this facility
+
+        :param request: The HTML request object
+        :param args: Optional arguments if any
+        :param kwargs: Optional kwargs if any
+        :return: HTTPRequest
+        """
+
+        # Configuration:
+        # Maximum airmass limit to consider a target visible
+        # Number of intervals with which to calculate visibility throughout a single night
+        airmass_max = 2.0
+        visibiliy_intervals = 10
+        context = super().get_context_data(*args, **kwargs)
+
+        # Gather the list of targets, either from the selected target list, or all targets accessible
+        # to the user.  This produces a QuerySet either way.
+        if len(request.POST.get('target_list')) > 0:
+            target_list = TargetList.objects.get(id=request.POST.get('target_list'))
+            targets = target_list.targets.all()
+        else:
+            targets = get_objects_for_user(request.user, 'tom_targets.view_target').distinct()
+        logger.info('FacilitySelectView: Retrieved ' + str(targets.count()) + ' targets')
+
+        # Configure output target table.
+        # The displayed table can be extended to include selected extra_fields for each target,
+        # if configured in the TOM's settings.py. So we set the list of table columns accordingly.
+        table_columns = [
+            'Target', 'RA', 'Dec', 'Site', 'Min airmass'
+        ] + settings.SELECTION_EXTRA_FIELDS
+        #for param in settings.SELECTION_EXTRA_FIELDS:
+        #    table_columns.append(param)
+        logger.info('FacilitySelectView: table columns: ' + repr(table_columns))
+
+        # Calculate the visibility of all selected targets on the date given
+        # Since some observatories include multiple sites, the visibiliy_data returned is always
+        # a dictionary indexed by site code.  Our purpose here is to verify whether each target is ever
+        # visible at lower airmass than the limit from any site - if so the target is considered to be visible
+        observable_targets = []
+        for object in targets:
+            start_time = datetime.strptime(request.POST.get('date')+'T00:00:00', '%Y-%m-%dT%H:%M:%S')
+            end_time = datetime.strptime(request.POST.get('date')+'T23:59:59', '%Y-%m-%dT%H:%M:%S')
+            airmass_limit = 2.0 # Hardcoded for now
+            logger.info('FacilitySelectView: calculating visibility for ' + object.name)
+            visibility_data = get_sidereal_visibility(
+                object, start_time, end_time,
+                visibiliy_intervals, airmass_max,
+                observation_facility=request.POST.get('observatory')
+            )
+            logger.info('FacilitySelectView: Got visibility data')
+            for site, vis_data in visibility_data.items():
+                airmass_data = np.array([x for x in vis_data[1] if x])
+                if len(airmass_data) > 0:
+                    s = SkyCoord(object.ra, object.dec, frame='icrs', unit=(u.deg, u.deg))
+                    target_data = [
+                        object.name, s.ra.to_string(u.hour), s.dec.to_string(u.deg, alwayssign=True),
+                        site, round(airmass_data.min(), 1)
+                    ]
+
+                    # Extract any requested extra parameters for this object, if available
+                    for param in settings.SELECTION_EXTRA_FIELDS:
+                        if param in object.extra_fields.keys():
+                            target_data.append(object.extra_fields[param])
+                        else:
+                            target_data.append(None)
+                    observable_targets.append(target_data)
+                    logger.info('FacilitySelectView: Got observable target ' + object.name)
+
+        context['table_columns'] = table_columns
+        context['observable_targets'] = observable_targets
+
+        return self.render_to_response(context)

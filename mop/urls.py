@@ -15,12 +15,13 @@ Including another URLconf
 """
 from django.urls import path, include
 
-from mop.views import MOPTargetDetailView, ActiveObsView, PriorityTargetsView
+from mop.views import MOPTargetDetailView, ActiveObsView, PriorityTargetsView, TargetFacilitySelectionView
 
 urlpatterns = [
     path('targets/<int:pk>/', MOPTargetDetailView.as_view(), name='detail'),
     path('activeobs/', ActiveObsView.as_view(), name='activeobs'),
     path('prioritytargets/', PriorityTargetsView.as_view(), name='prioritytargets'),
     path('', include('tom_common.urls')),
-    path('silk/', include('silk.urls', namespace='silk'))
+    path('silk/', include('silk.urls', namespace='silk')),
+    path('targetselection/', TargetFacilitySelectionView.as_view(), name='target-selection'),
 ]

@@ -291,7 +291,8 @@ TOM_FACILITY_CLASSES = [
     'tom_observations.facilities.lco.LCOFacility',
     'tom_observations.facilities.gemini.GEMFacility',
     'tom_observations.facilities.soar.SOARFacility',
-    'tom_observations.facilities.lt.LTFacility'
+    'tom_observations.facilities.lt.LTFacility',
+    'mop.facilities.casleo.CASLEOFacility',
 ]
 
 TOM_ALERT_CLASSES = [
@@ -406,6 +407,12 @@ EXTRA_FIELDS = [{'name': 'Alive', 'type': 'boolean', 'default':True},
                 {'name': 'galaxy', 'type': 'boolean', 'default': False},
                 {'name': 'TNS_name', 'type': 'string', 'default': 'None'},
                 {'name': 'TNS_class', 'type': 'string', 'default': 'None'}]
+
+SELECTION_EXTRA_FIELDS = [
+    'Mag_now',
+    'Priority1',
+    'Priority2',
+]
 
 TARGET_PERMISSIONS_ONLY=True
 
