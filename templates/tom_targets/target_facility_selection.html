@@ -45,10 +45,11 @@
                 <th>{{col}}</th>
             {% endfor %}
         </tr>
-        {% for entry in observable_targets %}
+        {% for target, entry in observable_targets %}
             <tr>
+                <td><a href="{% url 'targets:detail' target.id %}">{{ target.name }}</td>
                 {% for item in entry %}
-                    <td>{{item}}</td>
+                    <td>{{ item }}</td>
                 {% endfor %}
             </tr>
         {% endfor %}

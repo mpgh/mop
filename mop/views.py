@@ -416,11 +416,10 @@ class TargetFacilitySelectionView(Raise403PermissionRequiredMixin, FormView):
             # Gather the list of targets, either from the selected target list, or all targets accessible
             # to the user.  This produces a QuerySet either way.
             if len(request.POST.get('target_list')) > 0:
-                target_list = TargetList.objects.get(id=request.POST.get('target_list'))
-                targets = target_list.targets.all()
+                targets = querytools.get_targetlist_alive_events(targetlist_name=request.POST.get('target_list'))
             else:
-                targets = get_objects_for_user(request.user, 'tom_targets.view_target').distinct()
-            logger.info('FacilitySelectView: Retrieved ' + str(targets.count()) + ' targets')
+                targets = querytools.get_targetlist_alive_events(targetlist_name='all')
+            logger.info('FacilitySelectView: Retrieved ' + str(len(targets)) + ' targets')
 
             # Configure output target table.
             # The displayed table can be extended to include selected extra_fields for each target,
@@ -438,6 +437,7 @@ class TargetFacilitySelectionView(Raise403PermissionRequiredMixin, FormView):
             # Since some observatories include multiple sites, the visibiliy_data returned is always
             # a dictionary indexed by site code.  Our purpose here is to verify whether each target is ever
             # visible at lower airmass than the limit from any site - if so the target is considered to be visible
+            objects = []
             observable_targets = []
             for object in targets:
                 airmass_limit = 2.0 # Hardcoded for now
@@ -453,7 +453,7 @@ class TargetFacilitySelectionView(Raise403PermissionRequiredMixin, FormView):
                     if len(airmass_data) > 0:
                         s = SkyCoord(object.ra, object.dec, frame='icrs', unit=(u.deg, u.deg))
                         target_data = [
-                            object.name, s.ra.to_string(u.hour), s.dec.to_string(u.deg, alwayssign=True),
+                            s.ra.to_string(u.hour), s.dec.to_string(u.deg, alwayssign=True),
                             site, round(airmass_data.min(), 1)
                         ]
 
@@ -463,10 +463,11 @@ class TargetFacilitySelectionView(Raise403PermissionRequiredMixin, FormView):
                                 target_data.append(object.extra_fields[param])
                             else:
                                 target_data.append(None)
+                        objects.append(object)
                         observable_targets.append(target_data)
                         logger.info('FacilitySelectView: Got observable target ' + object.name)
 
-            context['observable_targets'] = observable_targets
+            context['observable_targets'] = zip(objects, observable_targets)
 
         except ValueError:
             messages.add_message(request, messages.WARNING, "Invalid date given")

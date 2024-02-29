@@ -410,8 +410,8 @@ EXTRA_FIELDS = [{'name': 'Alive', 'type': 'boolean', 'default':True},
 
 SELECTION_EXTRA_FIELDS = [
     'Mag_now',
-    'Priority1',
-    'Priority2',
+    'TAP_priority',
+    'TAP_priority_longtE',
 ]
 
 TARGET_PERMISSIONS_ONLY=True
