@@ -156,13 +156,17 @@ def fetch_priority_targets(priority_key, priority_threshold):
     ts6 = TargetExtra.objects.prefetch_related('target').filter(
         key='galaxy', value=False
     )
+    ts7 = TargetExtra.objects.prefetch_related('target').filter(
+        key='Alive', value=True
+    )
 
     logger.info('QueryTools: Got ' + str(ts1.count()) + ' targets above priority threshold, '
           + str(ts2.count()) + ' targets outside the HCZ, '
           + str(ts3.count()) + ' targets classified as microlensing, '
           + str(ts4.count()) + ' targets not YSOs, '
           + str(ts5.count()) + ' targets not QSOs, '
-          + str(ts6.count()) + ' targets not galaxies')
+          + str(ts6.count()) + ' targets not galaxies, '
+          + str(ts7.count()) + ' targets that are currently Alive')
 
     # Find the intersection of the target sets:
     targets1 = [x.target for x in ts1]
@@ -171,6 +175,7 @@ def fetch_priority_targets(priority_key, priority_threshold):
     targets4 = [x.target for x in ts4]
     targets5 = [x.target for x in ts5]
     targets6 = [x.target for x in ts6]
+    targets7 = [x.target for x in ts7]
 
     target_list = list(set(targets1).intersection(
         set(targets2)
@@ -182,6 +187,8 @@ def fetch_priority_targets(priority_key, priority_threshold):
         set(targets5)
     ).intersection(
         set(targets6)
+    ).intersection(
+        set(targets7)
     ))
     logger.info('QueryTools: identified ' + str(len(target_list)) + ' targets')
 
