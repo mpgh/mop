@@ -1,18 +1,16 @@
 from django.core.management.base import BaseCommand
 from tom_alerts.brokers import gaia
-from astropy.coordinates import SkyCoord
-import astropy.units as unit
 from tom_targets.models import Target
 from mop.brokers import gaia as gaia_mop
-from astropy.time import Time
 import requests
 from requests.exceptions import HTTPError
-
-from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_dataproducts.models import ReducedDatum
-
+from datetime import datetime
 from astropy.time import Time, TimezoneInfo
 from mop.toolbox import TAP, utilities, classifier_tools
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 BASE_BROKER_URL = gaia.BASE_BROKER_URL
@@ -88,16 +86,22 @@ class Command(BaseCommand):
 
     help = 'Downloads Gaia data for all events marked as microlensing candidate'
     def add_arguments(self, parser):
-        pass
+
+        parser.add_argument('events', help='name of a specific event or all')
 
     def handle(self, *args, **options):
+        logger.info('Gaia Harvester started run at ' + str(datetime.utcnow()))
 
         Gaia = MOPGaia()
 
-        (list_of_alerts, broker_feedback) = Gaia.fetch_alerts({'target_name':None,'cone':None})
+        if str(options['events']).lower() == 'all':
+            (list_of_alerts, broker_feedback) = Gaia.fetch_alerts({'target_name':None, 'cone':None})
+        else:
+            (list_of_alerts, broker_feedback) = Gaia.fetch_alerts({'target_name': options['events'], 'cone': None})
 
         new_alerts = []
         for alert in list_of_alerts:
+            logger.info('Gaia Harvester: gathering data for ' + repr(alert['name']))
 
             # As of Oct 2022, Gaia alerts will no longer be providing the
             # microlensing class as a comment in the alert.  We therefore
@@ -124,3 +128,5 @@ class Command(BaseCommand):
 
         # For all new alerts, set the permissions on the targets so all OMEGA users can see them
         utilities.open_targets_to_OMEGA_team(new_alerts)
+
+        logger.info('Gaia Harvester finished run at ' + str(datetime.utcnow()))
