@@ -24,7 +24,7 @@ class Command(BaseCommand):
         logger.info('Identified and ingested '+str(len(list_of_targets))+' target(s) from OGLE survey')
 
         # For the new targets, set the permissions such that all OMEGA team members can see them
-        utilities.open_targets_to_OMEGA_team(new_targets)
+        utilities.open_targets_to_OMEGA_team(list_of_targets)
 
         # The following random selection is made to avoid the harvesting process taking so long
         # that the Kubernetes pod times out.  By randomizing the target selection, we ensure

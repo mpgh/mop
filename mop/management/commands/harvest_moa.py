@@ -19,7 +19,7 @@ class Command(BaseCommand):
         (list_of_targets, new_targets) = Moa.fetch_alerts('./data/',[options['years']])
         logger.info('MOA HARVESTER: Found '+str(len(list_of_targets))+' targets')
 
-        utilities.open_targets_to_OMEGA_team(new_targets)
+        utilities.open_targets_to_OMEGA_team(list_of_targets)
 
         Moa.find_and_ingest_photometry(list_of_targets)
         logger.info('MOA HARVESTER: Ingested photometry for MOA targets')

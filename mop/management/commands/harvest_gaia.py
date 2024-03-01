@@ -127,6 +127,6 @@ class Command(BaseCommand):
             gaia_mop.fetch_gaia_dr3_entry(target)
 
         # For all new alerts, set the permissions on the targets so all OMEGA users can see them
-        utilities.open_targets_to_OMEGA_team(new_alerts)
+        utilities.open_targets_to_OMEGA_team(list_of_alerts)
 
         logger.info('Gaia Harvester finished run at ' + str(datetime.utcnow()))
