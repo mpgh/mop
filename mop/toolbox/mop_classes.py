@@ -4,6 +4,9 @@ from astropy.time import Time
 from mop.toolbox import fittools
 from datetime import datetime
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MicrolensingEvent(Target):
     """
@@ -14,8 +17,14 @@ class MicrolensingEvent(Target):
     def __init__(self, t):
         super().__init__(self, t.name)
         self.target = t
-        self.ra = float(t.ra)
-        self.dec = float(t.dec)
+        try:
+            self.ra = float(t.ra)
+            self.dec = float(t.dec)
+        except TypeError:
+            self.ra = t.ra
+            self.dec = t.dec
+            logger.warning('MicrolensingEvent: Target ' + t.name + ' has invalid RA='
+                           + repr(t.ra) + ', Dec=' + repr(t.dec))
         if t.galactic_lat and t.galactic_lng:
             self.galactic_lng = float(t.galactic_lng)
             self.galactic_lat = float(t.galactic_lat)

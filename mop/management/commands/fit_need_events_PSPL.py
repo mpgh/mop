@@ -171,32 +171,36 @@ class Command(BaseCommand):
                 # Catch for events where the RA, Dec is not set - source of this error unknown
                 try:
                     mulens = MicrolensingEvent(t)
-                    mulens.set_extra_params(target_extras.filter(target=t))
-                    mulens.set_reduced_data(datums.filter(target=t))
-                    (status, reason) = mulens.check_need_to_fit()
-                    logger.info('FIT_NEED_EVENTS: Need to fit ' + t.name
-                                + ': ' + repr(status) + ', reason: ' + reason)
+                    if type(mulens.ra) == float:
+                        mulens.set_extra_params(target_extras.filter(target=t))
+                        mulens.set_reduced_data(datums.filter(target=t))
+                        (status, reason) = mulens.check_need_to_fit()
+                        logger.info('FIT_NEED_EVENTS: Need to fit ' + t.name
+                                    + ': ' + repr(status) + ', reason: ' + reason)
 
-                    # If the event is to be fitted, this will take care of evaluating whether or
-                    # not the event is still alive, based on the new model.
-                    # If the event is not to be fitted for any reason, we need to check whether or not
-                    # it is still alive.
-                    if mulens.need_to_fit:
-                        target_data[t] = mulens
+                        # If the event is to be fitted, this will take care of evaluating whether or
+                        # not the event is still alive, based on the new model.
+                        # If the event is not to be fitted for any reason, we need to check whether or not
+                        # it is still alive.
+                        if mulens.need_to_fit:
+                            target_data[t] = mulens
+
+                        else:
+                            if mulens.t0 and mulens.tE:
+                                alive = fittools.check_event_alive(float(mulens.t0),
+                                                                   float(mulens.tE),
+                                                                   mulens.last_observation)
+                                if alive != bool(mulens.Alive):
+                                    update_extras = {'Alive': alive}
+                                    mulens.store_parameter_set(update_extras)
+                                    logger.info('Updated Alive status to ' + repr(alive))
+
+                        logger.info('FIT_NEED_EVENTS: evaluated target ' + t.name + ', '
+                                    + str(i) + ' out of ' + str(len(target_list)))
+                        utilities.checkpoint()
 
                     else:
-                        if mulens.t0 and mulens.tE:
-                            alive = fittools.check_event_alive(float(mulens.t0),
-                                                               float(mulens.tE),
-                                                               mulens.last_observation)
-                            if alive != bool(mulens.Alive):
-                                update_extras = {'Alive': alive}
-                                mulens.store_parameter_set(update_extras)
-                                logger.info('Updated Alive status to ' + repr(alive))
-
-                    logger.info('FIT_NEED_EVENTS: evaluated target ' + t.name + ', '
-                                + str(i) + ' out of ' + str(len(target_list)))
-                    utilities.checkpoint()
+                        logger.info('FIT_NEED_EVENTS: Event with invalid RA, Dec, skipping')
 
                 except ValueError:
                     logger.info('FIT_NEED_EVENTS: Could not create an Event object for ' + t.name + ', skipping')
