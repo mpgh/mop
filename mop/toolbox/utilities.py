@@ -57,9 +57,12 @@ def open_targets_to_OMEGA_team(target_list):
     """Function to assign the correct permissions for all OMEGA team members to see the target given"""
 
     omega_group = Group.objects.filter(name='OMEGA').first()
+    logger.info('TARGET PERMISSIONS: adding permissions for user group ' + repr(omega_group) +
+                ' for ' + str(len(target_list)) + ' targets')
 
     if omega_group:
         for target in target_list:
+            logger.info('PERMISSIONS set for ' + target.name)
             assign_perm('tom_targets.view_target', omega_group, target)
             assign_perm('tom_targets.change_target', omega_group, target)
 

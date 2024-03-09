@@ -8,14 +8,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class MicrolensingEvent(Target):
+class MicrolensingEvent():
     """
     Superclass designed to consolidate data associated with a single microlensing event in a 
     form convenient for processing
     """
 
     def __init__(self, t):
-        super().__init__(self, t.name)
+        self.name = t.name
         self.target = t
         try:
             self.ra = float(t.ra)
