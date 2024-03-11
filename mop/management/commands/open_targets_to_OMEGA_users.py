@@ -16,9 +16,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         omega_group = Group.objects.filter(name='OMEGA').first()
+        if not omega_group:
+            omega_group = Group.objects.filter(name='OMEGA-II').first()
 
         for target in Target.objects.all():
-
             assign_perm('tom_targets.view_target', omega_group, target)
             assign_perm('tom_targets.change_target', omega_group, target)
             #assign_perm('tom_targets.delete_target', omega_group, t)
