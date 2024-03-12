@@ -29,12 +29,16 @@ class Custom_TNS(TNSBroker):
             )
         }
         response = requests.post(TNS_SEARCH_URL, data, headers=self.tns_headers())
-        response.raise_for_status()
-        transients = response.json()
         names = []
-        for transient in transients['data']['reply']:
-            tns_name = transient['objname']
-            names.append(tns_name)
+        try:
+            response.raise_for_status()
+            transients = response.json()
+            names = []
+            for transient in transients['data']['reply']:
+                tns_name = transient['objname']
+                names.append(tns_name)
+        except requests.exceptions.HTTPError:
+            logger.error('ERROR querying TNS: ' + str(response.status_code) + ', ' + str(response.message))
 
         return names
 
@@ -53,9 +57,13 @@ class Custom_TNS(TNSBroker):
             }
             )
         }
-        response = requests.post(TNS_OBJECT_URL, data, headers=self.tns_headers())
-        response.raise_for_status()
-        alert = response.json()['data']['reply']
-        tns_class = alert['object_type']['name']
+        tns_class = None
+        try:
+            response = requests.post(TNS_OBJECT_URL, data, headers=self.tns_headers())
+            response.raise_for_status()
+            alert = response.json()['data']['reply']
+            tns_class = alert['object_type']['name']
+        except requests.exceptions.HTTPError:
+            logger.error('ERROR querying TNS: ' + str(response.status_code) + ', ' + str(response.message))
 
         return tns_class
