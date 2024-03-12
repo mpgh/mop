@@ -37,8 +37,8 @@ class Custom_TNS(TNSBroker):
             for transient in transients['data']['reply']:
                 tns_name = transient['objname']
                 names.append(tns_name)
-        except requests.exceptions.HTTPError:
-            logger.error('ERROR querying TNS: ' + str(response.status_code) + ', ' + str(response.message))
+        except requests.exceptions.HTTPError as e:
+            logger.error('ERROR querying TNS: ' + str(response.status_code) + ', ' + str(e.response.text))
 
         return names
 
@@ -63,7 +63,7 @@ class Custom_TNS(TNSBroker):
             response.raise_for_status()
             alert = response.json()['data']['reply']
             tns_class = alert['object_type']['name']
-        except requests.exceptions.HTTPError:
-            logger.error('ERROR querying TNS: ' + str(response.status_code) + ', ' + str(response.message))
+        except requests.exceptions.HTTPError as e:
+            logger.error('ERROR querying TNS: ' + str(response.status_code) + ', ' + str(e.response.text))
 
         return tns_class
