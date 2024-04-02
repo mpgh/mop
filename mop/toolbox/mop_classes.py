@@ -142,10 +142,10 @@ class MicrolensingEvent():
             rd.save()
             self.existing_model = rd
 
-        # If no prior model exists, create one
+        # If there is a pre-existing model, update it
         else:
-            self.existing_model.timestamp = self.existing_model.timestamp
-            self.existing_model.value = self.existing_model.value
+            self.existing_model.timestamp = model_time
+            self.existing_model.value = data
             self.existing_model.source_name = 'MOP'
             self.existing_model.source_location = self.target.name
             self.existing_model.data_type = 'lc_model'
