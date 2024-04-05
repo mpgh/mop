@@ -66,6 +66,7 @@ class TestTAPPlanetPriority(TestCase):
 
     def test_check_planet_priority(self):
         mag_now = 16.39
+        time_now = self.model_params['t0'] - 2.5
 
         planet_priority = TAP_priority.TAP_planet_priority(self.model_params['t'],
                                                            self.model_params['t0'],
@@ -80,7 +81,7 @@ class TestTAPPlanetPriority(TestCase):
         result = TAP_priority.check_planet_priority(planet_priority,
                                                     planet_priority_error,
                                                     self.model_params['Baseline_magnitude'],
-                                                    mag_now)
+                                                    mag_now, self.model_params['t0'], time_now)
 
         assert (type(result) == type(True))
         self.assertEqual(result, True)
@@ -112,7 +113,24 @@ class TestTAPLongEventPriority(TestCase):
                              'chi2': 6135.256,
                              'red_chi2': 6.35,
                              }
-        self.params = {'Latest_data_HJD': 2460207.09}
+
+        self.early_model_params = {'t': 2460207.0,
+                             't0': 2460217.09,
+                             'u0': 0.34,
+                             'te': 126.4,
+                             'Source_magnitude': 16.92,
+                             'Blend_magnitude': 16.50,
+                             'Baseline_magnitude': 15.94,
+                             'Fit_covariance': np.array([[2.15139430e+02, -6.99073781e-01, 1.58171420e+02, 9.10223660e+03, -9.17011400e+03],
+                                                         [-6.99073781e-01, 2.77657360e-03, -4.40726722e-01, -4.40097857e+01, 4.42423141e+01],
+                                                         [1.58171420e+02, -4.40726722e-01, 1.32540884e+02, 4.79312741e+03, -4.85656397e+03],
+                                                         [9.10223660e+03, -4.40097857e+01, 4.79312741e+03, 8.78518102e+05, -8.82383618e+05],
+                                                         [-9.17011400e+03, 4.42423141e+01, -4.85656397e+03, -8.82383618e+05, 8.87477082e+05]]
+                                                        ),
+                             'chi2': 6135.256,
+                             'red_chi2': 6.35,
+                             }
+        self.params = {'Latest_data_HJD': 2460202.09}
 
     def test_TAP_long_event_priority(self):
         result = TAP_priority.TAP_long_event_priority(self.model_params['t'],
@@ -130,12 +148,14 @@ class TestTAPLongEventPriority(TestCase):
 
     def test_check_long_priority(self):
         mag_now = 15.35
+
+        # Test for model after the peak
         long_priority = TAP_priority.TAP_long_event_priority(self.model_params['t'],
                                                              self.params['Latest_data_HJD'],
                                                              self.model_params['te'])
         
         t_E_error = np.sqrt(self.model_params['Fit_covariance'][2,2])
-        
+
         long_priority_error = TAP_priority.TAP_long_event_priority_error(self.model_params['te'],
                                                                          self.model_params['Fit_covariance'])
 
@@ -144,7 +164,29 @@ class TestTAPLongEventPriority(TestCase):
                                                   self.model_params['te'],
                                                   t_E_error,
                                                   mag_now,
-                                                  self.model_params['red_chi2'])
+                                                  self.model_params['red_chi2'],
+                                                  self.model_params['t0'],
+                                                  self.model_params['t'])
 
+        assert (type(result) == type('regular'))
+        self.assertEqual(result, 'regular')
+
+        # Test for early model (pre-peak)
+        long_priority = TAP_priority.TAP_long_event_priority(self.early_model_params['t'],
+                                                             self.params['Latest_data_HJD'],
+                                                             self.early_model_params['te'])
+        long_priority_error = long_priority * 0.9
+
+        t_E_error = np.sqrt(self.early_model_params['Fit_covariance'][2, 2])
+
+        result = TAP_priority.check_long_priority(long_priority,
+                                                  long_priority_error,
+                                                  self.early_model_params['te'],
+                                                  t_E_error,
+                                                  mag_now,
+                                                  self.early_model_params['red_chi2'],
+                                                  self.early_model_params['t0'],
+                                                  self.early_model_params['t'])
+        
         assert (type(result) == type('regular'))
         self.assertEqual(result, 'regular')

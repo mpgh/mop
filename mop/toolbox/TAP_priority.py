@@ -147,7 +147,7 @@ def TAP_long_event_priority_error(t_E, covariance, t_E_base = 75.):
 
     return err_psi
 
-def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, mag_now):
+def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, mag_now, t_0, time_now):
     '''
     This function checks if the event status should be changed to priority stellar event.
 
@@ -155,15 +155,27 @@ def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, 
     :param planet_priority_error: error of the priority
     :param mag_baseline: baseline magnitude of the event
     :param mag_now: current magnitude of the event
+    :param t_0: Predicted time of event peak, JD
+    :param time_now: Current time in JD
     '''
-    if (planet_priority>10) and (planet_priority/planet_priority_error>3) \
-        and (mag_baseline-mag_now>2) and (mag_now<19):
+
+    # Criterion on the priority uncertainty depends on whether the event has reached the
+    # peak or not, with greater flexibiltiy allowed prior to the peak
+    criterion1 = (planet_priority>10)
+    if time_now >= t_0:
+        criterion2 = (planet_priority/planet_priority_error>3)
+    else:
+        criterion2 = ((planet_priority - planet_priority_error) > 0)
+    criterion3 = (mag_baseline-mag_now>2)
+    criterion4 = (mag_now<19)
+
+    if criterion1 and criterion2 and criterion3 and criterion4:
         return True
     else:
         return False
 
 def check_long_priority(long_priority, long_priority_error,
-                        t_E, t_E_error, mag_now, red_chi2):
+                        t_E, t_E_error, mag_now, red_chi2, t_0, time_now):
     '''
     This function checks if the event status should be changed to priority stellar event.
 
@@ -173,11 +185,22 @@ def check_long_priority(long_priority, long_priority_error,
     :param t_E: uncertianity of the Einstein timescale of the best fitting model
     :param red_chi2: chi2 over degrees of freedom of the best fitting model
     :param mag_now: current magnitude of the event
+    :param t_0: Predicted time of event peak, JD
+    :param time_now: Current time in JD
     '''
-    if (long_priority > 10.
-        and(long_priority / long_priority_error > 3.)
-        and (t_E / t_E_error > 3.) and (mag_now < 17.5)
-        and red_chi2 < 20.):
+
+    # Criterion on the priority uncertainty depends on whether the event has reached the
+    # peak or not, with greater flexibiltiy allowed prior to the peak
+    criterion1 = (long_priority > 10.0)
+    if time_now >= t_0:
+        criterion2 = (long_priority/long_priority_error>3)
+    else:
+        criterion2 = ((long_priority - long_priority_error) > 0)
+    criterion3 = (t_E / t_E_error > 3.0)
+    criterion4 = (mag_now < 17.5)
+    criterion5 = (red_chi2 < 20.0)
+
+    if criterion1 and criterion2 and criterion3 and criterion4 and criterion5:
         # and (((t_0 - t_now - (3. * (t_0_error + t_E_error))) / t_E) < 1.2)): # turning off events should be handled by Alive status
         if(long_priority > 50.):
             return 'priority'

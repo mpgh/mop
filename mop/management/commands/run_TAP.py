@@ -173,7 +173,8 @@ class Command(BaseCommand):
                                     observing_mode = TAP.TAP_observing_mode(planet_priority, planet_priority_error,
                                                                         long_priority, long_priority_error,
                                                                         tE_pspl, tE_pspl_error, mag_now,
-                                                                        mulens.Baseline_magnitude, red_chi2)
+                                                                        mulens.Baseline_magnitude, red_chi2,
+                                                                        t0_pspl, time_now)
 
                                 else:
                                     observing_mode = None
