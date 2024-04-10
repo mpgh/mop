@@ -147,6 +147,30 @@ def TAP_long_event_priority_error(t_E, covariance, t_E_base = 75.):
 
     return err_psi
 
+def check_predicted_baseline_return_time(t_E, u_0, t_0,  covariance, u_limit):
+    '''
+    This function predicts when the event is reaching u_limit in the future,
+    i.e. if baseline is defined as u_limit=1, how many days in the future
+    is the baseline value - with uncertainty
+    Advantage of the prediction is to catch a correlation between and tE
+    and u0 when models before t0 are used.
+
+    :param t_0: Predicted time of event peak, JD
+    :param u_0: Impact parameter
+    :param t_E: Einstein time
+    :param covariance: covariance matrix
+    :param time_now: Current time in JD
+    '''
+    if u_0< u_limit:
+        t_return_baseline = t_0 + t_E * (u_limit**2  - u_0**2)**0.5
+    else:
+        #to avoid a negative value , we assume u0==0
+        t_return_baseline = t_0 + t_E * u_limit
+   #squared derivatives for uncertainties:
+    squared_diff_t_E = u_limit**2 - u_0**2
+    squared_diff_t_0 = 1
+    squared_diff_u_0 = t_E**2*u_0**2/(u_limit**2-u_0**2)
+    return t_return_baseline, None
 def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, mag_now, t_0, time_now):
     '''
     This function checks if the event status should be changed to priority stellar event.
@@ -166,7 +190,7 @@ def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, 
         criterion2 = (planet_priority/planet_priority_error>3)
     else:
         criterion2 = ((planet_priority - planet_priority_error) > 0)
-    criterion3 = (mag_baseline-mag_now>2)
+    criterion3 = (float(mag_baseline)-float(mag_now)>0.3)
     criterion4 = (mag_now<19)
 
     if criterion1 and criterion2 and criterion3 and criterion4:
