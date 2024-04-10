@@ -161,16 +161,21 @@ def check_predicted_baseline_return_time(t_E, u_0, t_0,  covariance, u_limit):
     :param covariance: covariance matrix
     :param time_now: Current time in JD
     '''
+    # squared derivatives for uncertainties:
+    squared_diff_t_E = u_limit ** 2 - u_0 ** 2
+    squared_diff_t_0 = 1
+    squared_diff_u_0 = t_E ** 2 * u_0 ** 2 / (u_limit ** 2 - u_0 ** 2)
     if u_0< u_limit:
         t_return_baseline = t_0 + t_E * (u_limit**2  - u_0**2)**0.5
+        variance_t_return_baseline = covariance[0, 0] * squared_diff_t_0 + covariance[1, 1] * squared_diff_u_0 + \
+                                     covariance[2, 2] * squared_diff_t_E + 2. * -t_E * u_0 * covariance[1, 2]
     else:
         #to avoid a negative value , we assume u0==0
         t_return_baseline = t_0 + t_E * u_limit
-   #squared derivatives for uncertainties:
-    squared_diff_t_E = u_limit**2 - u_0**2
-    squared_diff_t_0 = 1
-    squared_diff_u_0 = t_E**2*u_0**2/(u_limit**2-u_0**2)
-    return t_return_baseline, None
+        variance_t_return_baseline = covariance[0, 0]  + covariance[2, 2] * u_limit**2
+
+    return t_return_baseline, (variance_t_return_baseline)**0.5
+
 def check_planet_priority(planet_priority, planet_priority_error, mag_baseline, mag_now, t_0, time_now):
     '''
     This function checks if the event status should be changed to priority stellar event.
